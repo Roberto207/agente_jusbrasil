@@ -1,0 +1,5 @@
+usar_encoder = false
+usar_llm = false
+extrair_referencia_vaga = false
+semente = 0
+dtype = "float16"
