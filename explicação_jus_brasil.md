@@ -24,11 +24,52 @@ Para cada documento, o sistema deve:
      registro. É evasiva, não uma invenção.
 
 Dois níveis de dificuldade: Nível 1 (formato padrão) e Nível 2 (ruído de OCR + variação de
-superfície, mais realista e mais difícil).
+superfície, mais realista e mais difícil). Detalhes na seção abaixo.
 
-Regras: só modelos/ferramentas open-weight e open-source (sem API paga tipo GPT/Claude
-comercial durante a execução final — servir um modelo aberto via API paga no desenvolvimento é
-ok, desde que a mesma versão rode offline). Qualquer dataset público pode ser usado no treino.
+### O que é o Nível 2
+
+Os documentos vêm em dois níveis. Na amostra de desenvolvimento são 13 de cada
+(`gen_n1_*.txt` e `gen_n2_*.txt`), com o mesmo tipo de parecer, a mesma base canônica e as mesmas
+três classes. O que muda é **como o texto está escrito**:
+
+- **Nível 1 — formato padrão.** Texto limpo, citações no formato que um advogado digitaria:
+  `AgInt no AREsp nº 1.996.496/RJ`, `Súmula Vinculante 10`, `art. 373, I, do CPC`.
+- **Nível 2 — ruído de OCR + variação de superfície.** Simula um documento que foi impresso,
+  escaneado e lido por OCR (reconhecimento óptico de caracteres), escrito por alguém com outro
+  estilo. Dois tipos de problema se misturam:
+
+  1. **Ruído de OCR** — o leitor óptico confunde letras parecidas:
+     - no texto comum: `Fedcral` (federal), `origcm` (origem), `lnsurge` (insurge), `dellto`
+       (delito), `equivocãda`, `Magãlhães`. Na amostra há 92 palavras corrompidas assim;
+     - dentro das citações, que é onde dói: `5úmula 211 do STJ` (S virou 5), `AgInt no RESP
+       21737l8` (1 virou l), `Recurso Especial Nº 170076O` (0 virou O), `R.Esp. n° 1.45g.779`
+       (9 virou g), `RE nº 5. 230.808-DF` (espaço no meio do número).
+  2. **Variação de superfície** — a mesma citação escrita de outro jeito:
+     - abreviações diferentes: `Rec. Esp.`, `R.Esp.`, `REspe.`, `Ag. Int.`;
+     - `No`, `n°`, `n.` no lugar de `nº`; UF entre parênteses `(SC)` ou com travessão `– SP`;
+     - número sem pontuação (`1145207`, `7000171-3920237000000`) ou quebrado em linhas;
+     - nomes longos por extenso: `EDcl nos EDcl no AgInt no Agravo em Recurso Especial`;
+     - formatos do TST: `TST-ED-E-ED-ARR-1099-66.2011.5.02.0251`.
+
+**Por que pesa o dobro:** é o cenário realista — peças escaneadas e texto sujo são o que um
+verificador encontra em produção — e é onde soluções simples quebram. Uma busca exata por
+`Súmula 211` não acha `5úmula 211`; um regex que espera `nº` não pega `No`. Como
+`score_final = (1·N1 + 2·N2) / 3`, uma solução perfeita no Nível 1 e zerada no Nível 2 fica com
+no máximo 0,37.
+
+**Importante:** as posições (`inicio`/`fim`) continuam sendo contadas sobre o texto sujo, exatamente
+como distribuído. Corrigir o OCR para achar a citação é permitido; entregar a posição do texto
+corrigido não.
+
+Regras principais (texto completo em `scope.md`):
+- só modelos, bibliotecas e ferramentas de pesos e código abertos, sem API nem serviço pago na
+  execução; pelas regras do Kaggle, código aberto com licença aprovada pela OSI;
+- pesos em repositório público (ex.: Hugging Face) com link + revisão fixa; fine-tuning permitido se
+  os pesos forem publicados;
+- qualquer dataset público no treino — dados sintéticos da equipe valem se forem publicados;
+- a solução inteira precisa caber no ambiente de avaliação: **1 GPU de 24 GB, ~8 vCPUs, 32 GB de
+  RAM**, senão é desclassificada;
+- rotular ou tentar inferir o conjunto de teste desclassifica.
 
 ---
 
@@ -38,15 +79,17 @@ Existem três artefatos distintos:
 
 ### 1. JSON por documento (o contrato real, schema 1.2)
 
-É o output de fato do seu pipeline — um JSON por documento de entrada. Formato inferido a
-partir da estrutura do CSV de submissão:
+É o output de fato do seu pipeline — um JSON por documento de entrada. Formato confirmado no
+`json_to_submission.py` distribuído:
 
 ```json
 {
   "documento_id": "gen_n1_001",
   "citacoes": [
-    {"inicio": 469, "fim": 498, "classe": "incompleta", "id_canonico": null, "confianca": 0.9},
-    {"inicio": 589, "fim": 652, "classe": "real", "id_canonico": "acordao_stj_12345", "confianca": 0.8}
+    {"inicio": 589, "fim": 652, "trecho": "julgado do STF proferido em 2024 pela relatoria de Dias Toffoli",
+     "tipo": "jurisprudencia", "classificacao": "incompleta", "resolucao": {}, "confianca": 0.9},
+    {"inicio": 1284, "fim": 1302, "trecho": "...", "tipo": "lei",
+     "classificacao": "real", "resolucao": {"id_canonico": "28893055"}, "confianca": 0.8}
   ]
 }
 ```
@@ -59,12 +102,12 @@ existência).
 - `inicio`/`fim`: offsets em **codepoints Unicode**, contados sobre o `.txt` exatamente como
   distribuído. Bibliotecas que contam bytes UTF-8 (multibyte) ou normalizam o texto antes de
   indexar quebram isso silenciosamente.
-- `classe`: uma das 3 strings.
-- `id_canonico`: só relevante para `real`; nos outros casos vira `null`/ausente → `-` no CSV.
+- `trecho` e `tipo` (`jurisprudencia` ou `lei`): obrigatórios no JSON, mas não entram no CSV.
+- `classificacao`: uma das 3 strings.
+- `resolucao.id_canonico`: só relevante para `real`; é o doc_id numérico do Jusbrasil (coluna
+  `id` da base, não a coluna `documento_id`, que tem valores tipo `doc_0001`). Nos outros casos
+  fica ausente → `-` no CSV.
 - `confianca`: opcional; ausência não penaliza nem bonifica.
-
-Campos exatos do schema 1.2 (nomes, possíveis metadados extras) ainda não confirmados — checar
-assim que o material chegar por e-mail (25/08).
 
 ### 2. `submission.csv` (o que sobe no Kaggle)
 
@@ -84,10 +127,12 @@ gen_n1_002,-
 
 ### 3. Reprodutibilidade (só para os finalistas do topo)
 
-Repositório de código publicado + commit exato que gerou as saídas submetidas, executável de
-ponta a ponta sem chaves de API pagas. Vale desenhar o pipeline desde já como script
-reproduzível (não notebook exploratório solto), seguindo o padrão do `agente_questoes_enem`
-(`cli.py`).
+As finalistas entregam um pacote: repositório com código, README, referência dos modelos (link +
+revisão), ambiente (`requirements`/`Dockerfile`) e o **comando exato que reproduz as saídas
+submetidas**, com decodificação determinística (temperatura 0, semente fixa). O que a organização
+reproduz é a execução que gera a submissão, a partir dos pesos e dados publicados — não o treino.
+Durante a competição o repositório fica privado (só a equipe); código só pode ser compartilhado
+publicamente no fórum do Kaggle. Detalhes em `DESIGN.md` e ADR-010/ADR-014.
 
 ### Script auxiliar: `kaggle_metric.py`
 
@@ -137,9 +182,10 @@ parágrafo inteiro em vez da citação, ou só um pedaço dela, derruba o IoU ab
 
 **1. Macro-F1 (peso igual entre classes).** Média simples de F1(real), F1(inventada),
 F1(incompleta) — não ponderada pela frequência de cada classe. Se fosse F1 comum, um sistema
-que sempre chuta `real` (provavelmente a classe majoritária) teria nota alta mesmo ignorando
-`inventada` — que é a classe mais rara e mais central ao desafio. Macro-F1 evita isso. Para
-`real`, só conta acerto se o `id_canonico` também bater.
+que sempre chuta `real` (a classe majoritária: 96 de 192 citações no gabarito da amostra)
+teria nota alta mesmo ignorando `incompleta` (32 de 192, a mais rara) e `inventada` (64 de 192,
+a mais central ao desafio). Macro-F1 evita isso. Para `real`, só conta acerto se o
+`id_canonico` também bater.
 
 **2. Penalidade do erro grave (τ).** `τ` = fração das citações `inventada` do gabarito que você
 classificou como `real`. Esse é um peso adicional, fora do F1, porque nem todo erro é igualmente
@@ -200,8 +246,7 @@ Uma submissão perfeita com `confianca=1.0` nos dois níveis pontua exatamente *
 | Fechamento das submissões | 30/09/2026, 23h59 BRT |
 | Apresentação no BRACIS 2026 (Cuiabá-MT) | 19 a 22/10/2026 |
 
-## Em aberto até os dados chegarem (25/08)
+## Status dos pontos que estavam em aberto
 
-- Nomes exatos dos campos do schema 1.2 do JSON.
-- Possíveis metadados extras por documento.
-- Convenção de nomes de `id_canonico` na base SQLite.
+Resolvidos com o material distribuído — ver `scope.md` (contrato do JSON, detalhes da métrica e
+divergência entre regulamento e gabarito) e `DEFINE.md` v2.

@@ -1,0 +1,2 @@
+- [Adição cirúrgica de tópico a pasta existente](feedback_adicao_topico_pasta_existente.md) — escopo e passos ao inserir 1 conceito novo numa trilha Obsidian já madura, sem reescrever nada.
+- [Pasta Engenharia_de_requisitos](project_engenharia_de_requisitos.md) — mapa da trilha, fontes-base e convenções (link cruzado com frameworks_sdd.md de outra pasta).

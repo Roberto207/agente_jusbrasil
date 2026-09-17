@@ -2,9 +2,14 @@
 
 **Origem:** regulamento oficial do desafio (Kaggle, competição privada, Jusbrasil × BRACIS 2026)
 **Data:** 2026-09-17
+**Revisão:** 2026-09-17 — contrato do JSON e regras da métrica preenchidos a partir do material
+distribuído (`json_to_submission.py`, `kaggle_metric.py`, `sample_submission.csv`); regras
+completas da aba Rules (ambiente de avaliação, pesos públicos, pacote reproduzível, Foundational
+Rules) e esclarecimentos da equipe incorporados.
 **Natureza:** demanda externa fechada — este documento reproduz fielmente o que a organização
-pede, sem decisão de arquitetura ou de implementação. Decisões técnicas ficam para `DESIGN.md`
-e ADRs (ainda não escritos). Requisitos internos de engenharia ficam para `DEFINE.md`.
+pede (regulamento + material distribuído), sem decisão de arquitetura ou de implementação.
+Decisões técnicas ficam em `DESIGN.md` e `docs/decisions/`. Requisitos internos de engenharia
+ficam em `DEFINE.md`.
 
 ---
 
@@ -46,10 +51,26 @@ O conjunto tem dois níveis de dificuldade:
 
 ## Formato de entrega exigido
 
-1. **JSON por documento** (contrato "schema 1.2", detalhado na aba Data do Kaggle — campos
-   exatos a confirmar quando os dados chegarem). É o output real do sistema: para cada
-   documento, a lista de citações encontradas, cada uma com span (`inicio`/`fim`), `classe`,
-   `id_canonico` (quando aplicável) e `confianca` (opcional).
+1. **JSON por documento** (contrato "schema 1.2"). É o output real do sistema. Campos lidos
+   pelo `json_to_submission.py`:
+   ```json
+   {
+     "documento_id": "gen_n1_001",
+     "citacoes": [
+       {
+         "inicio": 1284, "fim": 1302,
+         "trecho": "...", "tipo": "jurisprudencia",
+         "classificacao": "real",
+         "resolucao": {"id_canonico": "2106313729"},
+         "confianca": 0.91
+       }
+     ]
+   }
+   ```
+   - `trecho` e `tipo` (`jurisprudencia` ou `lei`) são obrigatórios no JSON, mas não entram no
+     CSV — a métrica pontua span, classe, link e confiança.
+   - `id_canonico` é o doc_id numérico do Jusbrasil (só dígitos) — na base distribuída, a
+     coluna `id` da tabela `documentos`.
 2. **Conversão para `submission.csv`** via `json_to_submission.py` (script fornecido pela
    organização) — não deve ser reimplementado manualmente. Uma linha por `documento_id`:
    ```
@@ -66,20 +87,71 @@ O conjunto tem dois níveis de dificuldade:
 4. **`kaggle_metric.py`** (fornecido) reproduz localmente, nível a nível, o mesmo score do
    leaderboard — inclusive o matching — antes de qualquer submissão.
 
-## Restrições impostas pela organização
+### Material distribuído
 
-- Somente **modelos e ferramentas de pesos e código abertos** — sem chaves de API nem serviços
-  pagos na execução final. Servir um modelo de pesos abertos via API paga durante o
-  desenvolvimento é permitido, desde que o mesmo modelo e revisão sejam executáveis offline pela
-  organização.
-- Qualquer dataset público pode ser usado **no treino**.
-- Elegibilidade: apenas estudantes do Brasil; participação individual ou em equipes de até 4
-  pessoas (mesclagem de equipes pelo próprio Kaggle); elegibilidade verificada pela organização.
-- **Reprodutibilidade obrigatória para o topo do ranking**: as soluções finalistas passam por
-  verificação de reprodutibilidade ao final — repositório de código e o commit exato que
-  produziu as saídas submetidas serão coletados.
-- Teto diário de submissões por equipe (valor configurado na competição, não especificado no
-  regulamento textual).
+| Arquivo | Conteúdo |
+|---|---|
+| `txt/` | 26 documentos da amostra de desenvolvimento (13 de Nível 1, 13 de Nível 2) |
+| `desafio1_bracis.db` | base canônica SQLite: tabela `documentos` (1.014 registros — acórdãos de STF, STJ, STM, TSE e TST, súmulas e dispositivos de lei) + índice full-text FTS5 |
+| `goldenset_offsets.csv` | gabarito da amostra: `nivel, documento_id, citacao_id, inicio, fim, trecho, tipo, classificacao, id_canonico` (192 citações) |
+| `json_to_submission.py` | conversor JSON → `submission.csv` |
+| `kaggle_metric.py` | métrica oficial |
+| `sample_submission.csv` | exemplo de submissão vazia (`-` em todas as células) |
+
+## Regras da competição (aba Rules)
+
+A participação implica aceitar as regras abaixo e as **Foundational Competition Rules** do
+Kaggle, que prevalecem em caso de conflito.
+
+### Regras do desafio
+
+- **Equipes e elegibilidade**: individual ou equipes de até 4 pessoas, apenas estudantes, do
+  Brasil. Elegibilidade verificada pela organização (nas finalistas, antes do resultado).
+  Inscrição no BRACIS não é pré-requisito; vencedores comparecem (ou enviam representante) à
+  sessão de encerramento.
+- **Ferramentas — somente abertas**: apenas modelos, bibliotecas e ferramentas de pesos e código
+  abertos, executáveis pela organização sem chaves de API ou serviços pagos.
+  - **Pesos em repositório público** (ex.: Hugging Face), referenciados por **link + revisão
+    fixa**.
+  - **Fine-tuning é permitido**, desde que os pesos resultantes sejam **publicados e
+    referenciados**.
+  - Qualquer **dataset público** pode ser usado no treino.
+- **Ambiente de avaliação (envelope de execução)**: a solução completa deve rodar em **1 GPU de
+  24 GB de VRAM** (ex.: NVIDIA L4 / A10 / RTX 4090), **~8 vCPUs** e **32 GB de RAM**. Pipeline que
+  não caiba nesse envelope é considerado não reproduzível e **desclassificado**.
+- **Submissões**: múltiplas durante todo o período, com teto diário por equipe. Fases do
+  leaderboard descritas abaixo.
+- **Pacote reproduzível (bundle)**: as finalistas entregam repositório com código, README,
+  referência dos modelos (link + revisão), ambiente (`requirements`/`Dockerfile`) e o **comando
+  exato que reproduz as saídas submetidas**, com **decodificação determinística** (ex.:
+  `temperature=0`, seed fixa) sempre que aplicável. Solução não reproduzível não entra no
+  ranking.
+- **Ranking e recurso**: ranking final só sobre a parte privada do conjunto final, com
+  verificação de reprodutibilidade após o encerramento e janela de recurso após a divulgação
+  preliminar.
+- **Desclassificação**: tentar extrair, inferir ou obter o conjunto de teste privado; plágio sem
+  crédito; violar a regra de ferramentas abertas.
+- **Publicação**: as melhores soluções são apresentadas no BRACIS 2026; o desafio vira benchmark
+  público após a conferência.
+
+### Pontos das Foundational Rules do Kaggle que afetam o projeto
+
+| Seção | Regra | Efeito prático |
+|---|---|---|
+| 4b | Submissões não podem usar rotulagem manual ou predição humana dos dados de validação/teste | Documentos do conjunto final não são lidos para ajustar regras |
+| 5a | Uma única conta Kaggle por pessoa | Cada integrante usa só a própria conta |
+| 5d, 6a | Proibido compartilhar código ou dados em particular fora da equipe | Repositório privado, acesso só da equipe |
+| 6b | Compartilhamento público de código da competição só no fórum/notebooks do Kaggle, sob licença OSI | Não publicar o código fora do Kaggle durante a competição |
+| 6c | Código aberto usado precisa de licença aprovada pela OSI, sem restringir uso comercial | Conferir licença de cada biblioteca e modelo (ex.: evitar licenças próprias como Gemma 3 e Llama) |
+
+### Esclarecimentos definidos pela equipe
+
+- **Dados sintéticos** gerados pela equipe são permitidos no treino, **desde que publicados**
+  (entram como dataset público).
+- **Pesos de fine-tuning** e **dados sintéticos** são publicados **dentro do prazo** da
+  competição, com revisão fixa.
+- **Referências vagas** ("jurisprudência pacífica"): em análise pela equipe (ver divergência
+  abaixo).
 
 ## Métrica oficial
 
@@ -102,6 +174,20 @@ Sobre os pares casados, a nota de cada nível é montada em três passos:
 Combinação dos níveis: `score_final = (1 · score_Nível1 + 2 · score_Nível2) / 3`.
 
 Uma submissão perfeita com `confianca = 1.0` pontua 1,1000.
+
+### Detalhes que só aparecem no `kaggle_metric.py`
+
+- **Duplicata rejeita a submissão**: duas citações do mesmo documento com IoU ≥ 0,5 entre si
+  levantam erro — a submissão inteira é recusada.
+- **Classe errada custa duas vezes**: FN na classe do gabarito e FP na classe predita. Link
+  errado num par `real`×`real` custa só um FP.
+- **Regra EXTRA**: predição sem par que esteja ≥ 90% contida numa citação do gabarito já casada
+  é ignorada (tolera granularidade a mais, ex.: `art. 1.021` e `§4º` separados).
+- **Classe sem ocorrência** no gabarito de um nível fica fora da média do macro-F1.
+- **Gabarito aceita vários ids**: a solução guarda, para cada real, um conjunto de doc_ids
+  aceitos; basta acertar um.
+- `confianca` fora de [0, 1], `id_canonico` não numérico em real, ou span com `fim <= inicio`
+  também rejeitam a submissão.
 
 > O detalhamento didático de por que o IoU e os pesos funcionam assim (com exemplo numérico)
 > está em `explicação_jus_brasil.md`, já escrito neste projeto — este documento só declara a
@@ -142,15 +228,23 @@ Todas as datas em horário de Brasília (BRT).
 ## Fora do escopo deste documento
 
 - Qualquer decisão de arquitetura, stack, modelo ou estratégia de extração/classificação/linking
-  — fica para `DESIGN.md` (ainda não escrito).
-- Requisitos internos de engenharia (DEVE/NÃO DEVE do próprio sistema) — fica para `DEFINE.md`.
+  — fica em `DESIGN.md` e `docs/decisions/`.
+- Requisitos internos de engenharia (DEVE/NÃO DEVE do próprio sistema) — ficam em `DEFINE.md`.
 - Exploração de hipóteses e abordagens técnicas concorrentes — ficaria para `BRAINSTORM.md`,
   deliberadamente deferido: a demanda aqui é uma regra externa já fechada, não um pedido vago
   que precise de pesquisa para corrigir a premissa.
 
-## Em aberto até os dados chegarem (25/08/2026)
+## Divergência entre o regulamento e o material distribuído
 
-- Nomes exatos dos campos do schema 1.2 do JSON por documento.
-- Possíveis metadados extras por documento além de `citacoes`.
-- Convenção de nomes de `id_canonico` na base canônica SQLite.
+O regulamento dá "conforme jurisprudência pacífica do tribunal" como exemplo de `incompleta`.
+No gabarito da amostra, referências vagas desse tipo ("a jurisprudência pacífica desta Corte",
+"o entendimento sumulado sobre a matéria", "o artigo correspondente do Código de Processo
+Civil") **aparecem nos textos mas não são anotadas**. Toda `incompleta` anotada traz tribunal
+ou classe processual, ano e relator, sem número. Como o sistema é pontuado contra o gabarito,
+`DEFINE.md` segue o gabarito — ver ADR-005. A decisão está em análise pela equipe.
+
+## Ainda em aberto
+
 - Valor exato do teto diário de submissões por equipe.
+- Data de ativação do conjunto final cego, e se ele usa a mesma base canônica.
+- Se o conjunto final anota referências vagas como `incompleta` (em análise pela equipe).
