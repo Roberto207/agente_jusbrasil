@@ -5,6 +5,11 @@ encoder, execuções com modelos, submissões).
 **Princípio:** o código vive no repositório privado do GitHub; o notebook do Kaggle só busca o código
 numa versão fixa e roda os comandos do projeto. Nenhuma lógica fica escrita nas células.
 
+**Imagem (ADR-014):** o `Dockerfile` de entrega parte de `gcr.io/kaggle-gpu-images/python:v170`
+(release de 2026-06-29). No notebook, em *Settings → Environment*, fixar a imagem (não usar sempre
+a mais recente). A correspondência exata notebook ↔ tag `v170` se confirma na primeira execução
+olhando a versão impressa por `python -m verificador ambiente`.
+
 ---
 
 ## Configuração única (uma vez por integrante)
@@ -67,6 +72,7 @@ from kaggle_secrets import UserSecretsClient
 
 REPO = "Roberto207/agente_jusbrasil"
 VERSAO = "sub-001"      # tag ou hash de commit; nunca "main" em execução oficial
+                        # (o notebook 00_esqueleto.ipynb ainda usa "main" até existir a primeira tag)
 DESTINO = "/kaggle/temp/agente_jusbrasil"
 
 token = UserSecretsClient().get_secret("GITHUB_TOKEN")

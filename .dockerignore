@@ -1,0 +1,10 @@
+.venv
+desafio-jusbrasil-bracis-2026
+.git
+runs
+**/__pycache__
+*.egg-info
+dist
+build
+.pytest_cache
+.claude
