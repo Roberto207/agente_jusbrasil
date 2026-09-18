@@ -89,7 +89,10 @@ del token
 Cuidados:
 - **Clonar fora de `/kaggle/working/`.** Tudo em `/kaggle/working/` vira saída do notebook; se o clone
   ficasse lá com o token no `.git/config`, o token iria junto com as saídas.
-- **Nunca imprimir o token** nem deixá-lo numa variável exibida.
+- **Nunca imprimir o token** nem deixá-lo numa variável exibida. O notebook `00_esqueleto.ipynb`
+  captura a saída do `git` e troca o token por `***` se o comando falhar — senão o traceback do
+  Kaggle mostra a URL com o secret. Se a pasta de destino já existir, ele atualiza em vez de clonar
+  de novo.
 - **Fixar a versão** (tag ou hash). Para testes rápidos dá para usar um branch; para submissões,
   sempre uma tag.
 
