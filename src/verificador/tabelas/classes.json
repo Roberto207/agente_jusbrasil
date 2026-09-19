@@ -22,6 +22,22 @@
     {"sigla": "ARR", "padroes": ["\\barr\\b"]},
     {"sigla": "AgARR", "padroes": ["agarr"]},
     {"sigla": "Rp", "padroes": ["representa[cç][aã]o", "\\brp\\b"]},
-    {"sigla": "ED", "padroes": ["\\bed\\b"]}
+    {"sigla": "ED", "padroes": ["\\bed\\b"]},
+
+    {"sigla": "EIN", "padroes": ["embargos infringentes e de nulidade", "embargos infringentes"]},
+    {"sigla": "RSE", "padroes": ["recurso em sentido estrito"]},
+    {"sigla": "ROE", "padroes": ["recurso ordin[aá]rio eleitoral"]},
+    {"sigla": "RO", "padroes": ["recurso ordin[aá]rio", "\\bro\\b"]},
+    {"sigla": "CautInom", "padroes": ["cautelar inominada criminal", "cautelar inominada"]},
+    {"sigla": "CJ", "padroes": ["conflito de jurisdi[cç][aã]o", "conflito de compet[eê]ncia"]},
+    {"sigla": "CorPar", "padroes": ["correi[cç][aã]o parcial militar", "correi[cç][aã]o parcial"]},
+    {"sigla": "Pet", "padroes": ["peti[cç][aã]o", "\\bpet\\b"]},
+    {"sigla": "PC", "padroes": ["presta[cç][aã]o de contas"]},
+    {"sigla": "LT", "padroes": ["lista tr[ií]plice"]},
+    {"sigla": "AP", "padroes": ["a[cç][aã]o penal"]},
+    {"sigla": "MS", "padroes": ["mandado de seguran[cç]a"]},
+    {"sigla": "ADI", "padroes": ["a[cç][aã]o direta de inconstitucionalidade", "adi"]},
+    {"sigla": "AC", "padroes": ["a[cç][aã]o cautelar"]},
+    {"sigla": "AIRR", "padroes": ["agravo de instrumento em recurso de revista", "airr"]}
   ]
 }

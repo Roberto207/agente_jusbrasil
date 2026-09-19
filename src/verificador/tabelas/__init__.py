@@ -61,26 +61,47 @@ def _so_ascii(texto: str) -> str:
     return "".join(ch for ch in nfd if unicodedata.category(ch) != "Mn")
 
 
+# `Lei nº 4.737, de 15 de julho de 1965` — formato usado pelos dispositivos da
+# base canônica. O ano é o do fim da frase, não o `de 15`.
+_LEI_POR_EXTENSO = re.compile(
+    r"(decreto[\s-]*lei|lei complementar|lei)\s+n?[oº°.\s]*(\d+(?:\.\d+)*)\s*,?\s*de\b.*?(\d{4})",
+)
+# `Lei 13.105/2015`, `LC 64/1990`, `Lei Complementar nº 64/1990`.
+# O `nº` entre o rótulo e o número é opcional e aparece em várias grafias.
+_LEI_COM_BARRA = re.compile(
+    r"(decreto[\s-]*lei|lei complementar|lc|lei)\s+n?[oº°.\s]*(\d+(?:\.\d+)*)\s*/\s*(\d{4})"
+)
+
+_PREFIXO_LEI = {
+    "lei": "LEI",
+    "lei complementar": "LC",
+    "lc": "LC",
+    "decreto-lei": "DL",
+    "decreto lei": "DL",
+    "decretolei": "DL",
+}
+
+
+def _chave_por_numero(rotulo: str, numero: str, ano: str) -> str:
+    prefixo = _PREFIXO_LEI.get(re.sub(r"\s+", " ", rotulo).strip(), "LEI")
+    return f"{prefixo}-{numero.replace('.', '')}-{ano}"
+
+
 def resolver_lei(identificador: str) -> str | None:
     alvo = _so_ascii(identificador)
     alvo = re.sub(r"\s+", " ", alvo).strip()
-    alvo = re.sub(r"\blei(?: complementar)? n[oº°.]?\s*", "lei ", alvo)
+
+    # O número explícito manda mais que o apelido: `Lei nº 13.105, de 2015` é
+    # inequívoca, enquanto um apelido pode casar por substring.
+    for padrao in (_LEI_POR_EXTENSO, _LEI_COM_BARRA):
+        m = padrao.search(alvo)
+        if m:
+            return _chave_por_numero(m.group(1), m.group(2), m.group(3))
+
+    sem_marcador = re.sub(r"\blei(?: complementar)? n[oº°.]?\s*", "lei ", alvo)
     for alias, chave in leis():
-        if alias and alias in alvo:
+        if alias and alias in sem_marcador:
             return chave
-    m = re.search(
-        r"lei(?: complementar)?\s+(\d+(?:\.\d+)*)\s*/\s*(\d{4})",
-        alvo,
-    )
-    if m:
-        numero = m.group(1).replace(".", "")
-        ano = m.group(2)
-        prefixo = "LC" if "complementar" in alvo else "LEI"
-        candidato = f"{prefixo}-{numero}-{ano}"
-        conhecidas = {chave for _, chave in leis()}
-        if candidato in conhecidas:
-            return candidato
-        return candidato
     return None
 
 

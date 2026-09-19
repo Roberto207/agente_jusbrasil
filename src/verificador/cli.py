@@ -257,10 +257,24 @@ def cmd_ambiente(
 
 
 def cmd_indexar(dados: Path) -> int:
+    """Constrói o índice da base e imprime o diagnóstico da frente A."""
+    from verificador.base import construir_indice
+
     db = caminho_db(dados)
-    n = contar_documentos(db)
-    print(f"{db}: {n} registros em `{TABELA_DOCUMENTOS}`")
-    return n
+    indice = construir_indice(db)
+
+    sem_id = indice.sem_numero()
+    repetidos = indice.numeros_repetidos()
+    por_natureza: dict[str, int] = {}
+    for registro in indice.registros:
+        por_natureza[registro.natureza] = por_natureza.get(registro.natureza, 0) + 1
+
+    print(f"{db}: {len(indice)} registros em `{TABELA_DOCUMENTOS}`")
+    for natureza, quantidade in sorted(por_natureza.items()):
+        print(f"  {natureza}: {quantidade}")
+    print(f"  sem número próprio: {len(sem_id)} {[r.id for r in sem_id]}")
+    print(f"  números em mais de um registro: {len(repetidos)}")
+    return len(indice)
 
 
 def cmd_rodar(
