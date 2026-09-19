@@ -1,0 +1,27 @@
+{
+  "aliases": [
+    {"sigla": "EDcl", "padroes": ["embargos de declara[cç][aã]o", "e\\s*d\\s*cl", "eds"]},
+    {"sigla": "AREsp", "padroes": ["agravo em recurso especial", "a\\.?\\s*resp", "aresp"]},
+    {"sigla": "REspe", "padroes": ["recurso especial eleitoral", "respe\\.?"]},
+    {"sigla": "REsp", "padroes": ["recurso especial", "rec\\.?\\s*esp\\.?", "r\\.?\\s*esp\\.?", "resp\\.?"]},
+    {"sigla": "RHC", "padroes": ["recurso em habeas corpus", "rhc"]},
+    {"sigla": "RMS", "padroes": ["recurso em mandado de seguran[cç]a", "rms"]},
+    {"sigla": "SLS", "padroes": ["suspens[aã]o\\s+de\\s+liminar\\s+e\\s+de\\s+senten[cç]a"]},
+    {"sigla": "AI", "padroes": ["agravo de instrumento", "\\bai\\b"]},
+    {"sigla": "AgInt", "padroes": ["agravo interno", "ag\\.?\\s*int\\.?", "agint"]},
+    {"sigla": "AgRg", "padroes": ["agravo regimental", "ag\\.?\\s*r(?:eg(?:imental)?)?\\.?", "agrg", "agr"]},
+    {"sigla": "AgREsp", "padroes": ["agresp"]},
+    {"sigla": "AREspEl", "padroes": ["arespel"]},
+    {"sigla": "Rcl", "padroes": ["reclama[cç][aã]o", "recl\\.?", "rcl"]},
+    {"sigla": "HC", "padroes": ["habeas corpus", "h\\.?\\s*c\\.?"]},
+    {"sigla": "APL", "padroes": ["apela[cç][aã]o", "apl"]},
+    {"sigla": "RSE", "padroes": ["rse"]},
+    {"sigla": "RE", "padroes": ["recurso extraordin[aá]rio", "re\\.?"]},
+    {"sigla": "AR", "padroes": ["a[cç][aã]o rescis[oó]ria", "\\bar\\b"]},
+    {"sigla": "RR", "padroes": ["recurso de revista", "\\brr\\b"]},
+    {"sigla": "ARR", "padroes": ["\\barr\\b"]},
+    {"sigla": "AgARR", "padroes": ["agarr"]},
+    {"sigla": "Rp", "padroes": ["representa[cç][aã]o", "\\brp\\b"]},
+    {"sigla": "ED", "padroes": ["\\bed\\b"]}
+  ]
+}

@@ -21,5 +21,8 @@ verificador = "verificador.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+verificador = ["tabelas/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
