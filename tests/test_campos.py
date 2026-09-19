@@ -66,3 +66,97 @@ def test_ocr_marca_correcao_no_numero() -> None:
     assert campos is not None
     assert campos.numero == "2173718"
     assert campos.correcao_ocr is True
+
+
+def _extrair_campos(texto: str, forma: str = "com_numero"):
+    from verificador.extracao import extrair
+    from verificador.texto import preparar
+
+    candidatas = [c for c in extrair(preparar(texto)) if c.forma == forma]
+    assert candidatas, f"nada extraído de {texto!r}"
+    return candidatas[0], ler_campos(candidatas[0])
+
+
+def test_tst_le_classe_e_cadeia_de_qualquer_recurso_conhecido() -> None:
+    casos = {
+        "TST-AIRR-74240-33.2006.5.04.0027": ("AIRR", ()),
+        "TST-RRAG-10241-50.2016.5.03.0103": ("RRAG", ()),
+        "TST-AgRg-AIRR-509-06.2012.5.05.0014": ("AIRR", ("AgRg",)),
+        "TST-AgInt-RR-1234-56.2019.5.02.0001": ("RR", ("AgInt",)),
+        "TST-EDcl-E-EDcl-RR-3400-05.2011.5.21.0009": ("RR", ("EDcl", "E", "EDcl")),
+        "TST-AgARR-25823-78.2015.5.24.0091": ("ARR", ("AgRg",)),
+        "ARR-213-85.2010.5.02.0030": ("ARR", ()),
+    }
+    for citacao, (principal, cadeia) in casos.items():
+        candidata, campos = _extrair_campos(f"Cf. {citacao}, que decide.")
+        assert campos is not None, citacao
+        assert candidata.trecho == citacao, "o span não pode começar no meio da sigla"
+        assert (campos.tribunal, campos.classe_principal, campos.cadeia_recursos) == (
+            "TST",
+            principal,
+            cadeia,
+        ), citacao
+
+
+def test_tst_nunca_leva_uf() -> None:
+    _, campos = _extrair_campos("Cf. TST-RR-1234-56.2019.5.02.0001, que decide.")
+    assert campos is not None and campos.uf is None
+
+
+def test_uf_so_vale_logo_depois_do_numero() -> None:
+    _, campos = _extrair_campos("Cf. AgInt no REsp nº 1.234.567/SP, que decide.")
+    assert campos is not None and campos.uf == "SP"
+    _, sem_uf = _extrair_campos("Cf. AgRg-REspe nº 0600316-49.2020.6.16.0000, que decide.")
+    assert sem_uf is not None and sem_uf.uf is None
+
+
+def test_sigla_eleitoral_e_edcl_tem_o_mesmo_nome_do_indice() -> None:
+    _, campos = _extrair_campos("Cf. ED no AgR no AREspEl 0601514-91.2020.6.05.0000, que decide.")
+    assert campos is not None
+    assert campos.classe_principal == "AREsp"
+    assert campos.cadeia_recursos == ("EDcl", "AgRg")
+
+
+def test_prefixo_desconhecido_nao_vira_processo_do_tst() -> None:
+    from verificador.extracao import extrair
+    from verificador.texto import preparar
+
+    texto = "Autos PJe-1234567-89.2020.8.26.0100 e TJSP-0001234-56.2020.8.26.0100."
+    assert [c for c in extrair(preparar(texto)) if c.forma == "com_numero"] == []
+
+
+def test_tema_de_repercussao_geral_e_citacao_sem_classe() -> None:
+    """O gabarito trata o tema como citação (a base não tem temas): sem classe nem tribunal."""
+    _, campos = _extrair_campos("Nos termos do Tema 2.680 da repercussão geral, decide-se.")
+    assert campos is not None
+    assert campos.numero == "2680"
+    assert campos.classe_principal is None and campos.tribunal is None
+
+
+def test_tabela_tst_e_a_mesma_dos_dois_lados() -> None:
+    from verificador.tabelas import tst_sigla
+
+    assert tst_sigla("EDcl") == tst_sigla("ed") == ("EDcl",)
+    assert tst_sigla("AgARR") == ("AgRg", "ARR")
+    assert tst_sigla("Inedita") == ("INEDITA",)
+
+
+def test_numero_com_letra_nao_quebra() -> None:
+    from verificador.extracao.campos import _numero_com_ocr
+
+    numero, corrigido = _numero_com_ocr("x", "21737l8")
+    assert numero == "2173718"
+
+
+def test_uf_igual_a_sigla_de_classe_nao_vira_classe() -> None:
+    """`/RO` (Rondônia) e `/RR` (Roraima) não são Recurso Ordinário nem Recurso de Revista."""
+    for uf in ("RO", "RR"):
+        _, campos = _extrair_campos(f"Cf. Agravo Regimental no Rcl n° 60.681/{uf}, que decide.")
+        assert campos is not None
+        assert (campos.classe_principal, campos.cadeia_recursos, campos.uf) == ("Rcl", ("AgRg",), uf)
+
+
+def test_no_dentro_de_palavra_nao_e_o_n_do_numero() -> None:
+    """`Agravo Interno 7000249-04…`: o `no` de "Interno" não pode cortar a classe ao meio."""
+    _, campos = _extrair_campos("Cf. Agravo Interno 7000249-04.2021.7.00.0000, que decide.")
+    assert campos is not None and campos.classe_principal == "AgInt"

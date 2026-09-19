@@ -1,7 +1,7 @@
 {
   "aliases": [
-    {"sigla": "EDcl", "padroes": ["embargos de declara[cç][aã]o", "e\\s*d\\s*cl", "eds"]},
-    {"sigla": "AREsp", "padroes": ["agravo em recurso especial", "a\\.?\\s*resp", "aresp"]},
+    {"sigla": "EDcl", "padroes": ["embargos de declara[cç][aã]o", "e\\s*d\\s*cl", "eds", "\\bed\\b"]},
+    {"sigla": "AREsp", "padroes": ["agravo em recurso especial", "a\\.?\\s*resp", "aresp", "arespel"]},
     {"sigla": "REspe", "padroes": ["recurso especial eleitoral", "respe\\.?"]},
     {"sigla": "REsp", "padroes": ["recurso especial", "rec\\.?\\s*esp\\.?", "r\\.?\\s*esp\\.?", "resp\\.?"]},
     {"sigla": "RHC", "padroes": ["recurso em habeas corpus", "rhc"]},
@@ -11,7 +11,6 @@
     {"sigla": "AgInt", "padroes": ["agravo interno", "ag\\.?\\s*int\\.?", "agint"]},
     {"sigla": "AgRg", "padroes": ["agravo regimental", "ag\\.?\\s*r(?:eg(?:imental)?)?\\.?", "agrg", "agr"]},
     {"sigla": "AgREsp", "padroes": ["agresp"]},
-    {"sigla": "AREspEl", "padroes": ["arespel"]},
     {"sigla": "Rcl", "padroes": ["reclama[cç][aã]o", "recl\\.?", "rcl"]},
     {"sigla": "HC", "padroes": ["habeas corpus", "h\\.?\\s*c\\.?"]},
     {"sigla": "APL", "padroes": ["apela[cç][aã]o", "apl"]},
@@ -22,8 +21,6 @@
     {"sigla": "ARR", "padroes": ["\\barr\\b"]},
     {"sigla": "AgARR", "padroes": ["agarr"]},
     {"sigla": "Rp", "padroes": ["representa[cç][aã]o", "\\brp\\b"]},
-    {"sigla": "ED", "padroes": ["\\bed\\b"]},
-
     {"sigla": "EIN", "padroes": ["embargos infringentes e de nulidade", "embargos infringentes"]},
     {"sigla": "RSE", "padroes": ["recurso em sentido estrito"]},
     {"sigla": "ROE", "padroes": ["recurso ordin[aá]rio eleitoral"]},

@@ -324,8 +324,8 @@ Proposta, a confirmar pela equipe:
 - **R40 e R7 têm pouca evidência**: nenhuma inventada da amostra reaproveita número existente, e
   só uma real tem dois candidatos. Os testes vêm do conjunto sintético.
 - **A definição de citação é fechada em quatro formas.** Ficam fora, sem requisito: artigo sem
-  lei ("o art. 5º"), súmula sem número, temas de repercussão geral e informativos. Nada disso
-  aparece na amostra. Citações no plural ("arts. 489 e 1.022 do CPC") também não aparecem, e não
+  lei ("o art. 5º"), súmula sem número, informativos. **Correção de 2026-09-18:** temas de repercussão geral *aparecem* na amostra (`Temã 2.680 da repercussão
+  geral`, `inventada`) e o pipeline os extrai; sem classe, a decisão os trata como `numero_ausente`. O resto não aparece na amostra. Citações no plural ("arts. 489 e 1.022 do CPC") também não aparecem, e não
   há decisão se viram um span ou dois.
 - **"Sigla sem ano refere-se à versão vigente"** (lei canônica) pode errar em citações ao CPC/1973;
   não há caso na amostra.

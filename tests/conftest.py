@@ -31,5 +31,5 @@ def textos(pasta_dados: Path) -> dict[str, str]:
 
 @pytest.fixture(scope="session")
 def gabarito(pasta_dados: Path) -> list[dict[str, str]]:
-    with (pasta_dados / "goldenset_offsets.csv").open(encoding="utf-8", newline="") as fh:
+    with (pasta_dados / "goldenset_offsets.csv").open(encoding="utf-8-sig", newline="") as fh:
         return list(csv.DictReader(fh))

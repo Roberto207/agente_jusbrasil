@@ -1,8 +1,8 @@
 # Verificador de citações — Jusbrasil × BRACIS 2026
 
-Esqueleto andante: o pipeline já vai dos `.txt` até o `submission.csv` e a nota
-oficial, mas **ainda não extrai citações** (cada documento sai com lista vazia).
-Serve para travar o formato de entrega antes da lógica das frentes A–D.
+Pipeline só-regras (sem encoder, sem LLM): lê os `.txt`, acha as citações, consulta a base e
+classifica cada uma em `real`, `inventada` ou `incompleta`, gerando o `submission.csv` e a nota
+oficial. Na amostra dá `score_final ≈ 0,99` (ver `docs/analise_erros_baseline.md`).
 
 ## Instalação
 
@@ -23,14 +23,17 @@ python -m verificador ambiente
 python -m verificador indexar --dados desafio-jusbrasil-bracis-2026
 python -m verificador rodar --entrada desafio-jusbrasil-bracis-2026/txt --run smoke
 python -m verificador avaliar --run smoke
-python -m verificador submeter --run smoke
+python -m verificador submeter --run smoke                 # confere árvore limpa e R49; --criar-tag cria a tag
+python -m verificador comparar --run antes --run depois     # diferença de nota e de citações entre duas execuções
+python -m verificador gerar-sintetico --dados desafio-jusbrasil-bracis-2026 --saida sintetico/ --pares 100
+python -m verificador avaliar --run x --conjunto controle   # amostra | ajuste | controle | sintetico
 ```
 
 CLI em `argparse` (`python -m verificador` ou o script `verificador` após o install).
 Configuração em `verificador.toml` (hash no manifesto).
 
-O `score_final` desta etapa fica perto de 0 — não há citação nenhuma. O teste é
-o cálculo funcionar, não a nota.
+A nota na amostra é alta por ser a mesma amostra do leaderboard de treino: quem informa
+generalização é o conjunto sintético e o controle (ADR-009).
 
 ```bash
 pytest

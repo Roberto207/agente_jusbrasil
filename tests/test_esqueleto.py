@@ -1,4 +1,4 @@
-"""Smoke test do esqueleto: indexar → rodar (JSON vazio) → avaliar."""
+"""Smoke test do pipeline: indexar → rodar → avaliar."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def test_indexar_le_a_base(dados: Path) -> None:
     assert cmd_indexar(dados) == 1014
 
 
-def test_pipeline_vazio_ate_a_nota(dados: Path, tmp_path: Path) -> None:
+def test_pipeline_ate_a_nota(dados: Path, tmp_path: Path) -> None:
     saida = tmp_path / "runs"
     submission = cmd_rodar(
         entrada=dados / "txt",
@@ -39,9 +39,8 @@ def test_pipeline_vazio_ate_a_nota(dados: Path, tmp_path: Path) -> None:
     assert linhas[0] == ["documento_id", "citacoes"]
     documentos = linhas[1:]
     assert len(documentos) == 26
-    for documento_id, citacoes in documentos:
-        assert documento_id
-        assert citacoes == "-"
+    assert all(documento_id for documento_id, _ in documentos)
+    assert any(citacoes != "-" for _, citacoes in documentos)
 
     resultado = cmd_avaliar(
         run_id="smoke",
@@ -50,7 +49,7 @@ def test_pipeline_vazio_ate_a_nota(dados: Path, tmp_path: Path) -> None:
         dados=dados,
     )
     assert "score_final" in resultado
-    assert resultado["score_final"] >= 0
+    assert resultado["score_final"] > 0.9
     relatorio = saida / "smoke" / "relatorio.md"
     assert relatorio.is_file()
     texto = relatorio.read_text(encoding="utf-8")

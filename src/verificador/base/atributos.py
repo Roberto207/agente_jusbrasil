@@ -15,7 +15,7 @@ import re
 import unicodedata
 
 from verificador.base.numero_proprio import JANELA_CABECALHO
-from verificador.tabelas import classes, resolver_uf
+from verificador.tabelas import classes, resolver_uf, tst_sigla
 
 # UF colada ao número: `Nº 1.741.784 - PR`, `7000075-58.2022.7.00.0000/PR`.
 _UF_SIGLA = re.compile(r"[-/]\s*([A-Z]{2})\b")
@@ -45,19 +45,6 @@ _ANO_SOLTO = re.compile(r"\b(19[89]\d|20[0-4]\d)\b")
 # Prefixos de recurso interno usados pelo TST no próprio número:
 # `TST-ED-E-ED-RR-3400-05...` → cadeia (EDcl, E, EDcl) + principal RR.
 _TST_CADEIA = re.compile(r"TST\s*-\s*((?:[A-Za-z]{1,6}\s*-\s*)+)\d", re.I)
-_TST_SIGLA = {
-    "ED": "EDcl",
-    "EDCL": "EDcl",
-    "E": "E",
-    "AG": "AgRg",
-    "AGR": "AgRg",
-    "AGRG": "AgRg",
-    "AIRR": "AIRR",
-    "ARR": "ARR",
-    "RR": "RR",
-    "AGARR": "AgARR",
-    "A": "Ag",
-}
 
 
 def _sem_acento(texto: str) -> str:
@@ -184,8 +171,8 @@ def extrair_classes(tribunal: str | None, texto: str) -> tuple[str | None, tuple
     if tribunal == "TST":
         m = _TST_CADEIA.search(texto)
         if m:
-            tokens = [t.strip().upper() for t in m.group(1).split("-") if t.strip()]
-            siglas = [_TST_SIGLA.get(t, t) for t in tokens]
+            tokens = [t.strip() for t in m.group(1).split("-") if t.strip()]
+            siglas = [sigla for t in tokens for sigla in tst_sigla(t)]
             if siglas:
                 return siglas[-1], tuple(siglas[:-1])
 

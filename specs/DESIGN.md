@@ -89,7 +89,7 @@ Um parser por natureza e tribunal extrai o **número próprio** do registro (ADR
 | STJ | primeira ocorrência `Nº` no cabeçalho | `AgRg no AGRAVO EM RECURSO ESPECIAL Nº 1.327.863 - PR` |
 | STF | classe + número depois de data e órgão | `AG.REG. NA RECLAMAÇÃO 76.532 RIO DE JANEIRO` (UF por extenso) |
 | STM, TSE | primeiro número CNJ do cabeçalho | `APELAÇÃO CRIMINAL Nº 7000075-58.2022.7.00.0000/PR` |
-| TST | rodapé `PROCESSO Nº TST-...` (não o primeiro número do texto) | `PROCESSO Nº TST-ED-E-ED-RR-3400-05.2011.5.21.0009` |
+| TST | rodapé `PROCESSO Nº TST-...`, ou `estes autos de … nº TST-…`, ou o 1º `TST-<classe>-<número>` (o rodapé cobre só 11 de 198; `ArgInc`/`IncJulg`/`IRR`/`IUJ` são precedentes, nunca o próprio processo) | `PROCESSO Nº TST-ED-E-ED-RR-3400-05.2011.5.21.0009` |
 | Súmula | `Súmula [Vinculante] n. N do TRIBUNAL` | `Súmula n. 83 do STJ` |
 | Dispositivo | `Artigo N da\|do <lei>` | `Artigo 373 da Lei nº 13.105, de 16 de março de 2015` |
 
@@ -208,6 +208,7 @@ Cada citação termina em exatamente um **caminho** com nome estável:
 | `lei_ausente` | forma (c), 0 candidatos | inventada | — | R8 |
 | `lei_unica` | forma (c), 1 candidato | real | `id` | R9 |
 | `lei_ambigua` | forma (c), N candidatos | incompleta | — | R7 |
+| `campos_nao_lidos` | citação detectada cujos campos as regras não leram e não há LLM (11º caminho, emitido pela integração) | incompleta | — | ADR-006 |
 
 A tabela é exaustiva e os caminhos são disjuntos. O caminho não depende de quem leu os campos
 (regras ou LLM); a origem fica registrada para a confiança.

@@ -8,14 +8,15 @@ import unicodedata
 from dataclasses import replace
 
 from verificador.contratos import Campos, Candidata
-from verificador.tabelas import classes, ocr, resolver_lei, resolver_uf
+from verificador.extracao.padroes import TST_NUMERO
+from verificador.tabelas import classes, ocr, resolver_lei, resolver_uf, tst_sigla
 from verificador.texto.normalizacao import normalizar
 
 _DIGITO = re.compile(r"\d+")
 _ANO = re.compile(r"\b(19|20)\d{2}\b")
 _TRIBUNAL = re.compile(r"\b(STF|STJ|STM|TSE|TST)\b", re.IGNORECASE)
-_UF_CAND = re.compile(
-    r"(?:/|-|\()\s*([A-Z]{2})\s*\)?",
+_UF_APOS_NUMERO = re.compile(
+    r"\s*(?:/|-|\()\s*([A-Z]{2})\b",
     re.IGNORECASE,
 )
 _RELATOR = re.compile(
@@ -32,10 +33,6 @@ _LEI_IDENT = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 _SUMULA_VINC = re.compile(r"vinculante", re.IGNORECASE)
-_TST_TOKEN = re.compile(
-    r"\b(ED|EDcl|E|ARR|AgARR|AgR|AgRg|AgInt|RR|Ag)\b",
-    re.IGNORECASE,
-)
 
 
 def _sem_acento(texto: str) -> str:
@@ -66,6 +63,7 @@ def _tem_ocr_no_numero(texto: str) -> bool:
 
 
 def _numero_com_ocr(trecho: str, bruto: str) -> tuple[str | None, bool]:
+    tabela = ocr()
     saida: list[str] = []
     for ch in bruto:
         if ch.isalpha() and ch in tabela:
@@ -101,16 +99,19 @@ def _tribunal(texto: str) -> str | None:
     return m.group(1).upper() if m else None
 
 
-def _uf(texto: str) -> str | None:
-    m = _UF_CAND.search(texto)
-    if not m:
-        return None
-    return resolver_uf(m.group(1))
+def _uf_apos_numero(trecho: str, fim_numero: int) -> str | None:
+    """UF escrita logo depois do número (`/RJ`, `- PR`, `(SP)`).
+
+    Procurar em qualquer ponto do trecho lia o `-RR` de `TST-RR-…` como Roraima.
+    """
+    m = _UF_APOS_NUMERO.match(trecho, fim_numero)
+    return resolver_uf(m.group(1)) if m else None
 
 
 def _campos_com_numero(trecho: str) -> Campos | None:
     tema = re.search(r"tem[aã]\s+(\d+(?:\.\d+)?)\s+da\s+repercuss", trecho, re.I)
     if tema:
+        # Tema de repercussão geral: o gabarito o trata como citação (e a base não tem temas).
         numero, ocr_ok = _numero_com_ocr(trecho, tema.group(1))
         if not numero:
             return None
@@ -128,26 +129,19 @@ def _campos_com_numero(trecho: str) -> Campos | None:
             fonte="regras",
         )
 
-    tst = re.search(
-        r"(?:processo\s+nº\s+)?(?:TST-)?((?:(?:ED|EDcl|E|ARR|AgARR|AgR|RR|Ag)-)+)([\d.\-]+)",
-        trecho,
-        re.I,
-    )
-    if tst and re.search(r"\d{4}\.\d\.\d{2}\.\d{4}", tst.group(2)):
-        tokens = [t.upper() for t in _TST_TOKEN.findall(tst.group(1))]
-        mapa = {"ED": "EDcl", "AGR": "AgRg", "AG": "AgRg"}
-        tokens = [mapa.get(t, t) for t in tokens]
-        numero, ocr_ok = _numero_com_ocr(trecho, tst.group(2))
-        if not numero:
+    tst = TST_NUMERO.search(trecho)
+    if tst:
+        tokens = [t for t in tst.group("cadeia_tst").split("-") if t and t.upper() != "TST"]
+        siglas = [sigla for t in tokens for sigla in tst_sigla(t)]
+        numero, ocr_ok = _numero_com_ocr(trecho, tst.group("numero_tst"))
+        if not numero or not siglas:
             return None
-        principal = tokens[-1] if tokens else "RR"
-        cadeia = tuple(tokens[:-1]) if len(tokens) > 1 else ()
         return Campos(
             tribunal="TST",
-            classe_principal=principal,
-            cadeia_recursos=cadeia,
+            classe_principal=siglas[-1],
+            cadeia_recursos=tuple(siglas[:-1]),
             numero=numero,
-            uf=_uf(trecho),
+            uf=None,  # o número CNJ do TST codifica a região, não a UF
             ano=None,
             relator=None,
             lei_chave=None,
@@ -156,14 +150,16 @@ def _campos_com_numero(trecho: str) -> Campos | None:
             fonte="regras",
         )
 
-    siglas = _classes_no_texto(trecho)
-    if not siglas:
-        return None
     m_num = re.search(
-        r"n[oº°.]?\s*(\d+(?:[.\-]\d+)*)|(\d+(?:[.\-]\d+)*)",
+        r"(?<![A-Za-zÀ-ÿ])n[oº°.]?\s*(\d+(?:[.\-]\d+)*)|(\d+(?:[.\-]\d+)*)",  # `no` de "Interno" não é "nº"
         trecho,
         re.I,
     )
+    # A classe e a cadeia vêm antes do número. Depois dele mora a UF, e `/RO` ou `/RR` seriam lidos
+    # como Recurso Ordinário e Recurso de Revista (mesma armadilha do ADR-002, em outro campo).
+    siglas = _classes_no_texto(trecho[: m_num.start()] if m_num else trecho)
+    if not siglas:
+        return None
     bruto = (m_num.group(1) or m_num.group(2) or "") if m_num else ""
     numero, ocr_ok = _numero_com_ocr(trecho, bruto)
     if not numero:
@@ -175,7 +171,7 @@ def _campos_com_numero(trecho: str) -> Campos | None:
         classe_principal=principal,
         cadeia_recursos=cadeia,
         numero=numero,
-        uf=_uf(trecho),
+        uf=_uf_apos_numero(trecho, m_num.end()) if m_num else None,
         ano=None,
         relator=None,
         lei_chave=None,

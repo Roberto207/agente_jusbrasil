@@ -10,8 +10,8 @@ tarefas que cada integrante pode pegar. Complementa, sem substituir:
 
 | Documento | Serve para |
 |---|---|
-| `DEFINE.md` (R#) | *o que* o sistema deve fazer — os critérios de aceite citados abaixo |
-| `DESIGN.md` | *como* — arquitetura, contratos, tabela de caminhos de decisão |
+| `specs/DEFINE.md` (R#) | *o que* o sistema deve fazer — os critérios de aceite citados abaixo |
+| `specs/DESIGN.md` | *como* — arquitetura, contratos, tabela de caminhos de decisão |
 | `docs/decisions/ADR-*` | *por quê* — decisões duras já tomadas (não reabrir sem motivo) |
 | `ação_humana_pendente.md` | o que só um humano faz (contas, tokens, e-mail, submissão) |
 | `docs/guia_kaggle.md` | como rodar no Kaggle |
@@ -66,28 +66,6 @@ contratos, e só se encontram no dia de integração.
    chamada de rede na execução (R22).
 8. Antes de mexer no `cli.py`, avisar a frente C (é o arquivo mais compartilhado).
 
----
-
-## Fase 0 — Preparação (18–19/09) · todos
-
-Destrava o resto. Detalhes em `ação_humana_pendente.md` e `docs/guia_kaggle.md`.
-
-- [ ] **Reunião de divisão de frentes** (30 min): preencher a tabela da seção 1.
-- [ ] Cada integrante: `git pull`, criar venv, `pip install -e ".[dev]"`, rodar `pytest` (2 testes passam) e o
-      fluxo `ambiente → indexar → rodar → avaliar` local. *(A `.venv` do projeto hoje está sem o pacote.)*
-- [ ] Cada integrante: **entrar na competição do Kaggle** com a própria conta e **verificar o telefone**
-      (sem isso não há GPU nem internet no notebook).
-- [ ] Cada integrante que rodará notebook: criar **token GitHub** fine-grained só leitura e guardar em
-      **Secrets do Kaggle** como `GITHUB_TOKEN` (anexar a cada notebook novo).
-- [ ] **Uma pessoa** roda `00_esqueleto.ipynb` no Kaggle, célula por célula, e confere: clone funciona, `ambiente`
-      imprime a versão da imagem, saídas aparecem em `/kaggle/working/runs/`. Anotar a versão de ambiente vista
-      para confirmar (ou corrigir) a tag `v170` do `Dockerfile` (ADR-014).
-- [ ] **Decidir e enviar o e-mail** para `desafio-bracis@jusbrasil.com.br` sobre referências vagas (`incompleta`?)
-      — ver `scope.md` e ADR-005. Enviar cedo: a resposta pode não chegar a tempo.
-- [ ] Confirmar convites de colaborador aceitos no GitHub.
-- [ ] Descobrir e anotar o **teto diário de submissões** (pendência aberta no `scope.md`, seção de dúvidas).
-
----
 
 ## 1. Divisão sugerida das frentes
 
@@ -112,50 +90,53 @@ Destrava o resto. Detalhes em `ação_humana_pendente.md` e `docs/guia_kaggle.md
 **Responsável:** ____ · **Branch:** `frente-a-indice` · **Depende de:** só de `contratos.py`
 **Requisitos:** R12, R14 · ADR-002, ADR-004 · **Entrega:** `indexar(caminho_db) -> list[RegistroIndice]`
 
+**Status: ✅ concluída** pelo colega Caio (commit `57cd9ed`; ver `mudancas_caio_fase_1_a.md`). 96/96 reais resolvem;
+o índice ficou idêntico após a troca da tabela de siglas TST (agora compartilhada com a frente B).
+
 **Contexto.** A base tem 1014 registros, mas o número próprio de cada um está *dentro* do texto do cabeçalho, em
 formato diferente por tribunal. O risco central (ADR-002) é pegar o número de um *precedente citado* no corpo
 em vez do número do próprio registro. A decisão real/inventada depende inteiramente de o índice estar certo.
 
 **Tarefas**
 
-- [ ] **Explorar a base.** Abrir `desafio1_bracis.db` (tabela `documentos`: `documento_id, id, tribunal, ano,
+- [x] **Explorar a base.** Abrir `desafio1_bracis.db` (tabela `documentos`: `documento_id, id, tribunal, ano,
       relator, natureza, tipo, texto, texto_len`). Contar registros por `natureza` e `tribunal`; ler 3–5
       cabeçalhos de cada tipo. Anotar as variações de formato encontradas em `docs/` (ou no PR).
-- [ ] **Parser de número próprio por fonte** (tabela do `DESIGN.md`, seção [A]):
-  - [ ] STJ: primeira ocorrência `Nº` no cabeçalho (`AgRg no AGRAVO EM RECURSO ESPECIAL Nº 1.327.863 - PR`).
-  - [ ] STF: classe + número depois de data e órgão; UF por extenso (`RECLAMAÇÃO 76.532 RIO DE JANEIRO`).
-  - [ ] STM e TSE: primeiro número CNJ do cabeçalho (`7000075-58.2022.7.00.0000/PR`).
-  - [ ] TST: rodapé `PROCESSO Nº TST-...` — **não** o primeiro número do texto.
-  - [ ] Súmula: `Súmula [Vinculante] n. N do TRIBUNAL` → número `S83` / `SV10`.
-  - [ ] Dispositivo de lei: `Artigo N da|do <lei>` → `lei_chave` + `artigo`.
+- [x] **Parser de número próprio por fonte** (tabela do `DESIGN.md`, seção [A]):
+  - [x] STJ: primeira ocorrência `Nº` no cabeçalho (`AgRg no AGRAVO EM RECURSO ESPECIAL Nº 1.327.863 - PR`).
+  - [x] STF: classe + número depois de data e órgão; UF por extenso (`RECLAMAÇÃO 76.532 RIO DE JANEIRO`).
+  - [x] STM e TSE: primeiro número CNJ do cabeçalho (`7000075-58.2022.7.00.0000/PR`).
+  - [x] TST: rodapé `PROCESSO Nº TST-...` — **não** o primeiro número do texto.
+  - [x] Súmula: `Súmula [Vinculante] n. N do TRIBUNAL` → número `S83` / `SV10`.
+  - [x] Dispositivo de lei: `Artigo N da|do <lei>` → `lei_chave` + `artigo`.
   - *Alternativa a medir se os parsers ficarem caros:* gerar candidatos pelo índice FTS5 que já vem na base
     (`documentos_fts`) e conferir se o número está *no cabeçalho* do registro.
-- [ ] **Extrair os demais atributos** de cada `RegistroIndice`: `tribunal`, `classe_principal`,
+- [x] **Extrair os demais atributos** de cada `RegistroIndice`: `tribunal`, `classe_principal`,
       `cadeia_recursos` (ex.: `("AgInt","AgInt")` para `AgInt no AgInt no REsp`), `uf`, `ano`, `relator`
       (normalizado: sem `Min.`, sem acento, minúsculo).
-- [ ] **Tabelas versionadas, fora do código** (ex.: `src/verificador/base/tabelas/*.toml` ou `.json`):
-  - [ ] **Apelidos de lei** → `lei_chave` (CPC, CLT, CDC, CPP, CPM, Código Civil, Código Eleitoral,
+- [x] **Tabelas versionadas, fora do código** (ex.: `src/verificador/base/tabelas/*.toml` ou `.json`):
+  - [x] **Apelidos de lei** → `lei_chave` (CPC, CLT, CDC, CPP, CPM, Código Civil, Código Eleitoral,
         Constituição Federal / da República, LC 64/1990…; `CPC` → `LEI-13105-2015`, `CLT` → `DL-5452-1943`).
         **Começar pelas leis que realmente aparecem na base e na amostra.**
-  - [ ] **Classes processuais**: sigla e nome por extenso → `classe_principal`
+  - [x] **Classes processuais**: sigla e nome por extenso → `classe_principal`
         (`Rec. Esp.`, `R.Esp.`, `Recurso Especial` → `REsp`; `AgInt`, `AgRg`, `EDcl`…).
-  - [ ] **UFs**: sigla ↔ nome por extenso.
-  - [ ] **Confusões de OCR**: `l→1`, `O→0`, `S→5`, `g→9` (a mesma tabela é usada pelo R48 e pela frente B).
-- [ ] **Implementar `indexar()`** de verdade (substitui a checagem de contagem que o CLI faz hoje) e ligar ao
+  - [x] **UFs**: sigla ↔ nome por extenso.
+  - [x] **Confusões de OCR**: `l→1`, `O→0`, `S→5`, `g→9` (a mesma tabela é usada pelo R48 e pela frente B).
+- [x] **Implementar `indexar()`** de verdade (substitui a checagem de contagem que o CLI faz hoje) e ligar ao
       subcomando `indexar` (coordenar com a frente C).
-- [ ] **Tratar duplicidade:** o mesmo número de processo aparece em vários registros (recursos internos do
+- [x] **Tratar duplicidade:** o mesmo número de processo aparece em vários registros (recursos internos do
       mesmo processo). O índice deve permitir buscar **todos** os registros por número reduzido a dígitos.
-- [ ] **Função de consulta** (usada pela frente D): `por_numero(digitos) -> list[RegistroIndice]` e
+- [x] **Função de consulta** (usada pela frente D): `por_numero(digitos) -> list[RegistroIndice]` e
       `por_lei_artigo(lei_chave, artigo) -> list[RegistroIndice]`.
 
 **Testes (pytest)**
 
-- [ ] Zero registro sem número próprio (exceto os que legitimamente não têm — listar e justificar).
-- [ ] **Nenhum registro usa número de precedente** (ADR-002): para uma amostra de registros, o número escolhido
+- [x] Zero registro sem número próprio (exceto os que legitimamente não têm — listar e justificar).
+- [x] **Nenhum registro usa número de precedente** (ADR-002): para uma amostra de registros, o número escolhido
       está no cabeçalho, não no corpo.
-- [ ] **Os 96 `real` do gabarito encontram o `id_canonico` certo pelo número** (leitura do gabarito a partir de
+- [x] **Os 96 `real` do gabarito encontram o `id_canonico` certo pelo número** (leitura do gabarito a partir de
       `goldenset_offsets.csv`; nenhum id literal no código).
-- [ ] Cada tabela carrega, não tem chave duplicada e cobre as classes/leis vistas na amostra.
+- [x] Cada tabela carrega, não tem chave duplicada e cobre as classes/leis vistas na amostra.
 
 **Pronto quando:** os 96 `real` resolvem para o `id` certo e nenhum registro pega número de precedente.
 
@@ -167,70 +148,76 @@ em vez do número do próprio registro. A decisão real/inventada depende inteir
 tabela de confusões de OCR e de classes (frente A) — pode começar com listas provisórias
 **Requisitos:** R1–R4, R33–R36, R38 · ADR-003, ADR-005 · **Entrega:** `preparar`, `extrair`, `ler_campos`
 
+**Status: ✅ concluída** pelo colega (commit `b893496`). Revisão em 2026-09-18 achou 4 problemas reais, já corrigidos
+na `main`: ramo TST (`AIRR`/`RRAG`/`ROT`/`IRR`/`AgInt` lidos como `RR`, `EDcl`→`EDCL`), siglas `ED`×`EDcl` e
+`AREspEl`×`AREsp` diferentes do índice, UF espúria `RR` no TST e `NameError` latente. Ida e volta do TST: 51% → 100%.
+**Lacunas de recall conhecidas (não corrigidas; medir/tratar depois):** moldes novos da forma (d), siglas só por
+extenso (`EIN`, `MS`, `ROE`, `SLS`, `AP`, `AC`), `Súmula n. 83 do STJ`, OCR no 1º dígito de um grupo (`l.272.322`).
+
 **Contexto.** É a frente que decide o **recall**: citação que não é achada não pode ser classificada. Cada span
 tem que bater com `texto[inicio:fim]` no texto **original**, mesmo depois de normalizar OCR.
 
 #### B1 — Texto: cabeçalho, normalização e mapa (`texto/`)
 
-- [ ] **Leitura do `.txt`**: UTF-8, sem tradução de quebra de linha (os arquivos não têm BOM nem `\r`).
-- [ ] **Delimitar o cabeçalho** (R34): bloco inicial (órgão, número dos autos, partes, relator, protocolo) até o
+- [x] **Leitura do `.txt`**: UTF-8, sem tradução de quebra de linha (os arquivos não têm BOM nem `\r`).
+- [x] **Delimitar o cabeçalho** (R34): bloco inicial (órgão, número dos autos, partes, relator, protocolo) até o
       primeiro parágrafo corrido → `corpo_inicio`. Heurística com critério claro e documentado.
-- [ ] **Normalização com mapa de offsets** (ADR-003), sem alterar o original:
-  - [ ] quebra de linha → espaço;
-  - [ ] `n°` / `No` / `n.` / `N.` → `nº`;
-  - [ ] travessões (`–`, `—`) → `-`;
-  - [ ] espaços/pontos/quebras **dentro** de números colapsados;
-  - [ ] troca letra→dígito **só dentro de token numérico** (`21737l8` → `2173718`);
-  - [ ] `5úmula` → `Súmula`.
+- [x] **Normalização com mapa de offsets** (ADR-003), sem alterar o original:
+  - [x] quebra de linha → espaço;
+  - [x] `n°` / `No` / `n.` / `N.` → `nº`;
+  - [x] travessões (`–`, `—`) → `-`;
+  - [x] espaços/pontos/quebras **dentro** de números colapsados;
+  - [x] troca letra→dígito **só dentro de token numérico** (`21737l8` → `2173718`);
+  - [x] `5úmula` → `Súmula`.
   - Toda troca que muda o tamanho registra o deslocamento no `mapa` (posição normalizada → posição original).
-- [ ] `preparar(texto) -> TextoPreparado(original, corpo_inicio, normalizado, mapa)`.
-- [ ] Função utilitária `voltar_ao_original(t, ini_norm, fim_norm) -> (inicio, fim)` — **toda** saída de span
+- [x] `preparar(texto) -> TextoPreparado(original, corpo_inicio, normalizado, mapa)`.
+- [x] Função utilitária `voltar_ao_original(t, ini_norm, fim_norm) -> (inicio, fim)` — **toda** saída de span
       passa por ela.
 
 **Testes B1**
 
-- [ ] **Teste do mapa**: para cada um dos 192 trechos do gabarito, o span reconstruído pelo mapa bate com
+- [x] **Teste do mapa**: para cada um dos 192 trechos do gabarito, o span reconstruído pelo mapa bate com
       `texto[inicio:fim]` (R38).
-- [ ] Nenhum dos **43 números de cabeçalho** cai fora de `corpo_inicio` como candidato (R34).
-- [ ] Propriedade: normalizar e voltar ao original nunca produz offset fora do texto nem `inicio > fim`.
-- [ ] Casos de borda: texto vazio, sem cabeçalho detectável, citação colada ao fim do arquivo.
+- [x] Nenhum dos **43 números de cabeçalho** cai fora de `corpo_inicio` como candidato (R34).
+- [x] Propriedade: normalizar e voltar ao original nunca produz offset fora do texto nem `inicio > fim`.
+- [x] Casos de borda: texto vazio, sem cabeçalho detectável, citação colada ao fim do arquivo.
 
 #### B2 — Regex das 4 formas e leitura de campos (`extracao/`)
 
 Rodam sobre o **corpo normalizado** (ADR-005, R33).
 
-- [ ] **(a) `com_numero`**: `[cadeia de recursos] classe + nº? + número [+ /UF]` —
+- [x] **(a) `com_numero`**: `[cadeia de recursos] classe + nº? + número [+ /UF]` —
       `AgInt no AREsp nº 1.996.496/RJ`, `AgInt 7557430-50.2018.7.00.0000/DF`.
-- [ ] **(b) `sumula`**: `Súmula [Vinculante] + número [+ do tribunal]` — `Súmula 211 do STJ`.
-- [ ] **(c) `lei_artigo`**: `art.`/`artigo` + número [+ inciso/§/alínea] + `da`/`do` + identificador de lei —
+- [x] **(b) `sumula`**: `Súmula [Vinculante] + número [+ do tribunal]` — `Súmula 211 do STJ`.
+- [x] **(c) `lei_artigo`**: `art.`/`artigo` + número [+ inciso/§/alínea] + `da`/`do` + identificador de lei —
       `art. 896, § 1º-A, da CLT`, `art. 93, IX, da Constituição da República`.
-- [ ] **(d) `sem_numero`**: (`julgado`/`precedente`/`acórdão` do TRIBUNAL | CLASSE [do TRIBUNAL]) + ano +
+- [x] **(d) `sem_numero`**: (`julgado`/`precedente`/`acórdão` do TRIBUNAL | CLASSE [do TRIBUNAL]) + ano +
       (`relatoria de`/`Rel. Min.`) + nome — `julgado do STF proferido em 2024 pela relatoria de Dias Toffoli`.
-- [ ] **Delimitação do span**: o span deve cobrir exatamente o que o gabarito cobre (IoU ≥ 0,5 — R4). Estudar
+- [x] **Delimitação do span**: o span deve cobrir exatamente o que o gabarito cobre (IoU ≥ 0,5 — R4). Estudar
       onde o gabarito começa e termina em cada forma (ex.: inclui `julgado do`? inclui `/UF`?).
-- [ ] **Resolução de sobreposição** (R3): IoU ≥ 0,5 entre candidatas → fica uma só (mais específica > presente
+- [x] **Resolução de sobreposição** (R3): IoU ≥ 0,5 entre candidatas → fica uma só (mais específica > presente
       nas duas fontes > mais longa; contida em outra → descartada). **O `kaggle_metric.py` rejeita a submissão
       inteira se houver duas citações com IoU ≥ 0,5.**
-- [ ] **Referência vaga desligada** (ADR-005): `extrair_referencia_vaga = false` por padrão; o detector existe
+- [x] **Referência vaga desligada** (ADR-005): `extrair_referencia_vaga = false` por padrão; o detector existe
       atrás da chave de `configuracao.py`.
-- [ ] **Leitura de campos por regras** (`ler_campos`): tribunal, classe principal, cadeia de recursos, número
+- [x] **Leitura de campos por regras** (`ler_campos`): tribunal, classe principal, cadeia de recursos, número
       (só dígitos; `correcao_ocr=True` se houve troca letra→dígito), UF, ano, relator normalizado, `lei_chave`,
       `artigo` (**sem** inciso/§/alínea — R36). Retorna `None` quando não consegue o que a forma exige →
       candidata vai para a fila de difíceis.
-- [ ] **Registrar `padrao`** (nome do padrão) em cada `Candidata` — alimenta o rastro e a análise de erro.
-- [ ] Documentar o que **fica fora** por decisão: artigo sem lei, súmula sem número, temas de repercussão
+- [x] **Registrar `padrao`** (nome do padrão) em cada `Candidata` — alimenta o rastro e a análise de erro.
+- [x] Documentar o que **fica fora** por decisão: artigo sem lei, súmula sem número, temas de repercussão
       geral, citações no plural (`arts. 489 e 1.022 do CPC` — sem decisão se viram 1 ou 2 spans; anotar como
       débito conhecido).
 
 **Testes B2**
 
-- [ ] **Recall de spans**: para cada citação do gabarito existe um span emitido com IoU ≥ 0,5; reportar
+- [x] **Recall de spans**: para cada citação do gabarito existe um span emitido com IoU ≥ 0,5; reportar
       recall por forma e por nível.
-- [ ] **R4**: nenhum span emitido cruza citação do gabarito com IoU < 0,5.
-- [ ] **R3**: nenhum par de spans no mesmo documento com IoU ≥ 0,5.
-- [ ] **R33**: nenhuma referência vaga conhecida da amostra vira candidata.
-- [ ] **R36**: mesma classe e mesmo `artigo` com e sem inciso/§ (teste com pares).
-- [ ] Um teste por padrão regex, com exemplos positivos **e** negativos.
+- [x] **R4**: nenhum span emitido cruza citação do gabarito com IoU < 0,5.
+- [x] **R3**: nenhum par de spans no mesmo documento com IoU ≥ 0,5.
+- [x] **R33**: nenhuma referência vaga conhecida da amostra vira candidata.
+- [x] **R36**: mesma classe e mesmo `artigo` com e sem inciso/§ (teste com pares).
+- [x] Um teste por padrão regex, com exemplos positivos **e** negativos.
 
 **Pronto quando:** os 192 trechos batem com `texto[inicio:fim]`, R3 e R4 passam na amostra, nenhum dos 43 números
 de cabeçalho é extraído, e o recall de spans por IoU ≥ 0,5 está medido e registrado.
@@ -244,60 +231,67 @@ de cabeçalho é extraído, e o recall de spans por IoU ≥ 0,5 está medido e r
 **Requisitos:** R15–R19, R26, R28, R31, R35, R38, R40–R43, R49 · ADR-009, ADR-012 · **Entrega:** `escrever_json`,
 relatório comparativo, divisão ajuste/controle, gerador por código
 
+**Status: ✅ concluída em 2026-09-18** (implementada na `main`, sem commit; 92 testes na entrega, 130 hoje). Onde ficou o código:
+`saida/` (escrever + validar), `avaliacao/` (divisão, relatório, rastro, comparar, determinismo, solution),
+`sintetico/` (ruído, verdade, moldes, citações, gerador, formato); `cli.py` ganhou `avaliar --conjunto`, `comparar`,
+`gerar-sintetico` e `submeter --criar-tag`. Desvio do DESIGN: `avaliacao/` e `sintetico/` ficam **dentro** de
+`src/verificador/` (para o pacote instalar no notebook). O rastro tem a máquina pronta, mas só é preenchido quando o
+`rodar` real existir (Fase 2). O gerador mede hoje: recall de spans da extração de 85,7% (nível 1) e 81,3% (nível 2).
+
 **Contexto.** Com 26 documentos e poucos moldes de frase, é fácil "decorar" a amostra e tirar ~1,1 no
 leaderboard sem generalizar (ADR-009). Esta frente cria o **instrumento de medida honesto** e o material que
 depois treina o encoder.
 
 **Tarefas — saída e execução**
 
-- [ ] **`escrever_json(documento_id, list[CitacaoVerificada], pasta)`**: grava `<documento_id>.json` no contrato
+- [x] **`escrever_json(documento_id, list[CitacaoVerificada], pasta)`**: grava `<documento_id>.json` no contrato
       (R15): `inicio`/`fim` inteiros, `trecho == texto[inicio:fim]` (R38), `tipo` = `lei` só para forma (c)
       (R42), `resolucao.id_canonico` **só** em `real` (R13), `confianca` em [0,1] quando emitida.
-- [ ] **Validador de saída** (`saida/validar.py`): antes de converter, checa R3, R13, R38, R42 e levanta erro
+- [x] **Validador de saída** (`saida/validar.py`): antes de converter, checa R3, R13, R38, R42 e levanta erro
       claro — evita gastar uma submissão à toa (o `kaggle_metric.py` rejeita a submissão inteira por R3).
-- [ ] **Rastro por citação** (`runs/<run_id>/rastro.jsonl`): `padrao`, `origem` (regex/encoder), `caminho`,
+- [x] **Rastro por citação** (`runs/<run_id>/rastro.jsonl`): `padrao`, `origem` (regex/encoder), `caminho`,
       `candidatos`, `fonte` dos campos, `correcao_ocr`. É o insumo da análise de erro.
-- [ ] **`submeter` completo** (R31): recusar árvore suja; registrar no manifesto commit, revisões dos modelos e
+- [x] **`submeter` completo** (R31): recusar árvore suja; registrar no manifesto commit, revisões dos modelos e
       versão do ambiente; **criar a tag `sub-NNN`** de verdade; recusar se duas execuções do mesmo comando não
       derem CSV idêntico (R49) — substitui o `TODO(R49)` que existe hoje em `cli.py`.
 
 **Tarefas — avaliação**
 
-- [ ] **Divisão fixa da amostra** em *ajuste* e *controle*, estratificada por nível, gravada em arquivo
+- [x] **Divisão fixa da amostra** em *ajuste* e *controle*, estratificada por nível, gravada em arquivo
       **versionado** (`avaliacao/divisao.json`). Nunca embaralhar de novo depois de decidida (ADR-009).
-- [ ] **Relatório por execução** (R28): score, F1 por classe, τ e Brier, **por nível**, calculados pelo
+- [x] **Relatório por execução** (R28): score, F1 por classe, τ e Brier, **por nível**, calculados pelo
       `kaggle_metric.py` (não reimplementar), separando *ajuste*, *controle* e sintético.
-- [ ] **Comparador de execuções**: `verificador comparar --run A --run B` → diferença de score/F1/τ, e lista de
+- [x] **Comparador de execuções**: `verificador comparar --run A --run B` → diferença de score/F1/τ, e lista de
       citações cujo resultado mudou.
-- [ ] **Lista de erros**: citações do gabarito não casadas (recall) e citações emitidas sem par (precisão), com
+- [x] **Lista de erros**: citações do gabarito não casadas (recall) e citações emitidas sem par (precisão), com
       trecho, caminho e classe esperada × obtida.
-- [ ] **Teste de determinismo**: rodar duas vezes, comparar byte a byte (R49).
-- [ ] **Teste de troca de nomes** (R41): renomear os `.txt`/`documento_id` e conferir que a saída é a mesma.
-- [ ] **Teste de literais** (R43): varrer `src/` e falhar se aparecer `id_canonico`, `documento_id` ou trecho de
+- [x] **Teste de determinismo**: rodar duas vezes, comparar byte a byte (R49).
+- [x] **Teste de troca de nomes** (R41): renomear os `.txt`/`documento_id` e conferir que a saída é a mesma.
+- [x] **Teste de literais** (R43): varrer `src/` e falhar se aparecer `id_canonico`, `documento_id` ou trecho de
       citação da amostra.
 
 **Tarefas — gerador sintético por código (`sintetico/`, sem LLM ainda)**
 
-- [ ] Gerador com **semente fixa** que escolhe citações reais da base e produz o gabarito junto:
-  - [ ] `real`: citação correta de um registro da base;
-  - [ ] `inventada` por número inexistente;
-  - [ ] `inventada` por **número emprestado** (número existente com UF ou classe trocada) — exercita o caminho
+- [x] Gerador com **semente fixa** que escolhe citações reais da base e produz o gabarito junto:
+  - [x] `real`: citação correta de um registro da base;
+  - [x] `inventada` por número inexistente;
+  - [x] `inventada` por **número emprestado** (número existente com UF ou classe trocada) — exercita o caminho
         `numero_contradito` (R40), que **não ocorre na amostra**;
-  - [ ] `inventada` por artigo inexistente de lei conhecida;
-  - [ ] `incompleta` por forma (d), e por número que casa vários registros (R7, hoje só 1 caso na amostra).
-- [ ] **Ruído de OCR** controlado (letra↔dígito dentro de número, espaço/ponto/quebra dentro de número,
+  - [x] `inventada` por artigo inexistente de lei conhecida;
+  - [x] `incompleta` por forma (d), e por número que casa vários registros (R7, hoje só 1 caso na amostra).
+- [x] **Ruído de OCR** controlado (letra↔dígito dentro de número, espaço/ponto/quebra dentro de número,
       variação de `nº` e travessão), gerando **pares limpo × ruidoso** (R35).
-- [ ] **Vários moldes de frase**, escritos por quem **não** escreveu os regex (ADR-012, mitigação) — combinar
+- [x] **Vários moldes de frase**, escritos por quem **não** escreveu os regex (ADR-012, mitigação) — combinar
       com a frente B para não haver viés de "gerador feito sob medida para o extrator".
-- [ ] Formato de saída idêntico ao do gabarito da amostra, para o `avaliar` consumir sem adaptação.
-- [ ] Reservar uma **fatia de controle** que nunca é usada em treino.
+- [x] Formato de saída idêntico ao do gabarito da amostra, para o `avaliar` consumir sem adaptação.
+- [x] Reservar uma **fatia de controle** que nunca é usada em treino.
 
 **Testes C**
 
-- [ ] `escrever_json` → `json_to_submission.py` → CSV → `avaliar` sem `ParticipantVisibleError` (teste fim a fim).
-- [ ] Validador rejeita: sobreposição IoU ≥ 0,5, `id_canonico` em não-`real`, `trecho` ≠ `texto[inicio:fim]`,
+- [x] `escrever_json` → `json_to_submission.py` → CSV → `avaliar` sem `ParticipantVisibleError` (teste fim a fim).
+- [x] Validador rejeita: sobreposição IoU ≥ 0,5, `id_canonico` em não-`real`, `trecho` ≠ `texto[inicio:fim]`,
       `tipo` errado.
-- [ ] Gerador: mesma semente → mesmo dataset (byte a byte); gabarito sintético passa no `avaliar` com nota 1,0
+- [x] Gerador: mesma semente → mesmo dataset (byte a byte); gabarito sintético passa no `avaliar` com nota 1,0
       quando a "predição" é o próprio gabarito.
 
 **Pronto quando:** toda execução gera manifesto, relatório (R28), rastro e erros; o gerador produz pares
@@ -312,16 +306,20 @@ limpo × ruidoso e números emprestados; `submeter` cumpre R31; testes R41, R43 
 **Requisitos:** R5–R9, R12–R14, R26, R36, R40, R47, R48 · ADR-006, ADR-007, ADR-008 · **Entrega:**
 `decidir(campos, forma, indice) -> Resolucao`
 
+**Status: ✅ concluída em 2026-09-18** (na `main`, sem commit). `decisao/` com os 10 caminhos + `campos_nao_lidos` (11º,
+emitido só pela integração), filtro do ADR-007, guarda R14 e a conferência R48 do LLM (interface pronta, LLM não existe).
+26 testes em `tests/test_decisao.py`. Decisões suas: classe do TST elimina como nas outras cortes; campo não lido → `incompleta`.
+
 **Contexto.** É a lógica que separa `real` de `inventada`. O erro caro é classificar `inventada` como `real`
 (penalidade τ, que corta a nota). Regra de ouro (ADR-006): **na dúvida, nunca `real`**.
 
 **Tarefas**
 
-- [ ] **Etapa 1 — Candidatos**: formas (a)/(b) → registros com o mesmo número reduzido a dígitos (súmula:
+- [x] **Etapa 1 — Candidatos**: formas (a)/(b) → registros com o mesmo número reduzido a dígitos (súmula:
       `S…`/`SV…`, de qualquer tribunal); forma (c) → mesma lei canônica e mesmo artigo.
-- [ ] **Etapa 2 — Consistentes**: candidatos que nenhum atributo **explícito** contradiz, na ordem tribunal, UF,
+- [x] **Etapa 2 — Consistentes**: candidatos que nenhum atributo **explícito** contradiz, na ordem tribunal, UF,
       classe principal, cadeia de recursos. **Atributo ausente ou lido com correção de OCR não elimina ninguém.**
-- [ ] **Tabela de 10 caminhos** — exaustiva e disjunta, cada um com nome estável (`DESIGN.md`, [4]):
+- [x] **Tabela de 10 caminhos** — exaustiva e disjunta, cada um com nome estável (`DESIGN.md`, [4]):
 
   | Caminho | Condição | Classe | id |
   |---|---|---|---|
@@ -336,29 +334,29 @@ limpo × ruidoso e números emprestados; `submeter` cumpre R31; testes R41, R43 
   | `lei_unica` | (c), 1 candidato | real | `id` |
   | `lei_ambigua` | (c), N candidatos | incompleta | — |
 
-- [ ] **`Resolucao`** com `classificacao`, `id_canonico` (só em `real` — R12/R13), `caminho`, `candidatos`
+- [x] **`Resolucao`** com `classificacao`, `id_canonico` (só em `real` — R12/R13), `caminho`, `candidatos`
       (para o rastro), `confianca` (inicialmente `None`).
-- [ ] **Desempate por classe processual** (ADR-007): documentar exatamente como a classe principal e a cadeia
+- [x] **Desempate por classe processual** (ADR-007): documentar exatamente como a classe principal e a cadeia
       de recursos eliminam candidatos.
-- [ ] **Independência da origem dos campos**: o caminho não muda se os campos vieram de regras ou LLM; a
+- [x] **Independência da origem dos campos**: o caminho não muda se os campos vieram de regras ou LLM; a
       origem só é registrada (para a confiança).
-- [ ] **Confiança (ADR-008)**: `confianca = taxa_acerto[caminho, correcao_ocr, fonte]`, lida de tabela gerada
+- [x] **Confiança (ADR-008)**: `confianca = taxa_acerto[caminho, correcao_ocr, fonte]`, lida de tabela gerada
       pela avaliação no conjunto de controle; menos de 5 ocorrências → taxa média da classe. **Só implementar
       depois da linha de base** (Fase 5) — antes disso, `confianca = None`.
-- [ ] **Preparar o leitor LLM** (ADR-013) só como *interface*: `ler_campos_llm(fila, llm)` retornando `None`
+- [x] **Preparar o leitor LLM** (ADR-013) só como *interface*: `ler_campos_llm(fila, llm)` retornando `None`
       por enquanto, e a **conferência R48** já implementada e testada (número do LLM só é aceito se os dígitos
       saem do trecho normalizado por trocas da tabela de OCR). Isso deixa o LLM plugável depois sem mexer na
       decisão.
 
 **Testes D**
 
-- [ ] **Um teste por caminho** da tabela (10 testes), com `Campos` e `RegistroIndice` fabricados à mão.
-- [ ] **R36**: mesmo resultado com e sem inciso/§/alínea.
-- [ ] **R12/R13/R14**: `real` sempre tem `id`; não-`real` nunca tem; número da citação = número próprio do
+- [x] **Um teste por caminho** da tabela (10 testes), com `Campos` e `RegistroIndice` fabricados à mão.
+- [x] **R36**: mesmo resultado com e sem inciso/§/alínea.
+- [x] **R12/R13/R14**: `real` sempre tem `id`; não-`real` nunca tem; número da citação = número próprio do
       registro resolvido.
-- [ ] **τ = 0** em cenários fabricados de número emprestado (nenhum vira `real`).
-- [ ] **R48**: número do LLM com dígito inventado é rejeitado; número corrigível por tabela de OCR é aceito.
-- [ ] Propriedade: dado o mesmo `Campos` e índice, `decidir` é determinística.
+- [x] **τ = 0** em cenários fabricados de número emprestado (nenhum vira `real`).
+- [x] **R48**: número do LLM com dígito inventado é rejeitado; número corrigível por tabela de OCR é aceito.
+- [x] Propriedade: dado o mesmo `Campos` e índice, `decidir` é determinística.
 
 **Pronto quando:** existe um teste por caminho; R36 passa; τ = 0 na amostra e no controle (quando a
 integração existir); R48 testada.
@@ -367,19 +365,28 @@ integração existir); R48 testada.
 
 ## Fase 2 — Integração (24–25/09) · quem integra: ____ (sugestão: Roberto/frente D)
 
+**Status: ✅ concluída em 2026-09-18.** `pipeline.py` + `cmd_rodar` de verdade (índice uma vez, rastro, manifesto com hashes
+e tempos). Amostra: **score_final 0,9885, τ = 0, 192/192 spans**; sintético (100 pares): 0,8864, τ = 0. 130 testes verdes.
+Achados na integração e corrigidos em B: UF `/RO`/`/RR` lida como classe; `no` de "Interno" lido como `nº`.
+
+
 Um dia dedicado. Sem ele, cada frente fica "pronta sozinha" e nunca fecha.
 
-- [ ] Fazer merge dos PRs das 4 frentes em `main`, na ordem: contratos/CLI → A → B → D → C.
-- [ ] **Ligar o `rodar` real** em `cli.py`: `indexar → (por documento) preparar → extrair → ler_campos →
+- [x] Fazer merge dos PRs das 4 frentes em `main`, na ordem: contratos/CLI → A → B → D → C.
+- [x] **Ligar o `rodar` real** em `cli.py`: `indexar → (por documento) preparar → extrair → ler_campos →
       decidir → escrever_json → json_to_submission → CSV`. Substitui o JSON vazio do esqueleto.
-- [ ] Resolver incompatibilidades de contrato descobertas na integração (registrar como ADR curto ou nota se
+- [x] Resolver incompatibilidades de contrato descobertas na integração (registrar como ADR curto ou nota se
       mudar algo).
-- [ ] `pytest` inteiro verde; teste fim a fim com a amostra.
-- [ ] `avaliar` reporta score na amostra (ajuste + controle). Meta inicial do MVP (`DEFINE.md`): **96 reais
+- [x] `pytest` inteiro verde; teste fim a fim com a amostra.
+- [x] `avaliar` reporta score na amostra (ajuste + controle). Meta inicial do MVP (`DEFINE.md`): **96 reais
       resolvem para o id certo, τ = 0, nenhuma submissão rejeitada pelo `kaggle_metric.py`**.
-- [ ] Rodar duas vezes e conferir CSV idêntico (R49).
+- [x] Rodar duas vezes e conferir CSV idêntico (R49).
 
 ## Fase 3 — Linha de base e análise de erro (25/09)
+
+**Status: 🟡 parcial.** Linha de base e análise de erro feitas: `docs/analise_erros_baseline.md`. **Pendente:** commit,
+tag `sub-001`, notebook no Kaggle, envio da 1ª submissão e comparação local × leaderboard (ações humanas / autorização).
+
 
 - [ ] **Tag `sub-001`** no commit da versão só-regras (nunca `main` em execução oficial — `docs/guia_kaggle.md`).
 - [ ] Trocar `VERSAO = "main"` do notebook para a tag e rodar no Kaggle, gerando `submission.csv` no ambiente
@@ -387,11 +394,49 @@ Um dia dedicado. Sem ele, cada frente fica "pronta sozinha" e nunca fecha.
 - [ ] **Primeira submissão real** (gasta uma do teto diário — decisão humana; `ação_humana_pendente.md`).
       Comparar o score do leaderboard com o local: **diferença indica erro de pipeline** e deve ser investigada
       *antes* de nova submissão (prática da equipe, ex-R29).
-- [ ] **Análise de erro** no conjunto de *ajuste*: classificar cada erro por causa (span mal delimitado, campo
+- [x] **Análise de erro** no conjunto de *ajuste*: classificar cada erro por causa (span mal delimitado, campo
       lido errado, tabela incompleta, regex ausente, cabeçalho). Priorizar por ganho de score.
-- [ ] Salvar esse relatório como **linha de base** de tudo que vem depois (encoder, LLM e confiança precisam
+- [x] Salvar esse relatório como **linha de base** de tudo que vem depois (encoder, LLM e confiança precisam
       *ganhar* dela no controle para entrar).
 - [ ] Ciclo de correção: um ajuste por vez, sempre comparando `--run` novo × linha de base.
+
+### 3.1 Próximos passos propostos após a linha de base (registrados em 2026-09-19, **não implementados**)
+
+Resultado da linha de base e explicação das métricas em `resultado_primeira_rodada.md`; detalhe dos erros em
+`docs/analise_erros_baseline.md`.
+
+**(a) Antecipar a confiança calibrada (ADR-008) da Fase 5 para agora, antes da 1ª submissão.**
+
+- *Por quê:* a nota máxima é 1,100 e os últimos 0,100 vêm só do bônus de calibração, que hoje não disputamos
+  (`confianca = None` → `b = 0`). Na amostra, com confiança bem calibrada, a nota iria de ~0,99 para ~1,08. É o maior
+  ganho disponível e **não depende de GPU, encoder nem LLM**: na ordem original ela vinha depois das Fases 4 e 5, que
+  estão sob a regra de corte de 25/09, e seria cortada junto com elas.
+- *O que já existe:* a linha de base e o `rastro.jsonl`, que grava o caminho de decisão de cada citação.
+- [ ] Gerar a tabela `taxa_acerto[caminho, correcao_ocr, fonte]` no **controle** (amostra-controle + sintético-controle);
+      caminho com menos de 5 ocorrências usa a taxa média da classe. Tabela regenerada por código, nunca editada à mão.
+- [ ] Ligar a tabela no pipeline (`Resolucao.confianca`), com o hash dela no manifesto.
+- [ ] Conferir **R26**: o Brier no controle precisa ser menor que o de uma confiança constante; se não for, a
+      confiança não é enviada.
+- [ ] Quando o LLM entrar (Fase 5), só regenerar a tabela (ela já tem a dimensão `fonte`).
+
+**(b) As 4 causas de perda de recall medidas no sintético** (173 de 994 citações não são achadas; na amostra, 0).
+Todas são de **extração** (frente B): o que é achado é classificado sem erro. Tratar uma de cada vez, medindo em
+`ajuste` + `sintético-treino` e só então conferindo no `controle` (ADR-009), sempre com `verificador comparar`.
+
+| # | Causa | Citações perdidas | Ganho estimado | Onde | Risco |
+|---|---|---|---|---|---|
+| 1 | Forma (d) com moldes de frase novos (`julgado da Corte (TSE, 2015, Min. X)`, `decisão colegiada do STM em 2025, relatada pelo Ministro X`) | 36 por versão (72 nos pares) | +7,2 pts de recall | `extracao/padroes.py` ou **encoder NER** (Fase 4) | Alto com regex (falso positivo); é o caso de uso do encoder |
+| 2 | Classe escrita só por sigla que a tabela não tem (`EIN`, `MS`, `ROE`, `CJ`, `SLS`, `CautInom`, `LT`, `DCG`, `AP`, `AC`) | 31 por versão | +6,2 pts | `tabelas/classes.json` | Baixo; `AC`/`AP`/`MS` colidem com UF (já protegido: a classe só é lida antes do número) |
+| 3 | Súmula com `n.`/`nº` (`Súmula n. 83 do STJ`; a própria base escreve assim) | 10 por versão | +2,0 pts | `extracao/padroes.py` (`_compilar_sumula`) | Baixo |
+| 4 | OCR no **primeiro** dígito de um grupo ou letra + espaço dentro do número (`art. l.239`, `Rcl n. 7I. 346/SP`) | 19 (só na versão ruidosa) | +3,8 pts no nível 2 | `texto/normalizacao.py` | Médio (mexe no mapa de offsets) |
+
+- [ ] Causa 3 (mais barata e mais confiável como problema real).
+- [ ] Causa 2.
+- [ ] Causa 4.
+- [ ] Causa 1 — decidir entre regex e encoder depois de ver o efeito das anteriores.
+
+> Ressalva: os moldes do gerador sintético foram escritos por quem implementou a análise; a frequência real dessas
+> formas no conjunto final é desconhecida (ADR-012). A causa 3 é a mais segura; a causa 1 é a mais incerta.
 
 ---
 
@@ -423,6 +468,9 @@ Um dia dedicado. Sem ele, cada frente fica "pronta sozinha" e nunca fecha.
 ## Fase 5 — Leitor LLM de campos difíceis e confiança (27–29/09) · **opcional**
 
 **ADR:** 013, 008 · **Responsável:** ____ (frente D)
+
+> **Proposta de 2026-09-19:** a parte de **confiança** desta fase foi proposta para ser antecipada (ver 3.1-a).
+> Se aprovada, aqui fica só o leitor LLM e a regeneração da tabela de confiança com `fonte="llm"`.
 
 - [ ] **Fila de difíceis**: candidatas em que `ler_campos` devolveu `None` (número ausente nas formas a/b;
       lei+artigo na c; tribunal/classe/ano/relator na d). Contar quantas há na amostra (estimativa ~20).
@@ -480,7 +528,7 @@ e já previsto.
 
 | Risco / dúvida | Efeito | O que fazer |
 |---|---|---|
-| Referência vaga conta como `incompleta` no conjunto final? (`scope.md`, ADR-005) | R33 pode custar recall de `incompleta` | E-mail à organização; manter o detector atrás da chave até a resposta |
+| Referência vaga conta como `incompleta` no conjunto final? (`specs/scope.md`, ADR-005) | R33 pode custar recall de `incompleta` | E-mail à organização; manter o detector atrás da chave até a resposta |
 | Teto diário de submissões desconhecido | Limita quantas iterações no leaderboard | Descobrir na página da competição; **não** usar o leaderboard como sinal de qualidade (ADR-009) |
 | Overfitting à amostra (26 docs, poucos moldes) | Nota alta local, queda no conjunto cego | Divisão ajuste/controle + sintético + R41/R43 |
 | Frente B atrasa | Bloqueia a integração | Dividir em B1/B2; cortar cedo formas raras (d) para depois |

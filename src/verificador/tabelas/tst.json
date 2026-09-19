@@ -1,0 +1,21 @@
+{
+  "a": ["Ag"],
+  "ag": ["AgRg"],
+  "agr": ["AgRg"],
+  "agrg": ["AgRg"],
+  "agint": ["AgInt"],
+  "e": ["E"],
+  "ed": ["EDcl"],
+  "edcl": ["EDcl"],
+  "emb": ["EMB"],
+  "edciv": ["EDCIV"],
+  "rr": ["RR"],
+  "airr": ["AIRR"],
+  "arr": ["ARR"],
+  "rrag": ["RRAG"],
+  "rot": ["ROT"],
+  "irr": ["IRR"],
+  "agarr": ["AgRg", "ARR"],
+  "agairr": ["AgRg", "AIRR"],
+  "agrr": ["AgRg", "RR"]
+}

@@ -22,7 +22,7 @@ verificador = "verificador.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-verificador = ["tabelas/*.json"]
+verificador = ["tabelas/*.json", "avaliacao/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

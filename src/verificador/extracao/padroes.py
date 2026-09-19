@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from verificador.tabelas import classes, padrao_ufs
+from verificador.tabelas import classes, padrao_ufs, tst_tokens
 
 _FLAGS = re.IGNORECASE
 _CONECTOR = r"(?:no|na|nos|nas|-)"
@@ -36,6 +36,30 @@ def _padrao_uf() -> str:
     return rf"(?:/\s*(?:{ufs})|-\s*(?:{ufs})|\(\s*(?:{ufs})\s*\))"
 
 
+_NUMERO_CNJ = (
+    r"(?:"
+    r"\d{1,7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}"
+    r"|\d{7}-\d{8,20}"
+    r")"
+)
+
+
+def _padrao_tst() -> str:
+    """Número do TST: `[TST-]<recurso>-…-<classe>-<CNJ>`.
+
+    Com o prefixo `TST-` qualquer sequência de siglas serve (classes que a tabela ainda
+    não conhece); sem ele só vale sigla conhecida, para `PJe-…` ou `TJSP-…` não virarem
+    citação. A borda de palavra impede casar `RR-…` no meio de `AIRR-…`.
+    """
+    conhecidas = "|".join(re.escape(t) for t in tst_tokens())
+    com_prefixo = r"TST-(?:[A-Za-z]{1,7}-)+"
+    sem_prefixo = rf"(?:(?:{conhecidas})-)+"
+    return (
+        rf"{_PROCESSO}(?<![A-Za-z])(?P<cadeia_tst>{com_prefixo}|{sem_prefixo})"
+        rf"(?P<numero_tst>{_NUMERO_CNJ})"
+    )
+
+
 def _compilar_com_numero() -> re.Pattern[str]:
     classe = _padrao_classe()
     cadeia = rf"(?:{classe}\s*{_CONECTOR}\s*)*"
@@ -44,15 +68,12 @@ def _compilar_com_numero() -> re.Pattern[str]:
         rf"(?:{_ORDINAL})?{_PROCESSO}(?P<cadeia>{cadeia})(?P<classe>{classe})"
         rf"\s*{_N}(?P<numero>{_NUMERO})(?:\s*(?P<uf>{uf}))?"
     )
-    tst = (
-        rf"{_PROCESSO}(?P<tst>TST-)?"
-        rf"(?P<cadeia_tst>(?:(?:ED|EDcl|E|ARR|AgARR|AgR|RR|Ag)-)+)"
-        rf"(?P<numero_tst>{_NUMERO})"
-    )
     tema = (
         r"[Tt]em[aã]\s+(?P<numero_tema>\d+(?:\.\d+)?)\s+da\s+repercuss[aã]o\s+geral"
     )
-    return re.compile(rf"(?:(?P<tema>{tema})|(?P<tst_bloco>{tst})|(?P<comum>{comum}))", _FLAGS)
+    return re.compile(
+        rf"(?:(?P<tema>{tema})|(?P<tst_bloco>{_padrao_tst()})|(?P<comum>{comum}))", _FLAGS
+    )
 
 
 def _compilar_sumula() -> re.Pattern[str]:
@@ -118,6 +139,7 @@ def _compilar_sem_numero() -> re.Pattern[str]:
 
 
 COM_NUMERO = _compilar_com_numero()
+TST_NUMERO = re.compile(_padrao_tst(), _FLAGS)
 SUMULA = _compilar_sumula()
 LEI_ARTIGO = _compilar_lei()
 SEM_NUMERO = _compilar_sem_numero()

@@ -19,9 +19,42 @@ def _ler_json(nome: str):
     return json.loads(caminho.read_text(encoding="utf-8"))
 
 
+def hash_tabelas() -> str:
+    """Hash das tabelas versionadas (entra no manifesto: mudar uma tabela muda o resultado)."""
+    import hashlib
+
+    resumo = hashlib.sha256()
+    for caminho in sorted(_pasta().glob("*.json")):
+        resumo.update(caminho.name.encode("utf-8"))
+        resumo.update(caminho.read_bytes())
+    return resumo.hexdigest()
+
+
 @lru_cache(maxsize=1)
 def ocr() -> dict[str, str]:
     return dict(_ler_json("ocr.json")["dentro_de_numero"])
+
+
+@lru_cache(maxsize=1)
+def _tst() -> dict[str, tuple[str, ...]]:
+    return {token: tuple(siglas) for token, siglas in _ler_json("tst.json").items()}
+
+
+def tst_tokens() -> tuple[str, ...]:
+    """Tokens (minúsculos) de classe/recurso conhecidos no número do TST, maiores primeiro."""
+    return tuple(sorted(_tst(), key=len, reverse=True))
+
+
+def tst_sigla(token: str) -> tuple[str, ...]:
+    """Sigla(s) canônica(s) de um token do número do TST (`TST-EDcl-RR-…`).
+
+    Fonte única para o índice (frente A) e a leitura de campos (frente B): as duas
+    pontas da comparação precisam nomear `EDcl`, `AgRg`, `AIRR`… do mesmo jeito.
+    Um token só pode valer mais de uma sigla (`AgARR` = `AgRg` + `ARR`). Token
+    desconhecido volta em maiúsculas.
+    """
+    limpo = token.strip()
+    return _tst().get(limpo.lower(), (limpo.upper(),))
 
 
 @lru_cache(maxsize=1)

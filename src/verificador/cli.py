@@ -17,7 +17,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from verificador.avaliacao.solution import montar_solution
 from verificador.configuracao import Configuracao, carregar
+from verificador.saida import escrever_json
 
 PASTA_DADOS_PADRAO = "desafio-jusbrasil-bracis-2026"
 TABELA_DOCUMENTOS = "documentos"
@@ -176,71 +178,6 @@ def converter_jsons_para_csv(script: Path, pasta_jsons: Path, destino: Path) -> 
         raise SystemExit(erro)
 
 
-def montar_solution(gabarito: Path):
-    import pandas as pd
-
-    df = pd.read_csv(
-        gabarito,
-        dtype={
-            "documento_id": str,
-            "citacao_id": str,
-            "classificacao": str,
-            "id_canonico": "string",
-        },
-    )
-    linhas: list[dict[str, Any]] = []
-    for documento_id, grupo in df.groupby("documento_id", sort=True):
-        nivel = int(grupo["nivel"].iloc[0])
-        partes: list[str] = []
-        ordenado = grupo.sort_values(["inicio", "fim"], kind="mergesort")
-        for _, row in ordenado.iterrows():
-            classe = str(row["classificacao"]).strip().lower()
-            inicio = int(row["inicio"])
-            fim = int(row["fim"])
-            bruto = row["id_canonico"]
-            if bruto is None or (isinstance(bruto, float) and pd.isna(bruto)) or pd.isna(bruto):
-                doc_ids = "-"
-            else:
-                texto = str(bruto).strip()
-                doc_ids = "-" if texto in ("", "<NA>", "nan", "None") else texto
-            partes.append(f"{inicio},{fim},{classe},{doc_ids}")
-        citacoes = "|".join(partes) if partes else "-"
-        linhas.append(
-            {
-                "documento_id": str(documento_id),
-                "nivel": nivel,
-                "citacoes": citacoes,
-            }
-        )
-    return pd.DataFrame(linhas)
-
-
-def formatar_relatorio(run_id: str, resultado: dict[str, Any]) -> str:
-    linhas = [
-        f"# Relatório — `{run_id}`",
-        "",
-        "Esqueleto andante: listas de citações vazias. `score_final` baixo é esperado.",
-        "",
-        f"**score_final:** {float(resultado['score_final']):.6f}",
-        "",
-    ]
-    for nivel, bloco in sorted(resultado["niveis"].items()):
-        f1 = {classe: round(float(valor), 6) for classe, valor in bloco["f1_por_classe"].items()}
-        linhas.extend(
-            [
-                f"## Nível {nivel}",
-                f"- macro_f1: {float(bloco['macro_f1']):.6f}",
-                f"- f1_por_classe: `{f1}`",
-                f"- tau: {float(bloco['tau']):.6f}",
-                f"- s: {float(bloco['s']):.6f}",
-                f"- b: {float(bloco['b']):.6f}",
-                f"- score: {float(bloco['score']):.6f}",
-                "",
-            ]
-        )
-    return "\n".join(linhas)
-
-
 def cmd_ambiente(
     *,
     saida: Path,
@@ -286,6 +223,14 @@ def cmd_rodar(
     usar_encoder: bool | None = None,
     usar_llm: bool | None = None,
 ) -> Path:
+    from collections import Counter
+
+    from verificador.avaliacao.rastro import escrever_rastro, linha_de_rastro
+    from verificador.base import construir_indice
+    from verificador.pipeline import processar_documento
+    from verificador.saida import ErroDeSaida
+    from verificador.tabelas import hash_tabelas
+
     entrada = entrada.resolve()
     pasta_dados = resolver_dados(dados, entrada)
     script = pasta_dados / "json_to_submission.py"
@@ -297,13 +242,31 @@ def cmd_rodar(
         raise SystemExit(f"json_to_submission.py não encontrado em {pasta_dados}")
 
     cfg = carregar().com_flags(usar_encoder=usar_encoder, usar_llm=usar_llm)
+    if cfg.usar_encoder or cfg.usar_llm:
+        raise SystemExit("usar_encoder/usar_llm ainda não estão implementados nesta versão (Fases 4 e 5)")
     destino_run = pasta_run(saida, run_id)
     pasta_jsons = destino_run / "jsons"
     pasta_jsons.mkdir(parents=True, exist_ok=True)
 
+    indice = construir_indice(db)
+    tempos: dict[str, float] = {}
+    por_classe: Counter[str] = Counter()
+    por_caminho: Counter[str] = Counter()
+    rastro: list[dict[str, Any]] = []
     for txt in txts:
         documento_id = txt.stem
-        gravar_json(pasta_jsons / f"{documento_id}.json", {"documento_id": documento_id, "citacoes": []})
+        with txt.open(encoding="utf-8", newline="") as fh:  # sem tradução de \r\n: offsets exatos (R2)
+            texto = fh.read()
+        citacoes = processar_documento(texto, indice, tempos)
+        try:
+            escrever_json(documento_id, citacoes, pasta_jsons, texto)
+        except ErroDeSaida as erro:
+            raise SystemExit(f"saída inválida em {documento_id}:\n{erro}") from erro
+        for c in citacoes:
+            por_classe[c.resolucao.classificacao] += 1
+            por_caminho[c.resolucao.caminho] += 1
+            rastro.append(linha_de_rastro(documento_id, c))
+    escrever_rastro(destino_run, rastro)
 
     submission = destino_run / "submission.csv"
     converter_jsons_para_csv(script, pasta_jsons, submission)
@@ -320,17 +283,53 @@ def cmd_rodar(
             "caminhos": {
                 "jsons": str(pasta_jsons),
                 "submission": str(submission),
-                "db": str(db),
-                "json_to_submission": str(script),
             },
-            "hash_db": hash_arquivo(db),
-            "hash_json_to_submission": hash_arquivo(script),
-            "documentos": len(txts),
+            "execucao": {
+                "documentos": len(txts),
+                "citacoes": sum(por_classe.values()),
+                "por_classe": dict(sorted(por_classe.items())),
+                "por_caminho": dict(sorted(por_caminho.items())),
+                "tempos_s": {etapa: round(seg, 3) for etapa, seg in sorted(tempos.items())},
+            },
+            "hashes": {
+                "tabelas": hash_tabelas(),
+                "base": hash_arquivo(db),
+                "json_to_submission": hash_arquivo(script),
+            },
         }
     )
     gravar_json(destino_run / "manifesto.json", manifesto)
-    print(f"submission: {submission} ({len(txts)} documentos)")
+    print(f"submission: {submission} ({len(txts)} documentos, {sum(por_classe.values())} citações {dict(por_classe)})")
     return submission
+
+
+def _conjuntos_disponiveis(gabarito: Path) -> tuple[str, ...]:
+    """A divisão ajuste/controle vale só para a amostra oficial; outro gabarito é um conjunto único.
+
+    Decide pelos documentos do gabarito, não pelo nome do arquivo (o sintético usa o mesmo nome).
+    Um `divisao.json` ao lado do gabarito sintético acrescenta o treino e o controle dele (ADR-009).
+    """
+    from verificador.avaliacao import divisao
+
+    with gabarito.open(encoding="utf-8-sig", newline="") as fh:
+        ids = {linha["documento_id"] for linha in csv.DictReader(fh)}
+    if ids == set(divisao.documentos("amostra")):
+        return ("amostra", "ajuste", "controle")
+    if (gabarito.parent / "divisao.json").is_file():
+        return ("sintetico", "sintetico_treino", "sintetico_controle")
+    return ("sintetico",)
+
+
+def _documentos_do_conjunto(nome: str, gabarito: Path) -> set[str] | None:
+    """Documentos de um conjunto; `None` = o gabarito inteiro."""
+    from verificador.avaliacao import divisao
+
+    if nome == "sintetico":
+        return None
+    if nome in ("sintetico_treino", "sintetico_controle"):
+        dados = json.loads((gabarito.parent / "divisao.json").read_text(encoding="utf-8"))
+        return set(dados[nome.removeprefix("sintetico_")])
+    return set(divisao.documentos(nome))
 
 
 def cmd_avaliar(
@@ -339,8 +338,11 @@ def cmd_avaliar(
     saida: Path,
     gabarito: Path | None = None,
     dados: Path | None = None,
+    conjunto: str = "todos",
 ) -> dict[str, Any]:
     import pandas as pd
+
+    from verificador.avaliacao import rastro as rastro_mod, relatorio
 
     destino_run = pasta_run(saida, run_id)
     submission_path = destino_run / "submission.csv"
@@ -352,53 +354,152 @@ def cmd_avaliar(
     if manifesto_path.is_file():
         manifesto = json.loads(manifesto_path.read_text(encoding="utf-8"))
 
+    if dados is not None:
+        dados_resolvido = dados
+    elif manifesto.get("argumentos", {}).get("dados"):
+        dados_resolvido = Path(manifesto["argumentos"]["dados"])
+    else:
+        dados_resolvido = resolver_dados(None, None)
     if gabarito is None:
-        dados_resolvido = None
-        if dados is not None:
-            dados_resolvido = dados
-        elif manifesto.get("argumentos", {}).get("dados"):
-            dados_resolvido = Path(manifesto["argumentos"]["dados"])
-        else:
-            dados_resolvido = resolver_dados(None, None)
         gabarito = dados_resolvido / "goldenset_offsets.csv"
     gabarito = gabarito.resolve()
     if not gabarito.is_file():
         raise SystemExit(f"gabarito ausente: {gabarito}")
 
-    metric_path = gabarito.parent / "kaggle_metric.py"
-    metrica = importar_modulo("kaggle_metric_oficial", metric_path)
+    disponiveis = _conjuntos_disponiveis(gabarito)
+    if conjunto != "todos" and conjunto not in disponiveis:
+        raise SystemExit(f"conjunto {conjunto!r} não existe para este gabarito; use {list(disponiveis)}")
+    escolhidos = disponiveis if conjunto == "todos" else (conjunto,)
+
+    # A métrica oficial mora na pasta de dados, não ao lado de um gabarito que pode ser sintético.
+    metrica = importar_modulo("kaggle_metric_oficial", dados_resolvido / "kaggle_metric.py")
     solution = montar_solution(gabarito)
     submission = pd.read_csv(submission_path, dtype={"documento_id": str, "citacoes": str})
-    resultado = metrica.avaliar(solution, submission)
-    relatorio = destino_run / "relatorio.md"
-    relatorio.write_text(formatar_relatorio(run_id, resultado), encoding="utf-8")
-    print(relatorio.read_text(encoding="utf-8"))
-    print(f"relatorio: {relatorio}")
-    return resultado
+
+    resultados: dict[str, dict[str, Any]] = {}
+    for nome in escolhidos:
+        docs = _documentos_do_conjunto(nome, gabarito)
+        try:
+            resultado = relatorio.avaliar_conjunto(metrica, solution, submission, docs)
+            analise = relatorio.analisar(metrica, solution, submission, docs)
+        except metrica.ParticipantVisibleError as erro:
+            raise SystemExit(f"submissão rejeitada pelo kaggle_metric: {erro}") from erro
+        resultados[nome] = {"resultado": resultado, "analise": analise}
+
+    rastro = rastro_mod.carregar_rastro(destino_run)
+    trechos = _trechos_do_gabarito(gabarito)
+    (destino_run / "relatorio.md").write_text(
+        relatorio.formatar_relatorio(run_id, resultados, rastro_mod.contar_caminhos(rastro)), encoding="utf-8"
+    )
+    (destino_run / "relatorio.json").write_text(relatorio.relatorio_json(resultados), encoding="utf-8")
+    (destino_run / "erros.md").write_text(
+        relatorio.formatar_erros(run_id, resultados, rastro, trechos), encoding="utf-8"
+    )
+    print((destino_run / "relatorio.md").read_text(encoding="utf-8"))
+    print(f"relatorio: {destino_run / 'relatorio.md'}")
+    return resultados[escolhidos[0]]["resultado"]
 
 
-def cmd_submeter(*, run_id: str, saida: Path) -> None:
+def _trechos_do_gabarito(gabarito: Path) -> dict[tuple[str, int, int], str]:
+    with gabarito.open(encoding="utf-8-sig", newline="") as fh:
+        return {
+            (l["documento_id"], int(l["inicio"]), int(l["fim"])): l["trecho"].replace("\\n", " ")
+            for l in csv.DictReader(fh)
+        }
+
+
+def criar_tag_git(cwd: Path, tag: str, mensagem: str) -> None:
+    """Tag anotada no commit atual (R31). Falha alto: submissão sem tag não vale."""
+    proc = subprocess.run(
+        ["git", "tag", "-a", tag, "-m", mensagem], cwd=cwd, capture_output=True, text=True, check=False
+    )
+    if proc.returncode != 0:
+        raise SystemExit(f"não foi possível criar a tag {tag}: {(proc.stderr or proc.stdout).strip()}")
+
+
+def cmd_submeter(*, run_id: str, saida: Path, criar_tag: bool = False) -> str:
+    """Confere R31 e R49 e (com `criar_tag`) cria a tag `sub-NNN`. Devolve o nome da tag."""
+    import shutil
+
+    from verificador.avaliacao.determinismo import csv_identicos, hash_csv, proximo_tag
+
     destino_run = pasta_run(saida, run_id)
     submission = destino_run / "submission.csv"
     if not submission.is_file():
         raise SystemExit(f"submission ausente: {submission}")
 
-    git = info_git()
+    raiz = raiz_repositorio()
+    git = info_git(raiz)
     if git.get("arvore_suja"):
-        raise SystemExit(
-            "árvore git suja — commite (ou descarte) as mudanças antes de submeter (R31)"
-        )
+        raise SystemExit("árvore git suja — commite (ou descarte) as mudanças antes de submeter (R31)")
     if git.get("commit") is None:
         raise SystemExit("não foi possível ler o commit git")
 
-    tags = _git(["tag", "-l", "sub-*"], raiz_repositorio()) or ""
-    existentes = [linha for linha in tags.splitlines() if linha.strip()]
-    proximo = len(existentes) + 1
-    tag = f"sub-{proximo:03d}"
-    print("Submissão ainda não envia nem cria tag.")
-    print("TODO(R49): quando houver lógica real, rodar duas vezes e exigir CSV idêntico.")
-    print(f"faria: git tag {tag}  (commit {git['commit'][:12]})")
-    print(f"arquivo: {submission}")
+    manifesto_path = destino_run / "manifesto.json"
+    if not manifesto_path.is_file():
+        raise SystemExit(f"manifesto ausente: {manifesto_path} — a execução precisa vir de `verificador rodar`")
+    manifesto = json.loads(manifesto_path.read_text(encoding="utf-8"))
+    argumentos = manifesto.get("argumentos", {})
+    if not argumentos.get("entrada"):
+        raise SystemExit("manifesto sem `argumentos.entrada`; não dá para repetir a execução (R49)")
+    if manifesto.get("git", {}).get("commit") not in (None, git["commit"]):
+        raise SystemExit("a execução foi feita em outro commit; rode `rodar` de novo neste commit (R31)")
+
+    # R49: mesma entrada, mesmo commit, mesma configuração → CSV idêntico byte a byte.
+    cfg = manifesto.get("config", {})
+    repeticoes = [f"{run_id}.r49a", f"{run_id}.r49b"]
+    try:
+        gerados = [
+            cmd_rodar(
+                entrada=Path(argumentos["entrada"]),
+                run_id=nome,
+                saida=saida,
+                dados=Path(argumentos["dados"]) if argumentos.get("dados") else None,
+                usar_encoder=cfg.get("usar_encoder"),
+                usar_llm=cfg.get("usar_llm"),
+            )
+            for nome in repeticoes
+        ]
+        if not (csv_identicos(gerados[0], gerados[1]) and csv_identicos(gerados[0], submission)):
+            raise SystemExit("execuções repetidas geraram CSV diferente: submissão recusada (R49)")
+    finally:
+        for nome in repeticoes:
+            shutil.rmtree(pasta_run(saida, nome), ignore_errors=True)
+
+    tags = (_git(["tag", "-l", "sub-*"], raiz) or "").splitlines()
+    tag = proximo_tag(tags)
+    print(f"R49 ok: duas execuções idênticas (sha256 {hash_csv(submission)[:16]})")
+    if not criar_tag:
+        print(f"faria: git tag -a {tag}  (commit {git['commit'][:12]}) — passe --criar-tag para criar")
+        return tag
+    criar_tag_git(raiz, tag, f"submissão da execução {run_id} (commit {git['commit'][:12]})")
+    manifesto["submissao"] = {"tag": tag, "commit": git["commit"], "sha256_csv": hash_csv(submission)}
+    gravar_json(manifesto_path, manifesto)
+    print(f"tag criada: {tag}")
+    return tag
+
+
+def cmd_comparar(*, run_a: str, run_b: str, saida: Path) -> Path:
+    from verificador.avaliacao.comparar import comparar_runs
+
+    pasta_a, pasta_b = pasta_run(saida, run_a), pasta_run(saida, run_b)
+    for pasta in (pasta_a, pasta_b):
+        if not (pasta / "relatorio.json").is_file():
+            raise SystemExit(f"{pasta / 'relatorio.json'} ausente — rode `verificador avaliar` nessa execução")
+    texto = comparar_runs(pasta_a, pasta_b, run_a, run_b)
+    destino = pasta_b / f"comparacao_com_{run_a}.md"
+    destino.write_text(texto, encoding="utf-8")
+    print(texto)
+    print(f"comparacao: {destino}")
+    return destino
+
+
+def cmd_gerar_sintetico(*, dados: Path, saida: Path, pares: int, semente: int) -> Path:
+    from verificador.sintetico import gerar_dataset
+
+    destino = gerar_dataset(dados, saida, pares, semente)
+    print(f"dataset sintético: {destino} ({pares} pares limpo×ruidoso, semente {semente})")
+    return destino
 
 
 def _saida_padrao() -> Path:
@@ -429,10 +530,27 @@ def construir_parser() -> argparse.ArgumentParser:
     p_av.add_argument("--saida", type=Path, default=_saida_padrao())
     p_av.add_argument("--gabarito", type=Path, default=None)
     p_av.add_argument("--dados", type=Path, default=None)
+    p_av.add_argument(
+        "--conjunto",
+        choices=("todos", "amostra", "ajuste", "controle", "sintetico", "sintetico_treino", "sintetico_controle"),
+        default="todos",
+        help="conjunto a avaliar (padrão: todos os que existem para o gabarito)",
+    )
 
-    p_sub = sub.add_parser("submeter", help="checa árvore limpa; tag fica para depois")
+    p_sub = sub.add_parser("submeter", help="checa árvore limpa e R49; com --criar-tag cria a tag sub-NNN")
     p_sub.add_argument("--run", dest="run_id", required=True)
     p_sub.add_argument("--saida", type=Path, default=_saida_padrao())
+    p_sub.add_argument("--criar-tag", action="store_true", help="cria de fato a tag git (sem isso só mostra)")
+
+    p_gen = sub.add_parser("gerar-sintetico", help="gera dataset sintético por código (pares limpo × ruidoso)")
+    p_gen.add_argument("--dados", type=Path, required=True)
+    p_gen.add_argument("--saida", type=Path, required=True)
+    p_gen.add_argument("--pares", type=int, default=100)
+    p_gen.add_argument("--semente", type=int, default=0)
+
+    p_cmp = sub.add_parser("comparar", help="diferença de nota e de citações entre duas execuções")
+    p_cmp.add_argument("--run", dest="runs", action="append", required=True, metavar="RUN", help="informe duas vezes: antes e depois")
+    p_cmp.add_argument("--saida", type=Path, default=_saida_padrao())
     return parser
 
 
@@ -460,8 +578,15 @@ def main(argv: list[str] | None = None) -> None:
             saida=args.saida,
             gabarito=args.gabarito,
             dados=args.dados,
+            conjunto=args.conjunto,
         )
     elif args.comando == "submeter":
-        cmd_submeter(run_id=args.run_id, saida=args.saida)
+        cmd_submeter(run_id=args.run_id, saida=args.saida, criar_tag=args.criar_tag)
+    elif args.comando == "gerar-sintetico":
+        cmd_gerar_sintetico(dados=args.dados.resolve(), saida=args.saida, pares=args.pares, semente=args.semente)
+    elif args.comando == "comparar":
+        if len(args.runs) != 2:
+            parser.error("`comparar` exige exatamente dois --run (antes e depois)")
+        cmd_comparar(run_a=args.runs[0], run_b=args.runs[1], saida=args.saida)
     else:  # pragma: no cover
         parser.error(args.comando)
