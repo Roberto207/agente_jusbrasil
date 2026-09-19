@@ -127,7 +127,7 @@ Cada parecer passa por três cuidados antes de qualquer busca.
 **Separar o cabeçalho.** Pareceres começam com um bloco de identificação: "Processo nº ...",
 partes, relator, "Protocolo nº ...". Esses números não são citações — são do próprio parecer — e o
 gabarito do desafio nunca os conta. O sistema identifica esse bloco e ignora tudo que está nele.
-
+es
 **Fazer uma cópia limpa.** O sistema cria uma versão corrigida do texto para facilitar a leitura:
 
 - `21737l8` vira `2173718`;
