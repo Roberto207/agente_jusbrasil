@@ -16,8 +16,10 @@ _TRACOS = {
     "\u2015",
     "\u2212",
 }
+# O espaço opcional depois do separador mantém `l. 925.456` e `68. l62` como um token só: sem isso a
+# letra fica isolada do resto do número e a troca letra→dígito não acontece (causa 4 do recall).
 _NUMERO = re.compile(
-    r"(?<![\w])(?=[\dIlOSgl.]*\d)[\dIlOSgl]+(?:[.\-][\dIlOSgl]+)*",
+    r"(?<![\w])(?=[\dIlOSgl.\- ]{0,40}\d)[\dIlOSgl]+(?:[.\-] ?[\dIlOSgl]+)*(?![A-Za-zÀ-ÿ])",
     re.IGNORECASE,
 )
 _N_NUMERO = re.compile(
@@ -27,6 +29,7 @@ _CINCO_UMULA = re.compile(r"5[úu]mula", re.IGNORECASE)
 _ESPACO_NO_NUMERO = re.compile(
     r"(?<=\d) +(?=[\d.\-])|(?<=\d\.) +(?=\d)",
 )
+_SEPARADOR = re.compile(r"([.\- ]+)")
 _HIFEN_SOLTO = re.compile(r"\s*-\s*")
 _HIFEN_PONTO = re.compile(r"-+\.(?=\d)|\.-+(?=\d)")
 _HIFENS_DUPLOS = re.compile(r"-{2,}")
@@ -70,38 +73,28 @@ def _substituir(
         _aplicar(chars, mapa, m.start(), m.end(), novo)
 
 
-def _vizinho_digito(token: str, i: int) -> bool:
-    if i > 0 and token[i - 1].isdigit():
-        return True
-    if i + 1 < len(token) and token[i + 1].isdigit():
-        return True
-    # 1º dígito de um grupo: l.239, I.003, g.324.784
-    if i + 2 < len(token) and token[i + 1] in ".-" and token[i + 2].isdigit():
-        return True
-    # letra no meio do número após separador: 1.o21 (exige dígito depois,
-    # senão `…-SP` vira `…-5P`)
-    if (
-        i >= 2
-        and token[i - 1] in ".-"
-        and token[i - 2].isdigit()
-        and i + 1 < len(token)
-        and token[i + 1].isdigit()
-    ):
-        return True
-    return False
-
-
 def _ocr_no_token(token: str) -> str:
+    """Troca letra→dígito em token numérico, decidindo por **grupo** entre separadores.
+
+    A regra antiga exigia dígito colado e deixava passar `l.239` (o `l` encosta no ponto). A regra
+    pelo token inteiro erra para o outro lado: em `1.111.222-GO` ela transforma a UF em `90`.
+    Por grupo, converte quando o grupo já tem dígito (`7I`, `4S5`) ou quando é um caractere só e não
+    é o último (`l` em `l.239`, `S` em `...2008.S.19...`). Assim `GO` e um `-S` final ficam de fora.
+    """
     if not any(ch.isdigit() for ch in token):
         return token
     tabela = ocr()
-    saida: list[str] = []
-    for i, ch in enumerate(token):
-        if ch.isalpha() and ch in tabela and _vizinho_digito(token, i):
-            saida.append(tabela[ch])
-        else:
-            saida.append(ch)
-    return "".join(saida)
+    partes = _SEPARADOR.split(token)
+    conteudo = [i for i in range(0, len(partes), 2) if partes[i]]
+    if not conteudo:
+        return token
+    ultimo = conteudo[-1]
+    for i in conteudo:
+        grupo = partes[i]
+        tem_digito = any(ch.isdigit() for ch in grupo)
+        if tem_digito or (len(grupo) == 1 and i != ultimo):
+            partes[i] = "".join(tabela.get(c, c) if c.isalpha() else c for c in grupo)
+    return "".join(partes)
 
 
 def normalizar(texto: str) -> tuple[str, list[int]]:
