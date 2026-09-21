@@ -75,6 +75,19 @@ def _vizinho_digito(token: str, i: int) -> bool:
         return True
     if i + 1 < len(token) and token[i + 1].isdigit():
         return True
+    # 1º dígito de um grupo: l.239, I.003, g.324.784
+    if i + 2 < len(token) and token[i + 1] in ".-" and token[i + 2].isdigit():
+        return True
+    # letra no meio do número após separador: 1.o21 (exige dígito depois,
+    # senão `…-SP` vira `…-5P`)
+    if (
+        i >= 2
+        and token[i - 1] in ".-"
+        and token[i - 2].isdigit()
+        and i + 1 < len(token)
+        and token[i + 1].isdigit()
+    ):
+        return True
     return False
 
 
@@ -105,11 +118,13 @@ def normalizar(texto: str) -> tuple[str, list[int]]:
 
     _substituir(chars, mapa, _N_NUMERO, "nº")
     _substituir(chars, mapa, _CINCO_UMULA, "Súmula")
+    # OCR antes de colapsar hífen/espaço: senão `7I. 346` e `1. o21` perdem o
+    # vizinho digitável, e `21737l8 - SP` cola a UF no token do número (causa 4).
+    _substituir(chars, mapa, _NUMERO, lambda m: _ocr_no_token(m.group(0)))
     _substituir(chars, mapa, _HIFEN_SOLTO, "-")
     _substituir(chars, mapa, _ESPACO_NO_NUMERO, "")
     _substituir(chars, mapa, _HIFEN_PONTO, ".")
     _substituir(chars, mapa, _HIFENS_DUPLOS, "-")
-    _substituir(chars, mapa, _NUMERO, lambda m: _ocr_no_token(m.group(0)))
     return "".join(chars), mapa
 
 

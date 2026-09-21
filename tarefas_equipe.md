@@ -434,7 +434,10 @@ Todas são de **extração** (frente B): o que é achado é classificado sem err
 
 - [x] Causa 3 (mais barata e mais confiável como problema real).
 - [x] Causa 2.
-- [ ] Causa 4.
+- [x] Causa 4 — OCR no 1º dígito / letra+espaço: converter letra→dígito **antes** de colapsar
+      hífen/espaço; aceitar letra no 1º dígito do grupo (`texto/normalizacao.py`). Medido em
+      `sint-pre-c4` → `sint-c4`: +14 spans (só nível 2), score_final +0,010; amostra e controle oficiais
+      inalterados; 0 espúrios.
 - [ ] Causa 1 — decidir entre regex e encoder depois de ver o efeito das anteriores.
 
 > Ressalva: os moldes do gerador sintético foram escritos por quem implementou a análise; a frequência real dessas
