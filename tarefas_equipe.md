@@ -434,8 +434,16 @@ Todas são de **extração** (frente B): o que é achado é classificado sem err
 
 - [x] Causa 3 (mais barata e mais confiável como problema real).
 - [x] Causa 2.
-- [ ] Causa 4.
-- [ ] Causa 1 — decidir entre regex e encoder depois de ver o efeito das anteriores.
+- [x] **Resíduo da causa 2** (2026-09-21): a sigla solta `CorPar` ficara de fora da tabela (+6); o hífen como
+      conector antes de número CNJ (`DCG-1340-…`, +2); e número curto com marcador `nº` obrigatório
+      (`CautInom nº 87`, +2). Detalhe em `resultado_submissoes.md`.
+- [x] **Causa 4** (2026-09-21, +19): eram dois defeitos em `texto/normalizacao.py`. (1) A troca letra→dígito
+      rodava **depois** da limpeza de espaço, que exige dígito dos dois lados — em `7I. 346` o `I` só vira `1`
+      tarde demais. (2) A regra olhava o caractere colado, então `l` em `l.239` (encostado no ponto) escapava.
+      Agora o token numérico abrange o espaço após o separador, a decisão é por **grupo** entre separadores, e
+      a correção roda antes da limpeza. A regra por grupo evita o erro oposto: em `1.111.222-GO` a UF não vira `90`.
+- [ ] Causa 1 — **é todo o resíduo**: as 72 citações que ainda faltam no sintético são forma (d) com molde novo,
+      todas `incompleta`. Planejamento do encoder via `/sdd` (ADR-011).
 
 > Ressalva: os moldes do gerador sintético foram escritos por quem implementou a análise; a frequência real dessas
 > formas no conjunto final é desconhecida (ADR-012). A causa 3 é a mais segura; a causa 1 é a mais incerta.

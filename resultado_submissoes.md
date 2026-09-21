@@ -173,6 +173,48 @@ Em todos os conjuntos: τ = 0 e nenhum span espúrio.
 
 ---
 
+## 5-A. Fechamento da Fase 3 — causas 2 (resíduo) e 4 do recall (2026-09-21)
+
+Quatro correções, aplicadas e medidas **uma por vez** (ADR-009). Nenhuma delas toca a amostra oficial, que já
+estava em 192/192 — o ganho é inteiramente de **generalização**, medido no sintético.
+
+| # | Correção | Onde | Recuperou |
+|---|---|---|---|
+| A | sigla solta `CorPar` (esquecida no commit `bd1ccdc`, que a acrescentou às outras 9 classes) | `tabelas/classes.json` | +6 |
+| B | hífen como conector, só antes de número CNJ (`DCG-1340-57.2017.5.17.0010`) | `extracao/padroes.py` | +2 |
+| D | OCR: ordem das operações + decisão por grupo | `texto/normalizacao.py` | +19 |
+| C | número curto com marcador `nº` obrigatório (`CautInom nº 87`) | `extracao/padroes.py` | +2 |
+
+### Antes × depois
+
+| Conjunto | Score antes | Score depois | Recall antes | Recall depois |
+|---|---|---|---|---|
+| Amostra oficial | 1,08604 | **1,08604** (inalterado) | 192/192 | 192/192 |
+| Controle (amostra) | 1,07925 | **1,07925** (inalterado) | 91/91 | 91/91 |
+| Sintético | 1,01890 | **1,03940** | 893/994 (89,8%) | **922/994 (92,8%)** |
+| Sintético-treino | 1,01740 | **1,03848** | 703/784 | 726/784 |
+| Sintético-controle | 1,02500 | **1,04293** | 190/210 | **196/210 (93,3%)** |
+
+Critérios de aceite, todos atendidos: amostra intacta em 192/192; **precisão de spans 1,0** (nenhum span
+espúrio) em todos os conjuntos; **τ = 0**; melhora **também no controle**; `pytest` 136 verde; determinismo R49
+em amostra e sintético. `comparar`: **29 citações apareceram, 0 sumiram, 0 trocaram de classe ou id**.
+O `submission.csv` da amostra é **idêntico ao já submetido** — o leaderboard segue 1,08604, como previsto.
+
+### Dois falsos positivos que a medição pegou (e como foram corrigidos)
+Valem registro porque mostram o risco de alargar regex sem medir:
+1. A primeira versão da regra de OCR decidia pelo **token inteiro** e transformava `REsp 1.111.222 – GO` em
+   `…-90`: a UF de Goiás é feita só de letras confundíveis. Resolvido com a decisão por **grupo** entre
+   separadores mais um guarda que impede o token de invadir uma sigla (`…456-SP`).
+2. O guarda do número curto era estrito demais (`(?![\d.\-])`) e rejeitava `CautInom nº 87.` por causa do
+   ponto final da frase. Como a alternância já tenta o número longo primeiro, bastou excluir dígito (`(?!\d)`).
+
+### O que sobrou
+O resíduo é **72 citações, 100% forma (d)** com molde de frase novo, todas da classe `incompleta` — é a
+**causa 1** por inteiro. Ela não precisa de número nem de consulta à base: reconhecer o span *é* o problema,
+que é exatamente o caso de uso do encoder NER (ADR-011). Segue para planejamento via `/sdd`.
+
+---
+
 ## 6. Como ler tudo isso
 
 1. O que confirma que o pipeline funciona é a nota do **leaderboard** na amostra (a obter).

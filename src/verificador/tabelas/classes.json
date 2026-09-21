@@ -27,7 +27,7 @@
     {"sigla": "RO", "padroes": ["recurso ordin[aá]rio", "\\bro\\b"]},
     {"sigla": "CautInom", "padroes": ["cautelar inominada criminal", "cautelar inominada", "\\bcautinom\\b"]},
     {"sigla": "CJ", "padroes": ["conflito de jurisdi[cç][aã]o", "conflito de compet[eê]ncia", "\\bcj\\b"]},
-    {"sigla": "CorPar", "padroes": ["correi[cç][aã]o parcial militar", "correi[cç][aã]o parcial"]},
+    {"sigla": "CorPar", "padroes": ["correi[cç][aã]o parcial militar", "correi[cç][aã]o parcial", "\\bcorpar\\b"]},
     {"sigla": "Pet", "padroes": ["peti[cç][aã]o", "\\bpet\\b"]},
     {"sigla": "PC", "padroes": ["presta[cç][aã]o de contas"]},
     {"sigla": "LT", "padroes": ["lista tr[ií]plice", "\\blt\\b"]},

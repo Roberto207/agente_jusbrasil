@@ -11,6 +11,8 @@ _CONECTOR = r"(?:no|na|nos|nas|-)"
 _ORDINAL = r"(?:primeiro|segundo|terceiro|quarto)\s+"
 _PROCESSO = r"(?:processo\s+n[oº°.]?\s+)?"
 _N = r"(?:n[oº°.]?\s*)?"
+# Marcador obrigatório: a normalização já reduz `n.`/`n°`/`No` a `nº` antes de um número.
+_N_EXPLICITO = "nº\\s*"
 _NUMERO = (
     r"(?:"
     r"\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}"
@@ -64,9 +66,15 @@ def _compilar_com_numero() -> re.Pattern[str]:
     classe = _padrao_classe()
     cadeia = rf"(?:{classe}\s*{_CONECTOR}\s*)*"
     uf = _padrao_uf()
+    # O hífen só vale como conector quando o que vem depois é número CNJ (`DCG-1340-57.2017.5.17.0010`):
+    # é formato distintivo o bastante para não capturar por engano. Classes do TST já entram pelo `tst_bloco`.
+    # Número curto (`CautInom nº 87`) exige o marcador `nº` explícito — sem ele, `AC 50` viraria citação.
     comum = (
         rf"(?:{_ORDINAL})?{_PROCESSO}(?P<cadeia>{cadeia})(?P<classe>{classe})"
-        rf"\s*{_N}(?P<numero>{_NUMERO})(?:\s*(?P<uf>{uf}))?"
+        rf"(?:\s*{_N}(?P<numero>{_NUMERO})"
+        rf"|-(?P<numero_hifen>{_NUMERO_CNJ})"
+        rf"|\s*{_N_EXPLICITO}(?P<numero_curto>\d{{1,3}})(?!\d))"
+        rf"(?:\s*(?P<uf>{uf}))?"
     )
     tema = (
         r"[Tt]em[aã]\s+(?P<numero_tema>\d+(?:\.\d+)?)\s+da\s+repercuss[aã]o\s+geral"
