@@ -389,6 +389,8 @@ tag `sub-001`, notebook no Kaggle, envio da 1ª submissão e comparação local 
 
 
 - [ ] **Tag `sub-001`** no commit da versão só-regras (nunca `main` em execução oficial — `docs/guia_kaggle.md`).
+      *2026-09-21:* `sub-001` (f04ee55) é a versão só-regras **sem** confiança nem causas 2/3 e já está no remoto; a submissão
+      real sai da **`sub-002`** (calibrador recalibrado com sintético; notebook `notebooks/kaggle/02_sub-002.ipynb`).
 - [ ] Trocar `VERSAO = "main"` do notebook para a tag e rodar no Kaggle, gerando `submission.csv` no ambiente
       fixado.
 - [ ] **Primeira submissão real** (gasta uma do teto diário — decisão humana; `ação_humana_pendente.md`).

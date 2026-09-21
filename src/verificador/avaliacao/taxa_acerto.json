@@ -1,67 +1,112 @@
 {
-  "brier_constante": 0.010868,
-  "brier_controle": 0.009734,
+  "brier_constante": 0.003546,
+  "brier_controle": 0.00324,
   "enviar": true,
   "minimo_ocorrencias": 5,
-  "n_controle": 91,
-  "taxa_constante": 0.989011,
+  "n_controle": 281,
+  "taxa_constante": 0.996441,
   "taxa_media_por_classe": {
-    "incompleta": 0.941176,
+    "incompleta": 0.981818,
     "inventada": 1.0,
     "real": 1.0
   },
   "taxas": [
     {
-      "acertos": 9,
+      "acertos": 34,
       "caminho": "lei_ausente",
       "correcao_ocr": false,
       "fonte": "regras",
-      "n": 9,
+      "n": 34,
       "taxa": 1.0,
       "usou_fallback": false
     },
     {
-      "acertos": 6,
+      "acertos": 28,
       "caminho": "lei_unica",
       "correcao_ocr": false,
       "fonte": "regras",
-      "n": 6,
+      "n": 28,
       "taxa": 1.0,
       "usou_fallback": false
     },
     {
-      "acertos": 0,
+      "acertos": 10,
       "caminho": "numero_ambiguo",
       "correcao_ocr": false,
       "fonte": "regras",
-      "n": 1,
-      "taxa": 0.941176,
+      "n": 11,
+      "taxa": 0.909091,
+      "usou_fallback": false
+    },
+    {
+      "acertos": 4,
+      "caminho": "numero_ambiguo",
+      "correcao_ocr": true,
+      "fonte": "regras",
+      "n": 4,
+      "taxa": 0.981818,
       "usou_fallback": true
     },
     {
-      "acertos": 21,
+      "acertos": 42,
       "caminho": "numero_ausente",
       "correcao_ocr": false,
       "fonte": "regras",
-      "n": 21,
+      "n": 42,
       "taxa": 1.0,
       "usou_fallback": false
     },
     {
-      "acertos": 38,
+      "acertos": 5,
+      "caminho": "numero_ausente",
+      "correcao_ocr": true,
+      "fonte": "regras",
+      "n": 5,
+      "taxa": 1.0,
+      "usou_fallback": false
+    },
+    {
+      "acertos": 18,
+      "caminho": "numero_contradito",
+      "correcao_ocr": false,
+      "fonte": "regras",
+      "n": 18,
+      "taxa": 1.0,
+      "usou_fallback": false
+    },
+    {
+      "acertos": 4,
+      "caminho": "numero_contradito",
+      "correcao_ocr": true,
+      "fonte": "regras",
+      "n": 4,
+      "taxa": 1.0,
+      "usou_fallback": true
+    },
+    {
+      "acertos": 83,
       "caminho": "numero_unico",
       "correcao_ocr": false,
       "fonte": "regras",
-      "n": 38,
+      "n": 83,
       "taxa": 1.0,
       "usou_fallback": false
     },
     {
-      "acertos": 16,
+      "acertos": 12,
+      "caminho": "numero_unico",
+      "correcao_ocr": true,
+      "fonte": "regras",
+      "n": 12,
+      "taxa": 1.0,
+      "usou_fallback": false
+    },
+    {
+      "acertos": 40,
       "caminho": "sem_numero",
       "correcao_ocr": false,
       "fonte": "regras",
-      "n": 16,
+      "n": 40,
       "taxa": 1.0,
       "usou_fallback": false
     }
