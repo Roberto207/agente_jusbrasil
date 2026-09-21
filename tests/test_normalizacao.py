@@ -45,6 +45,35 @@ def test_letra_so_vira_digito_dentro_de_numero() -> None:
     assert "5úmula" not in norm
 
 
+def test_letra_no_primeiro_digito_do_grupo() -> None:
+    """Causa 4: OCR no 1º dígito de um grupo (art. l.239, I.003, g.324)."""
+    for bruto, esperado in (
+        ("art. l.239", "art. 1.239"),
+        ("artigo I.003", "artigo 1.003"),
+        ("REsp nº g.324.784", "REsp nº 9.324.784"),
+    ):
+        norm, _ = normalizar(bruto)
+        assert esperado in norm, (bruto, norm)
+
+
+def test_letra_e_espaco_dentro_do_numero() -> None:
+    """Causa 4: letra + espaço no número — OCR antes de colapsar o espaço."""
+    norm, _ = normalizar("Rcl n. 7I. 346/SP")
+    assert "71.346" in norm
+    assert "71. 346" not in norm
+
+    norm, _ = normalizar("art. 1. o21")
+    assert "1.021" in norm
+    assert "1. 021" not in norm
+
+
+def test_ocr_nao_corrompe_uf_apos_hifen() -> None:
+    norm, _ = normalizar("AgInt no RESP 21737l8 - SP e a Súmula 83")
+    assert "2173718" in norm
+    assert "-SP" in norm or " SP" in norm
+    assert "5P" not in norm
+
+
 def test_cinco_umula_vira_sumula() -> None:
     norm, _ = normalizar("5úmula 211 do STJ")
     assert norm.startswith("Súmula 211")
