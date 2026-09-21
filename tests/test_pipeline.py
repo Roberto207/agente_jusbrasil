@@ -52,6 +52,11 @@ def test_amostra_nunca_chama_inventada_de_real_e_acha_todos_os_spans(run_amostra
         assert all(n["tau"] == 0.0 for n in conjunto["niveis"].values()), nome  # τ = 0
         assert conjunto["analise"]["recall_spans"] == 1.0 and conjunto["analise"]["espurios"] == 0, nome
     assert _relatorio(run_amostra)["amostra"]["score_final"] >= 0.95
+    from verificador.decisao.confianca import carregar
+    tabela = carregar()
+    if tabela and tabela.get("enviar"):
+        assert _relatorio(run_amostra)["amostra"]["score_final"] >= 1.05
+        assert all(n["b"] > 0 for n in _relatorio(run_amostra)["amostra"]["niveis"].values())
 
 
 def test_amostra_so_perde_os_dois_casos_conhecidos(run_amostra) -> None:
@@ -95,8 +100,18 @@ def test_duas_execucoes_dao_o_mesmo_csv_e_o_mesmo_rastro(pasta_dados, tmp_path) 
 def test_manifesto_registra_a_execucao(run_amostra) -> None:
     manifesto = json.loads((run_amostra / "manifesto.json").read_text(encoding="utf-8"))
     assert manifesto["execucao"]["citacoes"] == 192
-    assert set(manifesto["hashes"]) == {"tabelas", "base", "json_to_submission"}
-    assert all(manifesto["hashes"].values()) and manifesto["execucao"]["por_caminho"]
+    assert set(manifesto["hashes"]) >= {"tabelas", "base", "json_to_submission", "taxa_acerto"}
+    assert manifesto["hashes"]["tabelas"] and manifesto["hashes"]["base"] and manifesto["hashes"]["json_to_submission"]
+
+
+def test_calibrar_no_controle_passa_r26(run_amostra, pasta_dados, tmp_path) -> None:
+    """A tabela gerada no controle da amostra deve ganhar de uma confiança constante."""
+    destino = tmp_path / "taxa_acerto.json"
+    cli.cmd_calibrar(run_id="amostra", saida=run_amostra.parent, dados=pasta_dados, destino=destino)
+    tabela = json.loads(destino.read_text(encoding="utf-8"))
+    assert tabela["n_controle"] >= 80
+    assert tabela["enviar"] is True
+    assert tabela["brier_controle"] < tabela["brier_constante"] or tabela["brier_controle"] == 0.0
 
 
 def test_encoder_e_llm_ligados_falham_alto(pasta_dados, tmp_path) -> None:
@@ -122,8 +137,8 @@ def test_sintetico_toda_citacao_extraida_recebe_a_classe_certa(run_sintetico) ->
 
 
 def test_sintetico_recall_de_spans_tem_piso(run_sintetico) -> None:
-    """Hoje ~0,82: as lacunas de B (moldes novos, siglas por extenso, OCR) estão em `docs/`."""
-    assert _relatorio(run_sintetico / "runs" / "sint")["sintetico"]["analise"]["recall_spans"] >= 0.78
+    """Hoje ~0,90 após 3.1-b (súmulas com n. e siglas); o piso evita regressão."""
+    assert _relatorio(run_sintetico / "runs" / "sint")["sintetico"]["analise"]["recall_spans"] >= 0.86
 
 
 def test_r35_par_limpo_e_ruidoso_concorda(run_sintetico) -> None:

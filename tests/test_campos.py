@@ -44,7 +44,7 @@ def test_sumula_vinculante_usa_prefixo_sv() -> None:
     campos = ler_campos(_cand("Súmula Vinculante 10", "sumula"))
     assert campos is not None
     assert campos.numero == "SV10"
-    campos2 = ler_campos(_cand("Súmula 83 do STJ", "sumula"))
+    campos2 = ler_campos(_cand("Súmula n. 83 do STJ", "sumula"))
     assert campos2 is not None
     assert campos2.numero == "S83"
     assert campos2.tribunal == "STJ"
@@ -149,11 +149,19 @@ def test_numero_com_letra_nao_quebra() -> None:
 
 
 def test_uf_igual_a_sigla_de_classe_nao_vira_classe() -> None:
-    """`/RO` (Rondônia) e `/RR` (Roraima) não são Recurso Ordinário nem Recurso de Revista."""
-    for uf in ("RO", "RR"):
+    """UF depois do número não pode ser lida como classe (`/RO`, `/MS`, `/AC`…)."""
+    for uf in ("RO", "RR", "MS", "AC", "AP"):
         _, campos = _extrair_campos(f"Cf. Agravo Regimental no Rcl n° 60.681/{uf}, que decide.")
         assert campos is not None
         assert (campos.classe_principal, campos.cadeia_recursos, campos.uf) == ("Rcl", ("AgRg",), uf)
+
+
+def test_sigla_de_classe_antes_do_numero_e_lida() -> None:
+    """Causa 3.1-b.2: a amostra sintético cita `EIN nº …` só pela sigla."""
+    _, campos = _extrair_campos("Cf. EIN nº 7000123-45.2022.7.00.0000, que decide.")
+    assert campos is not None and campos.classe_principal == "EIN"
+    _, ms = _extrair_campos("Cf. MS nº 1.234.567/PE, que decide.")
+    assert ms is not None and ms.classe_principal == "MS" and ms.uf == "PE"
 
 
 def test_no_dentro_de_palavra_nao_e_o_n_do_numero() -> None:

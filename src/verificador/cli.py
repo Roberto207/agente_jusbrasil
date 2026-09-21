@@ -227,6 +227,7 @@ def cmd_rodar(
 
     from verificador.avaliacao.rastro import escrever_rastro, linha_de_rastro
     from verificador.base import construir_indice
+    from verificador.decisao.confianca import hash_tabela
     from verificador.pipeline import processar_documento
     from verificador.saida import ErroDeSaida
     from verificador.tabelas import hash_tabelas
@@ -295,6 +296,7 @@ def cmd_rodar(
                 "tabelas": hash_tabelas(),
                 "base": hash_arquivo(db),
                 "json_to_submission": hash_arquivo(script),
+                "taxa_acerto": hash_tabela(),
             },
         }
     )
@@ -502,6 +504,58 @@ def cmd_gerar_sintetico(*, dados: Path, saida: Path, pares: int, semente: int) -
     return destino
 
 
+def cmd_calibrar(
+    *,
+    run_id: str,
+    saida: Path,
+    dados: Path | None = None,
+    gabarito: Path | None = None,
+    run_sintetico: str | None = None,
+    gabarito_sintetico: Path | None = None,
+    destino: Path | None = None,
+) -> Path:
+    """Gera `taxa_acerto.json` no controle da amostra (+ sintético, se informado)."""
+    from verificador.avaliacao.calibrar import (
+        destino_padrao,
+        gravar_tabela,
+        montar_tabela,
+        observacoes_do_run,
+        _docs_do_conjunto,
+    )
+    from verificador.decisao.confianca import carregar as recarregar
+
+    pasta_dados = resolver_dados(dados, None)
+    gabarito_amostra = (gabarito or pasta_dados / "goldenset_offsets.csv").resolve()
+    metrica = importar_modulo("kaggle_metric_oficial", pasta_dados / "kaggle_metric.py")
+
+    observacoes = observacoes_do_run(
+        pasta_run(saida, run_id),
+        gabarito_amostra,
+        _docs_do_conjunto("controle", gabarito_amostra),
+        metrica,
+    )
+    if run_sintetico:
+        if gabarito_sintetico is None:
+            raise SystemExit("calibrar com --run-sintetico exige --gabarito-sintetico")
+        gab_s = gabarito_sintetico.resolve()
+        observacoes += observacoes_do_run(
+            pasta_run(saida, run_sintetico),
+            gab_s,
+            _docs_do_conjunto("sintetico_controle", gab_s),
+            metrica,
+        )
+
+    tabela = montar_tabela(observacoes)
+    caminho = gravar_tabela(tabela, destino or destino_padrao())
+    recarregar.cache_clear()
+    decisao = "enviar" if tabela["enviar"] else "não enviar (R26)"
+    print(
+        f"tabela: {caminho} ({tabela['n_controle']} observações no controle, "
+        f"brier {tabela['brier_controle']} vs constante {tabela['brier_constante']} -> {decisao})"
+    )
+    return caminho
+
+
 def _saida_padrao() -> Path:
     return (Path.cwd() / "runs").resolve()
 
@@ -551,6 +605,15 @@ def construir_parser() -> argparse.ArgumentParser:
     p_cmp = sub.add_parser("comparar", help="diferença de nota e de citações entre duas execuções")
     p_cmp.add_argument("--run", dest="runs", action="append", required=True, metavar="RUN", help="informe duas vezes: antes e depois")
     p_cmp.add_argument("--saida", type=Path, default=_saida_padrao())
+
+    p_cal = sub.add_parser("calibrar", help="gera taxa_acerto.json no controle (ADR-008 / R26)")
+    p_cal.add_argument("--run", dest="run_id", required=True, help="execução da amostra oficial")
+    p_cal.add_argument("--saida", type=Path, default=_saida_padrao())
+    p_cal.add_argument("--dados", type=Path, default=None)
+    p_cal.add_argument("--gabarito", type=Path, default=None)
+    p_cal.add_argument("--run-sintetico", dest="run_sintetico", default=None)
+    p_cal.add_argument("--gabarito-sintetico", dest="gabarito_sintetico", type=Path, default=None)
+    p_cal.add_argument("--destino", type=Path, default=None, help="arquivo da tabela (padrão: pacote)")
     return parser
 
 
@@ -588,5 +651,15 @@ def main(argv: list[str] | None = None) -> None:
         if len(args.runs) != 2:
             parser.error("`comparar` exige exatamente dois --run (antes e depois)")
         cmd_comparar(run_a=args.runs[0], run_b=args.runs[1], saida=args.saida)
+    elif args.comando == "calibrar":
+        cmd_calibrar(
+            run_id=args.run_id,
+            saida=args.saida,
+            dados=args.dados,
+            gabarito=args.gabarito,
+            run_sintetico=args.run_sintetico,
+            gabarito_sintetico=args.gabarito_sintetico,
+            destino=args.destino,
+        )
     else:  # pragma: no cover
         parser.error(args.comando)

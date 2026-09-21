@@ -412,10 +412,10 @@ Resultado da linha de base e explicação das métricas em `resultado_primeira_r
   ganho disponível e **não depende de GPU, encoder nem LLM**: na ordem original ela vinha depois das Fases 4 e 5, que
   estão sob a regra de corte de 25/09, e seria cortada junto com elas.
 - *O que já existe:* a linha de base e o `rastro.jsonl`, que grava o caminho de decisão de cada citação.
-- [ ] Gerar a tabela `taxa_acerto[caminho, correcao_ocr, fonte]` no **controle** (amostra-controle + sintético-controle);
+- [x] Gerar a tabela `taxa_acerto[caminho, correcao_ocr, fonte]` no **controle** (amostra-controle + sintético-controle);
       caminho com menos de 5 ocorrências usa a taxa média da classe. Tabela regenerada por código, nunca editada à mão.
-- [ ] Ligar a tabela no pipeline (`Resolucao.confianca`), com o hash dela no manifesto.
-- [ ] Conferir **R26**: o Brier no controle precisa ser menor que o de uma confiança constante; se não for, a
+- [x] Ligar a tabela no pipeline (`Resolucao.confianca`), com o hash dela no manifesto.
+- [x] Conferir **R26**: o Brier no controle precisa ser menor que o de uma confiança constante; se não for, a
       confiança não é enviada.
 - [ ] Quando o LLM entrar (Fase 5), só regenerar a tabela (ela já tem a dimensão `fonte`).
 
@@ -430,8 +430,8 @@ Todas são de **extração** (frente B): o que é achado é classificado sem err
 | 3 | Súmula com `n.`/`nº` (`Súmula n. 83 do STJ`; a própria base escreve assim) | 10 por versão | +2,0 pts | `extracao/padroes.py` (`_compilar_sumula`) | Baixo |
 | 4 | OCR no **primeiro** dígito de um grupo ou letra + espaço dentro do número (`art. l.239`, `Rcl n. 7I. 346/SP`) | 19 (só na versão ruidosa) | +3,8 pts no nível 2 | `texto/normalizacao.py` | Médio (mexe no mapa de offsets) |
 
-- [ ] Causa 3 (mais barata e mais confiável como problema real).
-- [ ] Causa 2.
+- [x] Causa 3 (mais barata e mais confiável como problema real).
+- [x] Causa 2.
 - [ ] Causa 4.
 - [ ] Causa 1 — decidir entre regex e encoder depois de ver o efeito das anteriores.
 

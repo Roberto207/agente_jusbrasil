@@ -13,6 +13,7 @@ from verificador.base.indice import Indice
 from verificador.contratos import Campos, CitacaoVerificada, Resolucao
 from verificador.decisao import decidir
 from verificador.decisao.caminhos import CAMPOS_NAO_LIDOS
+from verificador.decisao.confianca import atribuir
 from verificador.extracao import extrair, ler_campos
 from verificador.texto import preparar
 
@@ -47,6 +48,7 @@ def processar_documento(
             resolucao = Resolucao("incompleta", None, CAMPOS_NAO_LIDOS, (), None)
         else:
             resolucao = decidir(campos, candidata.forma, indice)
+        resolucao = atribuir(resolucao, campos)
         tempos["decisao"] = tempos.get("decisao", 0.0) + perf_counter() - t0
         verificadas.append(CitacaoVerificada(candidata, campos, resolucao))
     return verificadas

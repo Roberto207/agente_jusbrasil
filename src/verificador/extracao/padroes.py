@@ -78,8 +78,8 @@ def _compilar_com_numero() -> re.Pattern[str]:
 
 def _compilar_sumula() -> re.Pattern[str]:
     return re.compile(
-        rf"(?:S[úu]mula\s+Vinculante|S[ÚU]MULA\s+VINCULANTE)\s*(?P<numero_sv>\d+)"
-        rf"|(?:S[úu]mula|S[ÚU]MULA|S[úu]m\.)\s*(?P<numero>\d+)"
+        rf"(?:S[úu]mula\s+Vinculante|S[ÚU]MULA\s+VINCULANTE)\s*{_N}(?P<numero_sv>\d+)"
+        rf"|(?:S[úu]mula|S[ÚU]MULA|S[úu]m\.)\s*{_N}(?P<numero>\d+)"
         rf"(?:\s+do\s+(?P<tribunal>{_TRIBUNAL}))?",
         _FLAGS,
     )

@@ -27,6 +27,7 @@ python -m verificador submeter --run smoke                 # confere árvore lim
 python -m verificador comparar --run antes --run depois     # diferença de nota e de citações entre duas execuções
 python -m verificador gerar-sintetico --dados desafio-jusbrasil-bracis-2026 --saida sintetico/ --pares 100
 python -m verificador avaliar --run x --conjunto controle   # amostra | ajuste | controle | sintetico
+python -m verificador calibrar --run base --run-sintetico sint --gabarito-sintetico sintetico/goldenset_offsets.csv
 ```
 
 CLI em `argparse` (`python -m verificador` ou o script `verificador` após o install).

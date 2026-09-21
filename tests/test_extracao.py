@@ -111,12 +111,16 @@ def test_padrao_com_numero_positivo_e_negativo() -> None:
 
 
 def test_padrao_sumula_positivo_e_negativo() -> None:
-    texto = "A Súmula 83 do STJ e a Súmula Vinculante 10 resolvem. O entendimento sumulado não basta."
+    texto = (
+        "A Súmula 83 do STJ, a Súmula n. 331 do TST e a Súmula Vinculante nº 10 resolvem. "
+        "O entendimento sumulado não basta."
+    )
     cands = extrair(preparar(texto))
-    assert {c.trecho for c in cands if c.forma == "sumula"} >= {
-        "Súmula 83 do STJ",
-        "Súmula Vinculante 10",
-    }
+    trechos = {c.trecho for c in cands if c.forma == "sumula"}
+    assert "Súmula 83 do STJ" in trechos
+    assert "Súmula Vinculante nº 10" in trechos
+    assert any("Súmula n. 331" in t for t in trechos)
+    assert all("sumulado" not in c.trecho.lower() for c in cands)
 
 
 def test_padrao_lei_positivo_e_negativo() -> None:
