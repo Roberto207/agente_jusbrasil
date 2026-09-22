@@ -1,0 +1,35 @@
+{
+  "_nota": "Vocabulário FECHADO da correção m<->rn (tarefas_equipe.md, 3.2 Tier 1). Só entra palavra que é âncora de extração e contém 'm' ou 'rn': se ela se perder, a citação inteira se perde. A correção nunca troca às cegas — só quando o resultado cai nesta lista (mesmo princípio do ADR-015). Acrescentar palavra aqui amplia o que pode ser reescrito: ver docs/gerais/feat-verificar-ocr-caio.md antes de mexer.",
+
+  "_fonte": "padroes.py: MARCADOR_RELATOR, _TRIBUNAL, _compilar_sumula, tema da repercussão geral; classes.json: nomes por extenso; leis.json: 'lei complementar'.",
+
+  "sumula": ["súmula", "súmulas", "súm"],
+
+  "relator": ["ministro", "ministra", "ministros", "ministras", "min"],
+
+  "tribunal": ["stm"],
+
+  "classes": [
+    "em",
+    "embargos",
+    "mandado",
+    "instrumento",
+    "interno",
+    "interna",
+    "regimental",
+    "reclamação",
+    "reclamações",
+    "competência",
+    "inominada",
+    "criminal",
+    "liminar",
+    "militar",
+    "cautinom",
+    "ms",
+    "rms"
+  ],
+
+  "lei": ["complementar", "cpm", "consumidor"],
+
+  "tema": ["tema", "temas"]
+}

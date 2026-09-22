@@ -493,7 +493,7 @@ fechar lacunas que a organização documentou e construir um instrumento de medi
 
 #### Tier 1 — lacunas com evidência direta na página Data
 
-- [ ] **OCR dentro de palavras (`m↔rn`).** A página lista o ruído do nível 2 como `0↔O, 1↔l, 5↔S,
+- [x] **OCR dentro de palavras (`m↔rn`).** A página lista o ruído do nível 2 como `0↔O, 1↔l, 5↔S,
       **m↔rn**`. Nossa tabela é **só letra→dígito dentro de número**; corrupção de palavra tem um único
       caso tratado, hardcoded (`5úmula → Súmula`). Se o cego trouxer `Reclarnação`, `Súrnula` ou
       `rninistro`, a citação se perde inteira — e o nível 2 pesa 2×. Zero ocorrências na amostra
@@ -502,6 +502,14 @@ fechar lacunas que a organização documentou e construir um instrumento de medi
       **Interno***). Tem de ser **correção contra vocabulário fechado** — só troca se o resultado casar
       com termo conhecido (classe, `Súmula`, `Ministro`, `Tribunal`). Mesmo princípio do ADR-015:
       âncora, não vocabulário solto. **Custo baixo, é o item com ganho plausível mais direto.**
+      *2026-09-22, feito pelo Caio* — `tabelas/vocabulario_ocr.json` (31 âncoras) + correção em
+      `texto/normalizacao.py`, com o ruído `m↔rn` acrescentado ao gerador para tornar o item
+      **mensurável** (não havia como medir: nenhum conjunto nosso continha esse ruído). Corpus de
+      estresse: recall 0,9406 → **0,9940**, precisão 0,9936 → **1,0000**, score 1,04616 → **1,09574**
+      (controle 1,03197 → **1,08530**). Amostra intacta em 1,092719 e 192/192; τ = 0; R49 verde;
+      181 testes. Dois defeitos achados no caminho: o mapa de offsets truncava a cauda da palavra
+      encurtada, e o vocabulário nascera sem `MS`, `RMS`, `CPM` e `consumidor` — agora há teste que
+      acusa a lacuna sozinho. Detalhe em `docs/gerais/feat-verificar-ocr-caio.md`.
 - [ ] **Invariante a partir da garantia do organizador.** A página afirma: *"todo ruído aplicado a uma
       citação real é recuperável por normalização; um dígito nunca é trocado por outro dígito"*. Logo,
       **toda citação `real` do gabarito que caia em `numero_ausente` é bug nosso, sempre**. Vira teste.

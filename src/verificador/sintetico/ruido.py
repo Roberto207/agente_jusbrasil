@@ -69,6 +69,32 @@ def cinco_umula(s: str, rng: random.Random) -> str:
     return re.sub(r"[Ss]úmula", lambda m: "5" + m.group(0)[1:], s, count=1)
 
 
+# `m↔rn` dentro de palavra. A página Data do desafio lista esse ruído, e até 2026-09-22 nenhum
+# conjunto nosso o continha — nem a amostra, nem o gerador —, então a extração nunca tinha sido
+# testada contra ele. Sem estas duas transformações a correção do vocabulário fechado é
+# inverificável (`docs/gerais/feat-verificar-ocr-caio.md`).
+_M_EM_PALAVRA = re.compile(r"(?<=[A-Za-zÀ-ÿ])[mM]|[mM](?=[A-Za-zÀ-ÿ])")
+_RN_EM_PALAVRA = re.compile(r"(?<=[A-Za-zÀ-ÿ])rn|rn(?=[A-Za-zÀ-ÿ])", re.IGNORECASE)
+
+
+def m_vira_rn(s: str, rng: random.Random) -> str:
+    """`Súmula` → `Súrnula`, `Reclamação` → `Reclarnação`."""
+    posicoes = [m.start() for m in _M_EM_PALAVRA.finditer(s)]
+    if not posicoes:
+        return s
+    i = rng.choice(posicoes)
+    return s[:i] + ("RN" if s[i].isupper() else "rn") + s[i + 1 :]
+
+
+def rn_vira_m(s: str, rng: random.Random) -> str:
+    """`Agravo Interno` → `Agravo Intemo` — o sentido inverso, igualmente listado."""
+    achados = [m.span() for m in _RN_EM_PALAVRA.finditer(s)]
+    if not achados:
+        return s
+    ini, fim = rng.choice(achados)
+    return s[:ini] + ("M" if s[ini].isupper() else "m") + s[fim:]
+
+
 TRANSFORMACOES = (
     letra_no_lugar_de_digito,
     espaco_no_numero,
@@ -76,6 +102,8 @@ TRANSFORMACOES = (
     variacao_no,
     travessao,
     cinco_umula,
+    m_vira_rn,
+    rn_vira_m,
 )
 
 
