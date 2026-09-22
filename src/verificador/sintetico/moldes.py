@@ -91,6 +91,22 @@ MOLDES_SEM_NUMERO = (
     "{classe} do {trib}, de {ano}, Rel. Min. {rel}",
     "decisão colegiada do {trib} em {ano}, relatada pelo Ministro {rel}",
     "julgado da Corte ({trib}, {ano}, Min. {rel})",
+    # --- moldes de estresse (ADR-015) ---------------------------------------------------------
+    # RESSALVA: foram escritos pela mesma pessoa que escreveu as âncoras de `extracao/padroes.py`,
+    # o que enfraquece o teste. A proteção que resta é estrutural, não de autoria: o padrão é
+    # proibido de conter literal de conjunção, então não tem como decorar nenhuma destas frases.
+    # Os quatro últimos quebram de propósito a ordem que as âncoras assumem
+    # (gatilho → tribunal → ano → marcador → nome) ou usam gatilho fora do vocabulário.
+    "aresto do {trib} datado de {ano}, tendo como relator o Ministro {rel}",
+    "{classe} apreciada pelo {trib} no ano de {ano}, sob a relatoria do Ministro {rel}",
+    "decisão do {trib} — {ano} — Rel. {rel}",
+    "acórdão prolatado pelo {trib} em {ano} sob a condução do Ministro {rel}",
+    "decisão monocrática do {trib} de {ano}, Rel. Min. {rel}",
+    "julgado colegiado do {trib}, {ano}, sob relatoria da Ministra {rel}",
+    "precedente firmado em {ano} pelo {trib}, relator o Ministro {rel}",
+    "julgado do {trib} (Rel. Min. {rel}, {ano})",
+    "{classe}/{trib}, ano {ano}, relatoria do Ministro {rel}",
+    "entendimento do {trib} assentado em {ano} pela relatora Ministra {rel}",
 )
 
 COMPLEMENTOS_DE_ARTIGO = ("", "", ", § 1º", ", I", ", III", ", IX")

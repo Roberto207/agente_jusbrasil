@@ -141,6 +141,63 @@ def test_padrao_sem_numero_positivo_e_negativo() -> None:
     assert all("pacífica" not in c.trecho for c in cands)
 
 
+def _tem_sem_numero(texto: str) -> bool:
+    return any(c.forma == "sem_numero" for c in extrair(preparar(texto)))
+
+
+def test_forma_d_cobre_ligacoes_nao_enumeradas() -> None:
+    """ADR-015: o padrão ancora em gatilho/tribunal/ano/relator, não nas conjunções.
+
+    Nenhuma destas frases existe na amostra oficial; se alguma falhar, o padrão voltou a depender
+    das palavras de ligação.
+    """
+    for frase in (
+        "aresto do STJ datado de 2021, tendo como relator o Ministro Assusete Magalhaes",
+        "acórdão prolatado pelo STF em 2019 sob a condução do Ministro Celso De Mello",
+        "decisão do TSE — 2016 — Rel. Henrique Neves",
+        "precedente firmado em 2021 pelo STM, relator o Ministro Artur Vidigal",
+        "julgado do TST (Rel. Min. Morgana Richa, 2025)",
+    ):
+        assert _tem_sem_numero(frase), frase
+
+
+def test_forma_d_nao_usa_entendimento_como_gatilho() -> None:
+    """Falha conhecida e deliberada (ADR-015).
+
+    Admitir `entendimento` como gatilho estendia o span à esquerda num documento real da amostra
+    (`gen_n1_007`), e nas 31 citações reais o gatilho nunca é essa palavra. Vale mais proteger o dado
+    oficial do que cobrir um molde de estresse que a própria equipe escreveu.
+    """
+    assert not _tem_sem_numero(
+        "entendimento do STJ assentado em 2021 pela relatora Ministra Nancy Andrighi"
+    )
+
+
+def test_forma_d_exige_ano_e_relator_e_nao_pega_referencia_vaga() -> None:
+    """R33 — o que protege contra referência vaga é exigir ano **e** relator, não o vocabulário."""
+    for frase in (
+        "a jurisprudência pacífica desta Corte",
+        "o entendimento sumulado sobre a matéria",
+        "o entendimento do STJ sobre o tema",
+        "julgado do STF sem mais dados",
+    ):
+        assert not _tem_sem_numero(frase), frase
+
+
+def test_forma_d_nao_atravessa_fim_de_frase_nem_engole_numero() -> None:
+    """O enchimento entre âncoras não pode cruzar ponto final nem conter dígito.
+
+    Sem isso, o span uniria trechos sem relação e expulsaria a citação numerada na resolução de
+    sobreposição, onde o candidato maior substitui o menor.
+    """
+    assert not _tem_sem_numero("O STF decidiu em 2024. O Ministro Fulano afirmou o contrário.")
+
+    texto = "Confira-se o AgRg no REsp 1.234.567/SP, Rel. Min. Nancy Andrighi, de 2021."
+    cands = extrair(preparar(texto))
+    assert any(c.forma == "com_numero" for c in cands)
+    assert all(c.forma != "sem_numero" for c in cands)
+
+
 def test_resolver_descarta_contida() -> None:
     longa = Candidata(10, 40, "x" * 30, "jurisprudencia", "com_numero", "a", frozenset({"regex"}))
     curta = Candidata(12, 20, "x" * 8, "jurisprudencia", "com_numero", "a", frozenset({"regex"}))

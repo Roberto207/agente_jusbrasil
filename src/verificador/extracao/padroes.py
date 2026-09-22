@@ -25,6 +25,22 @@ _NUMERO = (
 _TRIBUNAL = r"(?:STF|STJ|STM|TSE|TST)"
 _GRAU = "\u00ba"
 
+# \u00c2ncoras da forma (d) \u2014 ADR-015. O vocabul\u00e1rio sai das 31 cita\u00e7\u00f5es `incompleta` da amostra oficial.
+# `entendimento` foi testado e **rejeitado**: nas 31 cita\u00e7\u00f5es reais da amostra o gatilho nunca \u00e9 essa
+# palavra, e admiti-la estendia o span \u00e0 esquerda em `gen_n1_007`
+# (`Rcl de 2025, Rel. Min. C\u00c1RMEN L\u00daCIA` virava `entendimento a Rcl de 2025, \u2026`). O molde de estresse
+# que a usa continua no gerador como falha conhecida \u2014 ver `specs/forma_d_ancorada.md`.
+_GATILHO_D = r"(?:julgad[oa]|precedente|ac[o\u00f3]rd[a\u00e3]o|decis[a\u00e3]o|aresto)"
+# Alternativas longas primeiro: senão `Min\.?` casaria só o começo de `Ministro`.
+# Público porque `campos.py` usa o mesmo marcador: se as duas listas divergirem, a citação é extraída
+# mas o relator não é lido, e o caminho de decisão cai em `campos_nao_lidos`.
+MARCADOR_RELATOR = r"(?:Ministr[oa]|relatori[ao]|relatad[oa]|relator[ae]?|Rel\.?|Min\.?)"
+_ANO_D = r"(?:19|20)\d{2}"
+# Preenchimento entre \u00e2ncoras: sem d\u00edgito (impede o span de engolir n\u00famero de processo \u2014 a resolu\u00e7\u00e3o
+# de sobreposi\u00e7\u00e3o n\u00e3o protege disso, porque o candidato maior substitui o menor) e sem atravessar
+# fim de frase. Nenhuma conjun\u00e7\u00e3o literal entra aqui: \u00e9 o que impede o padr\u00e3o de decorar molde.
+_ENCHE = r"(?:(?!\.\s+(?-i:[A-Z\u00c1\u00c9\u00cd\u00d3\u00da\u00c2\u00ca\u00d4\u00c3\u00d5\u00c7]))[^;\d\n])"
+
 
 def _padrao_classe() -> str:
     partes = []
@@ -126,24 +142,36 @@ def _compilar_lei() -> re.Pattern[str]:
 
 def _compilar_sem_numero() -> re.Pattern[str]:
     classe = _padrao_classe()
+    # `_FLAGS` tem IGNORECASE, que faria `[A-Z…]` casar minúscula: sem `(?-i:…)` o nome pode começar
+    # no meio de uma palavra (em `Rel. Min. Celso`, o span parava com o nome valendo `n`).
+    inicial = r"(?-i:[A-ZÁÉÍÓÚÂÊÔÃÕÇ])"
+    resto = r"[A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]*"
     nome = (
-        r"[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]*"
-        r"(?:\s+(?:d[aeo]s?|e|dc)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]*)*"
-        r"(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]*){0,4}"
+        rf"{inicial}{resto}"
+        rf"(?:\s+(?:d[aeo]s?|e|dc)\s+{inicial}{resto})*"
+        rf"(?:\s+{inicial}{resto}){{0,4}}"
     )
-    julgado = (
-        rf"(?P<tipo_j>julgado|precedente|ac[oó]rd[aã]o)\s+do\s+(?P<tribunal_j>{_TRIBUNAL})\s+"
-        rf"(?:prof[ce]rido\s+em\s+(?P<ano_j1>\d{{4}})\s+pela\s+relatoria\s+(?:de|dc)\s+"
-        rf"|(?:de|julgado\s+em)\s+(?P<ano_j2>\d{{4}}),?\s+"
-        rf"(?:da\s+relatoria\s+(?:de|dc)|sob\s+relatoria\s+(?:de|dc))\s+)"
-        rf"(?P<relator_j>{nome})"
+    # ADR-015: âncoras, não conjunções. O padrão anterior transcrevia as quatro ligações da amostra
+    # (`proferido em … pela relatoria de`, `sob relatoria de`, `Rel. Min.`) e cegava quando a frase
+    # mudava. Aqui só entram as peças que toda citação da forma (d) tem — gatilho, tribunal, ano,
+    # marcador de relator, nome — e o que as liga é preenchimento genérico.
+    # Sem grupos nomeados: as duas ordens abaixo repetiriam os mesmos nomes, e ninguém os consome —
+    # `extrair` usa só o span e `ler_campos` reanalisa o trecho.
+    cabeca = (
+        rf"(?:{_GATILHO_D}|{classe})"
+        rf"{_ENCHE}{{0,25}}"
+        rf"(?:{_TRIBUNAL}{_ENCHE}{{0,25}})?"
     )
-    classe_ano = (
-        rf"(?P<classe_d>{classe})(?:\s+do\s+(?P<tribunal_d>{_TRIBUNAL}))?"
-        rf"\s*,?\s*de\s+(?P<ano_d>\d{{4}})\s*,?\s+"
-        rf"Rel\.?\s*Min\.?\s+(?P<relator_d>{nome})"
-    )
-    return re.compile(rf"(?:{julgado}|{classe_ano})", _FLAGS)
+    # O marcador repete porque `Rel. Min.` são dois: sem isso o `Min` vira o nome e o span para
+    # antes do relator.
+    relator = rf"(?:{MARCADOR_RELATOR}{_ENCHE}{{0,7}}){{1,3}}{nome}"
+
+    # Duas ordens, porque as duas existem na escrita jurídica: ano antes do relator (`… de 2020,
+    # Rel. Min. X`) e relator antes do ano, no formato parentético (`… (Rel. Min. X, 2020)`).
+    # É variação de ordem **entre âncoras**, não conjunção literal — a regra do ADR-015 continua de pé.
+    ano_primeiro = rf"{cabeca}{_ANO_D}{_ENCHE}{{0,25}}{relator}"
+    relator_primeiro = rf"{cabeca}{relator}{_ENCHE}{{0,15}}{_ANO_D}"
+    return re.compile(rf"(?:{ano_primeiro}|{relator_primeiro})", _FLAGS)
 
 
 COM_NUMERO = _compilar_com_numero()

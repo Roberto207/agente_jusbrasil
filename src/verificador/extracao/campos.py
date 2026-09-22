@@ -8,7 +8,7 @@ import unicodedata
 from dataclasses import replace
 
 from verificador.contratos import Campos, Candidata
-from verificador.extracao.padroes import TST_NUMERO
+from verificador.extracao.padroes import MARCADOR_RELATOR, TST_NUMERO
 from verificador.tabelas import classes, ocr, resolver_lei, resolver_uf, tst_sigla
 from verificador.texto.normalizacao import normalizar
 
@@ -19,9 +19,18 @@ _UF_APOS_NUMERO = re.compile(
     r"\s*(?:/|-|\()\s*([A-Z]{2})\b",
     re.IGNORECASE,
 )
+# ADR-015: mesmo princípio do padrão de extração — marcador (que repete, porque `Rel. Min.` são dois)
+# mais preenchimento curto, em vez de enumerar `relatoria de|rel. min.|sob relatoria de`. Sem isso,
+# `relatada pelo Ministro X` é extraída mas não tem o relator lido, e cai em `campos_nao_lidos`.
+# O preenchimento é preguiçoso e a captura começa em maiúscula de verdade (`(?-i:…)`, porque o
+# IGNORECASE valeria para a classe toda): guloso, ele comia o início do nome — `Dias Toffoli` virava
+# `s toffoli`.
+# Marcador e preenchimento preguiçosos, e a captura começa em maiúscula de verdade (`(?-i:…)`, porque
+# o IGNORECASE valeria para a classe toda). Gulosos, comiam o nome: `Dias Toffoli` virava `s toffoli`,
+# e um relator chamado `Relator Exemplo` perdia o primeiro nome, porque `Relator` também é marcador.
+# O título que sobrar na captura (`Min.`, `Ministro`) é removido por `normalizar_relator`.
 _RELATOR = re.compile(
-    r"(?:relatoria\s+(?:de|dc)|rel\.\s*min\.|sob\s+relatoria\s+(?:de|dc))\s+"
-    r"(.+)$",
+    rf"(?:{MARCADOR_RELATOR}[^;\d\n]{{0,7}}?){{1,3}}?((?-i:[A-ZÁÉÍÓÚÂÊÔÃÕÇ]).+)$",
     re.IGNORECASE | re.DOTALL,
 )
 _ARTIGO = re.compile(
@@ -42,7 +51,9 @@ def _sem_acento(texto: str) -> str:
 
 def normalizar_relator(nome: str) -> str:
     texto = _sem_acento(nome)
-    texto = re.sub(r"\bmin\.?\b", "", texto, flags=re.IGNORECASE)
+    # A mesma lista de títulos de `base/atributos.py`: os dois lados da comparação precisam normalizar
+    # igual, senão a citação `Ministro X` nunca encontra o registro `MINISTRA X`.
+    texto = re.sub(r"\b(?:MINISTR[OA]|MIN|DR|DRA|DES|JUIZ[AO]?)\b\.?", " ", texto, flags=re.IGNORECASE)
     texto = re.sub(r"[^A-Za-z\s]", " ", texto)
     return re.sub(r"\s+", " ", texto).strip().lower()
 

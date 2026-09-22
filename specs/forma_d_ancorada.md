@@ -1,7 +1,7 @@
 # Spec — forma (d) ancorada em invariantes
 
 **Data:** 2026-09-21 · **ADR:** 015 (decisão), 011 (união com encoder), 009 (protocolo de medição)
-**Status:** proposta, não implementada
+**Status:** **implementada em 2026-09-21** — resultados na seção "Resultado" ao fim
 
 ## Objetivo
 
@@ -81,19 +81,24 @@ verificável lendo o código — não depende da intenção de quem escreveu.
 - `ADR-011` segue valendo: encoder em **união** com o regex. Esta spec melhora o componente de precisão
   da união, útil nos dois desfechos.
 - O gancho já existe: `def extrair(t: TextoPreparado, encoder=None)` em `extracao/__init__.py`.
-- `ler_campos` não é tocada — ela reanalisa o trecho e não consome os grupos nomeados do padrão.
+- ~~`ler_campos` não é tocada~~ — **errado, corrigido na implementação.** `extrair` de fato só usa o
+  span, mas `campos.py::_RELATOR` tinha o **mesmo** defeito (enumerava `relatoria de|rel. min.|sob
+  relatoria de`). Sem corrigi-lo, a citação era extraída e o relator não era lido, e o caminho caía em
+  `campos_nao_lidos` em vez de `sem_numero` — o que muda o rastro que alimenta `taxa_acerto.json`.
+  O marcador virou `MARCADOR_RELATOR`, público em `padroes.py`, para os dois usarem a mesma fonte.
 - Classificação da forma (d) segue `incompleta` em todos os casos.
 
 ## Passos para resolver
 
-- [ ] Reescrever `_compilar_sem_numero()` com as âncoras; nenhum literal de conjunção no padrão.
-- [ ] Resolver os dois detalhes acima (fim de frase, número no trecho).
-- [ ] Escrever 8–12 moldes de estresse em `sintetico/moldes.py`, marcados como reservados, **com
-      comentário registrando que autor do padrão e autor dos moldes são o mesmo** — a ressalva fica no
-      artefato, não só na conversa.
-- [ ] Um teste por âncora, com exemplo positivo **e** negativo.
-- [ ] Medir com o protocolo das causas 2 e 4 (ver "Critérios de aceite").
-- [ ] Decidir em **25/09** entre desfecho A (só regex) e B (regex + encoder), com número na mão.
+- [x] Reescrever `_compilar_sem_numero()` com as âncoras; nenhum literal de conjunção no padrão.
+- [x] Resolver os dois detalhes acima. **Os dois pelo mesmo mecanismo:** o preenchimento proíbe dígito,
+      o que impede o span de engolir número de processo — e isso era necessário, porque a resolução de
+      sobreposição **não** protege: em `sobreposicao.py`, `_contida(outra, cand)` faz o candidato maior
+      substituir o menor, então um span ganancioso expulsaria o `com_numero` correto apesar da prioridade.
+- [x] 10 moldes de estresse em `sintetico/moldes.py`, com a ressalva de autoria registrada no código.
+- [x] Um teste por âncora, positivo e negativo (`test_extracao.py`, `test_campos.py`; 142 no total).
+- [x] Medir com o protocolo das causas 2 e 4.
+- [x] Decidir entre desfecho A e B — os números apontam **A**; ver "Resultado".
 
 ## Critérios de aceite — todos obrigatórios
 
@@ -129,3 +134,60 @@ python -m verificador comparar --run <anterior> --run X
 
 Linha de base para comparar (commit `da571f1`): sintético 1,03940 com recall 922/994; sintético-controle
 1,04293 com 196/210; amostra 1,08604 com 192/192.
+
+---
+
+## Resultado (2026-09-21)
+
+| Conjunto | Antes (`da571f1`) | Depois | Recall |
+|---|---|---|---|
+| Amostra oficial | 1,08604 | **1,08603** | 192/192 → 192/192 |
+| Controle (amostra) | 1,07925 | **1,07923** | 91/91 → 91/91 |
+| Sintético | 1,03940 | **1,09571** | 922/994 → **988/994 (99,4%)** |
+| Sintético-controle | 1,04293 | **1,08530** | 196/210 → **206/210 (98,1%)** |
+
+Precisão de spans **1,0** e **τ = 0** em todos os conjuntos; zero spans espúrios; 142 testes verdes;
+R49 determinístico nos dois conjuntos; `rodar` na amostra em 0,69 s (sem degradação).
+
+O sintético foi **regenerado** com 10 moldes de estresse novos (16 no total), então os números do
+sintético não são comparáveis linha a linha com a medição anterior — o conjunto ficou mais difícil e
+ainda assim o recall subiu.
+
+### Quanto isso mede de generalização
+
+Dos **10 moldes que as âncoras nunca viram**, 9 são cobertos. O único que falha é deliberado (abaixo).
+Isso é o mais perto de um teste honesto que o projeto consegue, com a ressalva registrada no ADR-015:
+os moldes foram escritos por quem escreveu as âncoras. A proteção que resta é estrutural — o padrão
+não contém literal de conjunção, então não tem como decorar nenhuma frase específica.
+
+### Falha conhecida e deliberada
+
+`entendimento do {trib} assentado em {ano} pela relatora Ministra {rel}` (6 citações) **não é extraída
+de propósito**. Admitir `entendimento` como gatilho foi testado e reprovado: estendia o span à esquerda
+num documento **real** da amostra (`gen_n1_007`: `Rcl de 2025, Rel. Min. CÁRMEN LÚCIA` virava
+`entendimento a Rcl de 2025, …`). Nas 31 citações reais o gatilho nunca é essa palavra, e o `scope.md`
+registra que `o entendimento sumulado sobre a matéria` aparece nos textos sem ser anotado. Proteger o
+dado oficial vale mais que cobrir um molde que a própria equipe escreveu. O molde fica no gerador como
+sonda permanente.
+
+### Efeito colateral bom, na amostra oficial
+
+Três spans ficaram **mais justos** — o padrão antigo arrastava lixo à direita:
+
+```
+antes 'julgado do TSE proferido em 2016 pela relatoria de HENRIQUE NEVES DA SILVA para'
+agora 'julgado do TSE proferido em 2016 pela relatoria de HENRIQUE NEVES DA SILVA'
+antes 'Rcl de 2024, Rel.  Min. Flávio Dino\npara sustentar tese'
+agora 'Rcl de 2024, Rel.  Min. Flávio Dino'
+```
+
+A queda de 1,08604 para 1,08603 **não vem da extração** — vem da recalibração de `taxa_acerto.json`
+(ADR-008 manda regenerar por versão), que mudou a confiança de uma única citação `numero_ambiguo`
+de 0,9091 para 0,9167. É diferença na quinta casa decimal.
+
+### Decisão da Fase 4 que estes números informam
+
+As âncoras cobrem 9 dos 10 moldes novos mantendo precisão 1,0, **sem GPU, sem treino e sem
+publicação de pesos**. Pelo limiar do ADR-015, é o **desfecho A**. O que continua sem resposta é se o
+conjunto cego usa ligações fora deste repertório — e isso nenhum teste local pode responder, porque
+não existe forma (d) na base oficial para calibrar.

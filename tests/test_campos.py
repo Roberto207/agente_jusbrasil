@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from verificador.contratos import Candidata
 from verificador.extracao import ler_campos
+from verificador.extracao.campos import normalizar_relator
 
 
 def _cand(trecho: str, forma: str, tipo: str = "jurisprudencia") -> Candidata:
@@ -48,6 +49,33 @@ def test_sumula_vinculante_usa_prefixo_sv() -> None:
     assert campos2 is not None
     assert campos2.numero == "S83"
     assert campos2.tribunal == "STJ"
+
+
+def test_relator_lido_sem_depender_da_conjuncao() -> None:
+    """ADR-015: `_RELATOR` também ancora no marcador, não em `relatoria de|rel. min.`.
+
+    Se voltar a enumerar, a citação é extraída mas o relator some e o caminho de decisão cai em
+    `campos_nao_lidos` — o que muda o rastro que alimenta a tabela de confiança.
+    """
+    casos = (
+        ("decisão colegiada do STM em 2025, relatada pelo Ministro Cilene Ferreira", "cilene ferreira"),
+        ("julgado da Corte (TSE, 2015, Min. Jorge Mussi)", "jorge mussi"),
+        ("Reclamação do STF, de 2020, Rel. Min. Celso De Mello", "celso de mello"),
+        ("julgado do STF proferido em 2024 pela relatoria de Dias Toffoli", "dias toffoli"),
+    )
+    for trecho, esperado in casos:
+        campos = ler_campos(_cand(trecho, "sem_numero"))
+        assert campos is not None, trecho
+        assert campos.relator == esperado, trecho
+
+
+def test_titulo_normalizado_igual_nos_dois_lados() -> None:
+    """A citação diz `Ministro X` e o registro diz `MINISTRA X`: sem a mesma lista de títulos nos
+    dois normalizadores, os dois lados nunca se encontram."""
+    from verificador.base.atributos import normalizar_relator as do_registro
+
+    assert normalizar_relator("Ministro Celso De Mello") == do_registro("MINISTRO CELSO DE MELLO")
+    assert normalizar_relator("Min. Rosa Weber") == do_registro("MINISTRA ROSA WEBER")
 
 
 def test_sem_numero_exige_ano_e_relator() -> None:

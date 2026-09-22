@@ -442,8 +442,16 @@ Todas são de **extração** (frente B): o que é achado é classificado sem err
       tarde demais. (2) A regra olhava o caractere colado, então `l` em `l.239` (encostado no ponto) escapava.
       Agora o token numérico abrange o espaço após o separador, a decisão é por **grupo** entre separadores, e
       a correção roda antes da limpeza. A regra por grupo evita o erro oposto: em `1.111.222-GO` a UF não vira `90`.
-- [ ] Causa 1 — **é todo o resíduo**: as 72 citações que ainda faltam no sintético são forma (d) com molde novo,
-      todas `incompleta`. Planejamento do encoder via `/sdd` (ADR-011).
+- [x] **Causa 1** (2026-09-21): resolvida **por regex ancorado, sem encoder**. O padrão da forma (d) transcrevia
+      as quatro conjunções da amostra e cegava quando a ligação mudava; passou a ancorar nos invariantes das 31
+      citações reais (gatilho, tribunal, ano, marcador de relator, nome), com preenchimento genérico entre elas e
+      **proibição de literal de conjunção** — restrição auditável que impede decorar molde. `campos.py::_RELATOR`
+      tinha o mesmo defeito e foi corrigido junto. Decisão em `ADR-015`, detalhe e números em
+      `specs/forma_d_ancorada.md`. Sintético: recall 922/994 → **988/994**, score 1,0394 → **1,0957**, com 10
+      moldes de estresse novos no gerador. Amostra intacta em 192/192.
+- [ ] **Fase 4 / encoder — decisão informada:** pelo limiar do ADR-015 o resultado é o **desfecho A** (só regex).
+      As âncoras cobrem 9 dos 10 moldes que nunca viram, mantendo precisão 1,0, sem GPU nem publicação de pesos.
+      O encoder fica disponível como ADR-011 se aparecer evidência de ligação fora deste repertório.
 
 > Ressalva: os moldes do gerador sintético foram escritos por quem implementou a análise; a frequência real dessas
 > formas no conjunto final é desconhecida (ADR-012). A causa 3 é a mais segura; a causa 1 é a mais incerta.
