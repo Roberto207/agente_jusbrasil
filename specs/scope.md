@@ -6,6 +6,12 @@
 distribuído (`json_to_submission.py`, `kaggle_metric.py`, `sample_submission.csv`); regras
 completas da aba Rules (ambiente de avaliação, pesos públicos, pacote reproduzível, Foundational
 Rules) e esclarecimentos da equipe incorporados.
+**Revisão:** 2026-09-22 — texto oficial das abas Overview/Data/Rules capturado na íntegra em
+`regulamento_oficial_kaggle.md` (inclui as Foundational Rules completas, que aqui só aparecem
+resumidas). Essa captura trouxe números diferentes dos usados neste documento (1.016 registros
+na base vs. 1.014 locais; 225 citações no gabarito vs. 192 locais); re-baixados os dados no mesmo
+dia e confirmado que os arquivos não mudaram — divergência era só na descrição da página, sem
+efeito na fase de treino. Risco a vigiar na fase de avaliação final (ver "Ainda em aberto").
 **Natureza:** demanda externa fechada — este documento reproduz fielmente o que a organização
 pede (regulamento + material distribuído), sem decisão de arquitetura ou de implementação.
 Decisões técnicas ficam em `DESIGN.md` e `docs/decisions/`. Requisitos internos de engenharia
@@ -248,3 +254,11 @@ ou classe processual, ano e relator, sem número. Como o sistema é pontuado con
 - Valor exato do teto diário de submissões por equipe.
 - Data de ativação do conjunto final cego, e se ele usa a mesma base canônica.
 - Se o conjunto final anota referências vagas como `incompleta` (em análise pela equipe).
+- **Divergência de números — checada e resolvida em 22/09/2026** (ver `regulamento_oficial_kaggle.md`):
+  o texto da aba Data no Kaggle fala em 1.016 registros na base canônica e 225 citações no
+  gabarito (116 no Nível 1, 109 no Nível 2); os arquivos deste projeto têm 1.014 registros e 192
+  citações. Re-baixados os dados da aba Data no mesmo dia: nada mudou, era só a descrição da
+  página desatualizada/arredondada. **Sem efeito na fase de treino.** Repetir essa checagem
+  (contagem de registros recebidos vs. o que a organização anunciar) quando o conjunto final cego
+  da fase de avaliação final for ativado — lá não há gabarito local pra comparar, então uma
+  contagem errada passaria despercebida sem essa verificação manual.
