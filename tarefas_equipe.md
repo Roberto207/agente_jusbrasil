@@ -462,6 +462,90 @@ Todas são de **extração** (frente B): o que é achado é classificado sem err
 
 ---
 
+### 3.2 Recuperar e ultrapassar o score, depois das correções de 21/09 (registrado em 2026-09-22)
+
+**Por que esta seção existe.** A sequência de correções do dia 21 subiu a nota e depois devolveu parte
+dela. O histórico, na amostra oficial:
+
+| Momento | Commit | Amostra | Controle | O que mudou |
+|---|---|---|---|---|
+| Antes | `f8c885d` | 1,08603 | 1,07923 | — |
+| `EDv` em `classes.json` | `7b3ea35` | **1,09648** | **1,10000** | fechou o `gen_n2_010` |
+| Padrão solto do `EDv` removido | `acffa34` | 1,09648 | 1,10000 | neutro; tirou risco de falso positivo |
+| **Parser do TST corrigido** | `c83159d` | **1,09272** ⬇ | 1,10000 | **−0,0038 na amostra** |
+
+A queda do último passo é **deliberada e aceita**. O parser do TST tentava o rodapé `PROCESSO Nº TST-…`
+antes da fórmula `estes autos de …`, e o rodapé aparece dentro de decisões transcritas: **20 dos 199
+registros do TST reivindicavam número de processo que apenas citavam**. Corrigir isso deixou o
+`gen_n2_005` sem o candidato espúrio que fazia a classe casar por acaso, e o R40 passou a devolver
+`inventada`. Ou seja: a citação estava certa pelo motivo errado, e a nota da amostra pagou por isso.
+
+O **controle continua em 1,10000** (teto exato) e o sintético em 1,09574 — o que sustenta a decisão:
+o que conta é o conjunto cego, e lá cada registro mal numerado custa nos dois sentidos.
+
+Contexto e números: `docs/gerais/limites_de_decisao.md` (seções 13 a 16), `specs/edv_padrao_solto.md`,
+`ADR-005` (revisão de 21/09).
+
+**O enquadramento desta fase.** Tudo que conseguimos medir está saturado — amostra 192/192, controle
+no teto, sintético 988/994, precisão 1,0 e τ=0 em tudo. A pergunta deixou de ser "como melhorar o que
+medimos" e passou a ser **"como aumentar o esperado num conjunto que não vemos"**. Isso se divide em
+fechar lacunas que a organização documentou e construir um instrumento de medida honesto.
+
+#### Tier 1 — lacunas com evidência direta na página Data
+
+- [ ] **OCR dentro de palavras (`m↔rn`).** A página lista o ruído do nível 2 como `0↔O, 1↔l, 5↔S,
+      **m↔rn**`. Nossa tabela é **só letra→dígito dentro de número**; corrupção de palavra tem um único
+      caso tratado, hardcoded (`5úmula → Súmula`). Se o cego trouxer `Reclarnação`, `Súrnula` ou
+      `rninistro`, a citação se perde inteira — e o nível 2 pesa 2×. Zero ocorrências na amostra
+      significa que nunca fomos testados nisso.
+      **Projeto obrigatório:** `rn→m` cego é perigoso (`interno` viraria `intemo`, e `AgInt` é *Agravo
+      **Interno***). Tem de ser **correção contra vocabulário fechado** — só troca se o resultado casar
+      com termo conhecido (classe, `Súmula`, `Ministro`, `Tribunal`). Mesmo princípio do ADR-015:
+      âncora, não vocabulário solto. **Custo baixo, é o item com ganho plausível mais direto.**
+- [ ] **Invariante a partir da garantia do organizador.** A página afirma: *"todo ruído aplicado a uma
+      citação real é recuperável por normalização; um dígito nunca é trocado por outro dígito"*. Logo,
+      **toda citação `real` do gabarito que caia em `numero_ausente` é bug nosso, sempre**. Vira teste.
+
+#### Tier 2 — o instrumento de medida (pré-requisito do que é caro)
+
+- [ ] **LeNER-Br como sonda externa de recall.** Texto jurídico brasileiro real, público, com entidades
+      `JURISPRUDENCIA`. Não é pontuável contra o nosso gabarito (convenção diferente), mas responde à
+      única pergunta que importa: *em texto que ninguém da equipe escreveu, quantas referências a
+      julgados nossos padrões deixam passar?* Barato, sem GPU, e é a **única evidência externa
+      disponível**.
+- [ ] **LLM diversificando o sintético (ADR-012, item já previsto na Fase 4).** Não melhora o sistema,
+      melhora a **medida**. Os moldes do sintético são nossos, então toda afirmação de generalização é
+      circular — inclusive a de que as âncoras cobrem "9 de 10 moldes novos". **Precisa vir antes do
+      encoder:** com recall em 99,4%, não há margem mensurável para o encoder mostrar ganho.
+
+#### Tier 3 — opção, não melhoria
+
+- [ ] **Detector de referência vaga, implementado e desligado.** Valor esperado **zero** sozinho: é
+      cara ou coroa, ~0,046 para cada lado. O `verificador.toml` já tem `extrair_referencia_vaga`, mas
+      `extracao/__init__.py` **ignora a flag** (`del cfg`), então hoje não dá para ligar nem sabendo a
+      resposta. Construí-lo desligado compra o direito de decidir na fase 2, com o leaderboard público
+      de 40% como árbitro. **Seguro barato, não melhoria.** Ver `ADR-005`.
+
+#### O que foi avaliado e descartado
+
+| Ideia | Razão |
+|---|---|
+| Cross-encoder para desempate entre candidatos | A página diz que as duplicatas do acervo **não têm citação apontando para elas** |
+| Auditar duplicatas do acervo | Mesma razão — restam 73 grupos indistinguíveis, todos inofensivos |
+| Melhorar a calibração da confiança | `b` já está em 0,0999 de um teto de 0,10 |
+| Perseguir o link do `gen_n2_005` | Evidência n=1; cai no ADR-009 |
+| Leitor LLM de campos (ADR-013) | Zero casos de `ler_campos → None` hoje |
+
+#### Ordem sugerida, com o prazo
+
+Restam ~7 dias úteis (Fase 6 ocupa 29–30/09). Os três primeiros cabem folgados; o quarto e o quinto
+dependem de quanto da semana se quer apostar.
+
+1. OCR em palavras com vocabulário fechado  2. LeNER-Br como sonda  3. Detector desligado
+4. LLM diversificando o sintético  5. Encoder — **só se o item 4 mostrar margem**
+
+---
+
 ## Fase 4 — Encoder NER e sintético com LLM (25–28/09) · **opcional: só se a Fase 3 estiver fechada**
 
 > **Risco de prazo.** É a etapa que mais pode estourar (GPU do Kaggle com cota compartilhada de ~30 h/semana

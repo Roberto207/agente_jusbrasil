@@ -350,13 +350,19 @@ base neste único caso cairia no ADR-009. Fica como pergunta à organização.
 | `real` / `inventada` | 96 / 64 | 96 / 64 |
 | Base | **1.014** | **1.016** |
 
-`real` e `inventada` batem exatamente — **os 33 de diferença são todos `incompleta`**, o número
-plausível de referências vagas nos 26 documentos, que a página diz serem `incompleta` e o ADR-005
-exclui.
+`real` e `inventada` batem exatamente — **os 33 de diferença são todos `incompleta`**.
+
+**Correção de 21/09 (noite):** eu havia atribuído os 33 às referências vagas. Fui contar: os 26
+documentos têm **11** dessas frases (`a jurisprudência pacífica desta Corte`, `o entendimento
+sumulado sobre a matéria`, `o artigo correspondente do CPC`, `a orientação jurisprudencial da Corte
+Superior`, `o dispositivo legal de regência`), e nenhuma está no gabarito de 192. **11 não fecham
+33** — a origem da diferença segue **sem explicação**. A aritmética das classes é sólida; a
+atribuição às referências vagas era inferência minha e só se sustenta em parte.
 
 Novo download em 21/09 veio **byte a byte idêntico** ao de 15/09 — o dataset não mudou. E a submissão
 marcou 1,08604, igual ao cálculo local sobre 192, então o leaderboard usa o arquivo distribuído.
 
-**Risco:** a página diz que o conjunto final terá "distribuição de classes equivalente". Se
-equivalente à página e não ao arquivo, perderíamos 33 de 65 `incompleta` — score para ~0,98.
-É a pergunta de maior valor a fazer à organização, e nenhum teste local a responde. Ver ADR-005.
+**Risco, com o número corrigido:** se o conjunto final anotar as referências vagas e nós não as
+extrairmos, perderíamos 11 de 43 `incompleta` — F1 da classe ~0,85, score ~1,046, perda de ~0,046.
+Menos que os 0,118 que projetei antes, mas ainda três vezes o gap que separa o 20º lugar do topo.
+Nenhum teste local resolve; ver ADR-005.
