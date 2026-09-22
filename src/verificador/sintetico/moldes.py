@@ -64,6 +64,7 @@ NOME_LONGO = {
     "RHC": "Recurso em Habeas Corpus", "Rcl": "Reclamação", "RE": "Recurso Extraordinário",
     "RMS": "Recurso em Mandado de Segurança", "APL": "Apelação", "AI": "Agravo de Instrumento",
     "AgInt": "Agravo Interno", "AgRg": "Agravo Regimental", "EDcl": "Embargos de Declaração",
+    "EDv": "Embargos de Divergência",
     "RR": "Recurso de Revista",
 }
 

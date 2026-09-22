@@ -59,10 +59,16 @@ def test_amostra_nunca_chama_inventada_de_real_e_acha_todos_os_spans(run_amostra
         assert all(n["b"] > 0 for n in _relatorio(run_amostra)["amostra"]["niveis"].values())
 
 
-def test_amostra_so_perde_os_dois_casos_conhecidos(run_amostra) -> None:
-    """`gen_n2_010` (dois registros idênticos → R7) e `gen_n2_005` (o gabarito aponta a classe errada)."""
+def test_amostra_so_perde_o_caso_conhecido(run_amostra) -> None:
+    """`gen_n2_005`: o gabarito aponta um registro `AIRR` para uma citação que diz `AgARR`.
+
+    `gen_n2_010` saiu desta lista quando `EDv` entrou em `classes.json`: os dois
+    registros daquele número diferem na cadeia de recursos, então o filtro de
+    consistência resolve o que antes era `numero_ambiguo`.
+    """
     erros = (run_amostra / "erros.md").read_text(encoding="utf-8").split("## Conjunto `ajuste`")[0]
-    assert erros.count("| gen_n2_") == 2 and "numero_ambiguo" in erros and "numero_desempatado" in erros
+    assert erros.count("| gen_n2_") == 1 and "numero_desempatado" in erros
+    assert "numero_ambiguo" not in erros
 
 
 def test_toda_real_cumpre_r14_e_o_rastro_bate_com_o_json(run_amostra, indice) -> None:
