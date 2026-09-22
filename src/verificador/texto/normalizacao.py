@@ -111,14 +111,13 @@ def normalizar(texto: str) -> tuple[str, list[int]]:
 
     _substituir(chars, mapa, _N_NUMERO, "nº")
     _substituir(chars, mapa, _CINCO_UMULA, "Súmula")
-    _substituir(chars, mapa, _HIFEN_SOLTO, "-")
-    # A troca letra→dígito vem ANTES da limpeza de espaço: `_ESPACO_NO_NUMERO` exige dígito dos dois
-    # lados, e em `7I. 346` o `I` só vira `1` aqui. Invertida, a ordem deixava o espaço no número.
+    # OCR antes de colapsar hífen/espaço: senão `7I. 346` e `1. o21` perdem o
+    # vizinho digitável, e `21737l8 - SP` cola a UF no token do número (causa 4).
     _substituir(chars, mapa, _NUMERO, lambda m: _ocr_no_token(m.group(0)))
+    _substituir(chars, mapa, _HIFEN_SOLTO, "-")
     _substituir(chars, mapa, _ESPACO_NO_NUMERO, "")
     _substituir(chars, mapa, _HIFEN_PONTO, ".")
     _substituir(chars, mapa, _HIFENS_DUPLOS, "-")
-    _substituir(chars, mapa, _NUMERO, lambda m: _ocr_no_token(m.group(0)))
     return "".join(chars), mapa
 
 

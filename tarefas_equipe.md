@@ -437,11 +437,15 @@ Todas são de **extração** (frente B): o que é achado é classificado sem err
 - [x] **Resíduo da causa 2** (2026-09-21): a sigla solta `CorPar` ficara de fora da tabela (+6); o hífen como
       conector antes de número CNJ (`DCG-1340-…`, +2); e número curto com marcador `nº` obrigatório
       (`CautInom nº 87`, +2). Detalhe em `resultado_submissoes.md`.
-- [x] **Causa 4** (2026-09-21, +19): eram dois defeitos em `texto/normalizacao.py`. (1) A troca letra→dígito
-      rodava **depois** da limpeza de espaço, que exige dígito dos dois lados — em `7I. 346` o `I` só vira `1`
-      tarde demais. (2) A regra olhava o caractere colado, então `l` em `l.239` (encostado no ponto) escapava.
-      Agora o token numérico abrange o espaço após o separador, a decisão é por **grupo** entre separadores, e
-      a correção roda antes da limpeza. A regra por grupo evita o erro oposto: em `1.111.222-GO` a UF não vira `90`.
+- [x] **Causa 4** (2026-09-21, +19): implementada **em paralelo** pela Beatriz (`46edf70`) e pelo Roberto
+      (`da571f1`); o merge ficou com a ordenação dela e a regra de grupo dele. Eram dois defeitos em
+      `texto/normalizacao.py`. (1) A troca letra→dígito rodava **depois** da limpeza de espaço, que exige
+      dígito dos dois lados — em `7I. 346` o `I` só virava `1` tarde demais; resolvido movendo o OCR para
+      antes de colapsar hífen e espaço, o que também evita `21737l8 - SP` colar a UF no token. (2) A regra
+      olhava o caractere colado, então o `l` de `l.239` (encostado no ponto) escapava; resolvido decidindo
+      por **grupo** entre separadores, o que evita o erro oposto — em `1.111.222-GO` a UF não vira `90`.
+      Medições: +14 spans de nível 2 (`sint-pre-c4` → `sint-c4`, score +0,010) e +19 no conjunto com os
+      moldes de estresse; amostra e controle oficiais inalterados, 0 espúrios nos dois casos.
 - [x] **Causa 1** (2026-09-21): resolvida **por regex ancorado, sem encoder**. O padrão da forma (d) transcrevia
       as quatro conjunções da amostra e cegava quando a ligação mudava; passou a ancorar nos invariantes das 31
       citações reais (gatilho, tribunal, ano, marcador de relator, nome), com preenchimento genérico entre elas e
