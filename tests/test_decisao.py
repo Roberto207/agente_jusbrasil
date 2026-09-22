@@ -136,6 +136,48 @@ def test_numero_emprestado_nunca_vira_real() -> None:
             assert res.classificacao == "inventada" and res.caminho == "numero_contradito"
 
 
+def test_estagio_do_mesmo_caso_com_candidato_unico_e_real() -> None:
+    """Página Data: exatamente 1 candidato → real. ARR e AIRR são estágios do mesmo caso TST."""
+    indice = Indice([reg("t1", "1111222233334444555", tribunal="TST", classe="AIRR", uf=None)])
+    r = decidir(
+        campos(
+            numero="1111222233334444555",
+            classe_principal="ARR",
+            cadeia_recursos=("AgRg",),
+            tribunal="TST",
+        ),
+        "com_numero",
+        indice,
+    )
+    assert (r.classificacao, r.id_canonico, r.caminho) == ("real", "t1", "numero_unico")
+
+
+def test_dois_registros_nao_colapsam_pela_familia() -> None:
+    """Com 2+ candidatos a família não desempata: classe exata continua mandando (ADR-007)."""
+    indice = Indice(
+        [
+            reg("a", "888777", classe="REsp"),
+            reg("b", "888777", classe="EDv"),
+        ]
+    )
+    resp = decidir(campos(numero="888777", classe_principal="REsp"), "com_numero", indice)
+    edv = decidir(campos(numero="888777", classe_principal="EDv"), "com_numero", indice)
+    assert (resp.classificacao, resp.id_canonico) == ("real", "a")
+    assert (edv.classificacao, edv.id_canonico) == ("real", "b")
+    sem_classe = decidir(campos(numero="888777", classe_principal="REsp", cadeia_recursos=("AgInt",)), "com_numero", indice)
+    assert sem_classe.caminho == "numero_contradito"
+
+
+def test_candidato_unico_ainda_veta_cadeia_da_mesma_classe(indice) -> None:
+    """`AgInt no REsp` de um REsp único continua empréstimo — só o outro estágio ignora cadeia."""
+    r = decidir(
+        campos(numero="1741784", classe_principal="REsp", cadeia_recursos=("AgInt",)),
+        "com_numero",
+        indice,
+    )
+    assert r.classificacao == "inventada" and r.caminho == "numero_contradito"
+
+
 # -- R48 -------------------------------------------------------------------------------------
 
 

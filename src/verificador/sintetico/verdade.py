@@ -1,15 +1,39 @@
 """Verdade do gerador: a classe de uma citação segue as regras do DEFINE sobre a base.
 
-O gerador *escolhe* a citação e *deduz* o gabarito aplicando R6–R9/R40 ao índice, em vez de
-confiar na intenção com que a fabricou (um número "emprestado" pode, por acaso, ser consistente
-com outro registro). Assim o gabarito sintético nunca contradiz a base.
+O gerador *escolhe* a citação e *deduz* o gabarito aplicando a mesma `decidir`/`consistentes`
+do pipeline, em vez de confiar na intenção com que a fabricou (um número "emprestado" pode, por
+acaso, ser consistente com outro registro). Assim o gabarito sintético nunca contradiz a base —
+hoje e em gerações futuras.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 
-from verificador.contratos import RegistroIndice
+from verificador.contratos import Campos, RegistroIndice
+from verificador.decisao.caminhos import consistentes as _consistentes_campos
+
+
+def _campos(
+    *,
+    tribunal: str | None = None,
+    uf: str | None = None,
+    classe: str | None = None,
+    cadeia: Sequence[str] = (),
+) -> Campos:
+    return Campos(
+        tribunal=tribunal,
+        classe_principal=classe,
+        cadeia_recursos=tuple(cadeia),
+        numero=None,
+        uf=uf,
+        ano=None,
+        relator=None,
+        lei_chave=None,
+        artigo=None,
+        correcao_ocr=False,
+        fonte="regras",
+    )
 
 
 def consistentes(
@@ -20,19 +44,8 @@ def consistentes(
     classe: str | None = None,
     cadeia: Sequence[str] = (),
 ) -> list[RegistroIndice]:
-    """Candidatos que nenhum atributo *explícito* da citação contradiz (ADR-007)."""
-    saida = []
-    for r in candidatos:
-        if tribunal and r.tribunal and tribunal != r.tribunal:
-            continue
-        if uf and r.uf and uf != r.uf:
-            continue
-        if classe and r.classe_principal and classe != r.classe_principal:
-            continue
-        if cadeia and tuple(cadeia) != r.cadeia_recursos:
-            continue
-        saida.append(r)
-    return saida
+    """Delega ao filtro da frente D: o ouro sintético não tem regra própria."""
+    return _consistentes_campos(_campos(tribunal=tribunal, uf=uf, classe=classe, cadeia=cadeia), candidatos)
 
 
 def classificar(

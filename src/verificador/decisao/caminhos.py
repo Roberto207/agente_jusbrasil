@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from verificador.contratos import Campos, RegistroIndice
+from verificador.tabelas import mesma_familia_classe
 
 SEM_NUMERO = "sem_numero"
 NUMERO_AUSENTE = "numero_ausente"
@@ -46,17 +47,42 @@ def consistentes(campos: Campos, candidatos: Sequence[RegistroIndice]) -> list[R
     """Candidatos que nenhum atributo *explícito* da citação contradiz (ADR-007).
 
     Ordem do filtro: tribunal, UF, classe processual principal, cadeia de recursos. Atributo ausente
-    na citação (ou no registro) nunca elimina ninguém; cadeia presente precisa bater exatamente.
+    na citação (ou no registro) nunca elimina ninguém.
+
+    Com **mais de um** candidato, classe e cadeia precisam bater exatamente — é o desempate.
+    Com **exatamente um**, a classe de outra família processual veta (número emprestado: HC no
+    lugar de REsp). Estágio do mesmo caso (`ARR` vs `AIRR`) não é empréstimo: a página Data manda
+    1 candidato → `real`, e a cadeia também muda nesse caso (`AgARR` lê `ARR`+`AgRg`). Cadeia
+    divergente com a **mesma** classe continua vetando.
     """
+    unico = len(candidatos) == 1
     saida = []
     for r in candidatos:
         if campos.tribunal and r.tribunal and campos.tribunal != r.tribunal:
             continue
         if campos.uf and r.uf and campos.uf != r.uf:
             continue
-        if campos.classe_principal and r.classe_principal and campos.classe_principal != r.classe_principal:
-            continue
-        if campos.cadeia_recursos and tuple(campos.cadeia_recursos) != tuple(r.cadeia_recursos):
-            continue
+        if campos.classe_principal and r.classe_principal:
+            if unico:
+                if not mesma_familia_classe(campos.classe_principal, r.classe_principal):
+                    continue
+            elif campos.classe_principal != r.classe_principal:
+                continue
+        cadeia_diverge = bool(
+            campos.cadeia_recursos
+            and tuple(campos.cadeia_recursos) != tuple(r.cadeia_recursos)
+        )
+        if cadeia_diverge:
+            # Outro estágio da família muda classe e cadeia juntas (`AgARR` → ARR+AgRg vs AIRR).
+            # Cadeia divergente com a *mesma* classe continua empréstimo (AgInt no REsp único).
+            outro_estagio = (
+                unico
+                and campos.classe_principal
+                and r.classe_principal
+                and campos.classe_principal != r.classe_principal
+                and mesma_familia_classe(campos.classe_principal, r.classe_principal)
+            )
+            if not outro_estagio:
+                continue
         saida.append(r)
     return saida

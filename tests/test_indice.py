@@ -17,7 +17,7 @@ from verificador.base import construir_indice
 from verificador.base.numero_proprio import numero_proprio, so_digitos
 from verificador.contratos import Candidata
 from verificador.extracao.campos import ler_campos
-from verificador.tabelas import classes, ocr, resolver_lei, resolver_uf, ufs
+from verificador.tabelas import classes, familias_classe, ocr, resolver_lei, resolver_uf, tst_sigla, tst_tokens, ufs
 
 
 @pytest.fixture(scope="module")
@@ -218,6 +218,16 @@ def test_tabelas_carregam_sem_chave_duplicada() -> None:
     assert len(padroes) == len(set(padroes)), "padrão de classe repetido"
     assert len(ufs()) == 27
     assert ocr()
+
+
+def test_familias_de_classe_so_tem_sigla_conhecida() -> None:
+    """Família com sigla inventada relaxaria o R40 sem âncora — a tabela não pode envelhecer sozinha."""
+    conhecidas = set(sigla for _, sigla in classes())
+    for token in tst_tokens():
+        conhecidas.update(tst_sigla(token))
+    for familia in familias_classe():
+        assert len(familia) >= 2
+        assert familia <= conhecidas, f"fora das tabelas de classe/TST: {familia - conhecidas}"
 
 
 def test_tabelas_resolvem_os_formatos_da_base() -> None:

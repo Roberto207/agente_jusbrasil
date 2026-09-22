@@ -1,0 +1,11 @@
+{
+  "_nota": "Famílias de classe do MESMO caso (estágios recursais). Relaxam o R40 só quando o número aponta para exatamente um registro: citar ARR de um AIRR único não é número emprestado. Classe de outra família continua inventada (τ). Com dois ou mais candidatos a classe exata ainda desempata (ADR-007). Não enumerar documento da amostra — a família é do tipo de processo.",
+
+  "familias": [
+    ["RR", "AIRR", "ARR", "RRAG", "IRR", "AgARR"],
+    ["REsp", "AREsp", "AgREsp", "EDv"],
+    ["HC", "RHC"],
+    ["MS", "RMS"],
+    ["RO", "ROE"]
+  ]
+}

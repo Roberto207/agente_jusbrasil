@@ -15,7 +15,8 @@ from verificador.sintetico import ruido
 from verificador.sintetico.formato import escrever_dataset
 
 CONSTRUCOES = {
-    "real_acordao", "real_sumula", "real_lei", "inventada_numero", "emprestada", "ambigua",
+    "real_acordao", "real_sumula", "real_lei", "inventada_numero", "emprestada",
+    "mesmo_caso_outro_estagio", "ambigua",
     "sumula_inventada", "lei_inventada", "lei_desconhecida", "sem_numero", "tema",
 }
 
@@ -76,6 +77,13 @@ def test_numero_emprestado_nao_vira_real(documentos) -> None:
     """R40: número que existe, mas com classe/UF que contradiz os registros → `inventada`."""
     emprestadas = [c for d in documentos for c in d.citacoes if c.construcao == "emprestada"]
     assert emprestadas and all(c.classificacao == "inventada" for c in emprestadas)
+
+
+def test_mesmo_caso_outro_estagio_e_real(documentos) -> None:
+    """Candidato único citado por outro estágio da família: gabarito `real`, nunca τ."""
+    irmas = [c for d in documentos for c in d.citacoes if c.construcao == "mesmo_caso_outro_estagio"]
+    assert irmas, "semente 0 / 40 pares precisa exercer o estágio irmão (senão a regra regride em silêncio)"
+    assert all(c.classificacao == "real" and c.id_canonico for c in irmas)
 
 
 def test_forma_d_e_sempre_incompleta_e_tema_inventada(documentos) -> None:

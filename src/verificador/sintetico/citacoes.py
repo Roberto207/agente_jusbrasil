@@ -1,4 +1,4 @@
-"""Fábrica de citações sintéticas: escolhe a citação e deduz o gabarito pelas regras (verdade.py)."""
+"""Fábrica de citações sintéticas: escolhe a citação e deduz o gabarito com `decidir`."""
 
 from __future__ import annotations
 
@@ -7,9 +7,10 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from verificador.base.indice import Indice
+from verificador.contratos import Campos
+from verificador.decisao import decidir
 from verificador.sintetico import moldes
-from verificador.sintetico.verdade import classificar, consistentes
-from verificador.tabelas import ufs
+from verificador.tabelas import familia_da_classe, ufs
 
 TRIBUNAIS = ("STF", "STJ", "STM", "TSE", "TST")
 
@@ -49,8 +50,9 @@ class Fabrica:
     """Sorteia citações a partir dos registros da base. Tudo determinístico dado o `rng`."""
 
     PESOS = (
-        ("real_acordao", 30), ("real_sumula", 4), ("real_lei", 10),
-        ("inventada_numero", 12), ("emprestada", 8), ("ambigua", 4),
+        ("real_acordao", 28), ("real_sumula", 4), ("real_lei", 10),
+        ("inventada_numero", 12), ("emprestada", 8), ("mesmo_caso_outro_estagio", 6),
+        ("ambigua", 4),
         ("sumula_inventada", 3), ("lei_inventada", 6), ("lei_desconhecida", 2),
         ("sem_numero", 15), ("tema", 2),
     )
@@ -102,9 +104,32 @@ class Fabrica:
         return texto, {"tribunal": None, "uf": declarada, "classe": classe, "cadeia": cadeia}
 
     def _fabricar_acordao(self, construcao: str, texto: str, attrs: dict, numero: str) -> Fabricada:
-        candidatos = self.indice.por_numero(numero)
-        classe, id_ = classificar(candidatos, consistentes(candidatos, **attrs))
-        return Fabricada(texto, "jurisprudencia", "com_numero", classe, id_, construcao)
+        """Ouro = `decidir`, a mesma função do pipeline: geração futura não pode divergir da regra."""
+        campos = Campos(
+            tribunal=attrs.get("tribunal"),
+            classe_principal=attrs.get("classe"),
+            cadeia_recursos=tuple(attrs.get("cadeia") or ()),
+            numero=numero,
+            uf=attrs.get("uf"),
+            ano=None,
+            relator=None,
+            lei_chave=None,
+            artigo=None,
+            correcao_ocr=False,
+            fonte="regras",
+        )
+        res = decidir(campos, "com_numero", self.indice)
+        return Fabricada(texto, "jurisprudencia", "com_numero", res.classificacao, res.id_canonico, construcao)
+
+    def _classes_fora_da_familia(self, registros: list) -> list[str]:
+        """Classes que o R40 ainda trata como empréstimo (outra família, não outro estágio)."""
+        ocupadas = {r.classe_principal for r in registros if r.classe_principal}
+        return sorted(
+            classe
+            for classe in self.classes
+            if classe not in ocupadas
+            and all(classe not in familia_da_classe(ocupada) for ocupada in ocupadas)
+        )
 
     # -- tipos de citação -----------------------------------------------------------------
 
@@ -124,16 +149,43 @@ class Fabrica:
         return self._fabricar_acordao("inventada_numero", texto, attrs, novo)
 
     def emprestada(self, rng: random.Random) -> Fabricada:
-        """Número que existe, com classe (ou UF) que contradiz os registros dele (R40)."""
+        """Número que existe, com classe (ou UF) que contradiz os registros dele (R40).
+
+        A classe sorteada sai da família processual do registro: `ARR` no lugar de `AIRR` é o
+        mesmo caso (construção `mesmo_caso_outro_estagio`), não empréstimo.
+        """
         r = rng.choice(self.acordaos)
         registros = self._por_numero[r.numero]  # type: ignore[index]
         if r.uf and r.tribunal != "TST" and rng.random() < 0.5:
             outra = rng.choice(sorted(set(self.ufs) - {x.uf for x in registros if x.uf}))
             texto, attrs = self._render(rng, r.tribunal, r.numero, r.classe_principal, r.cadeia_recursos, outra, True)  # type: ignore[arg-type]
         else:
-            classe = rng.choice(sorted(set(self.classes) - {x.classe_principal for x in registros}))
+            fora = self._classes_fora_da_familia(registros)
+            if not fora:
+                return self.inventada_numero(rng)
+            classe = rng.choice(fora)
             texto, attrs = self._render(rng, r.tribunal, r.numero, classe, (), r.uf)  # type: ignore[arg-type]
         return self._fabricar_acordao("emprestada", texto, attrs, r.numero)  # type: ignore[arg-type]
+
+    def mesmo_caso_outro_estagio(self, rng: random.Random) -> Fabricada:
+        """Número único, citado por outro estágio da família — a página Data manda `real`.
+
+        Garante que a regra de família continua verdadeira em gerações futuras do sintético,
+        não só no único exemplo da amostra oficial.
+        """
+        opcoes: list[tuple] = []
+        for r in self.acordaos:
+            if len(self._por_numero[r.numero]) != 1:  # type: ignore[index]
+                continue
+            outras = sorted(familia_da_classe(r.classe_principal) - {r.classe_principal})  # type: ignore[arg-type]
+            if outras:
+                opcoes.append((r, outras))
+        if not opcoes:
+            return self.real_acordao(rng)
+        r, outras = rng.choice(opcoes)
+        classe = rng.choice(outras)
+        texto, attrs = self._render(rng, r.tribunal, r.numero, classe, (), r.uf)  # type: ignore[arg-type]
+        return self._fabricar_acordao("mesmo_caso_outro_estagio", texto, attrs, r.numero)  # type: ignore[arg-type]
 
     def ambigua(self, rng: random.Random) -> Fabricada:
         """Número de recursos internos do mesmo processo, citado só pela classe (R7)."""
@@ -152,9 +204,12 @@ class Fabrica:
             texto, declarado = rng.choice(
                 [(f"Súmula {n} do {trib}", trib), (f"Súmula n. {n} do {trib}", trib), (f"SÚMULA {n} do {trib}", trib)]
             )
-        candidatos = self.indice.por_numero(r.numero)  # type: ignore[arg-type]
-        classe, id_ = classificar(candidatos, consistentes(candidatos, tribunal=declarado))
-        return Fabricada(texto, "jurisprudencia", "sumula", classe, id_, "real_sumula")
+        campos = Campos(
+            tribunal=declarado, classe_principal=None, cadeia_recursos=(), numero=r.numero,
+            uf=None, ano=None, relator=None, lei_chave=None, artigo=None, correcao_ocr=False, fonte="regras",
+        )
+        res = decidir(campos, "sumula", self.indice)
+        return Fabricada(texto, "jurisprudencia", "sumula", res.classificacao, res.id_canonico, "real_sumula")
 
     def sumula_inventada(self, rng: random.Random) -> Fabricada:
         if rng.random() < 0.5:  # existente, mas de outro tribunal
@@ -167,9 +222,12 @@ class Fabrica:
                 if not self.indice.por_numero(f"S{n}"):
                     break
             trib, numero = rng.choice(TRIBUNAIS), f"S{n}"
-        candidatos = self.indice.por_numero(numero)  # type: ignore[arg-type]
-        classe, id_ = classificar(candidatos, consistentes(candidatos, tribunal=trib))
-        return Fabricada(f"Súmula {n} do {trib}", "jurisprudencia", "sumula", classe, id_, "sumula_inventada")
+        campos = Campos(
+            tribunal=trib, classe_principal=None, cadeia_recursos=(), numero=numero,
+            uf=None, ano=None, relator=None, lei_chave=None, artigo=None, correcao_ocr=False, fonte="regras",
+        )
+        res = decidir(campos, "sumula", self.indice)
+        return Fabricada(f"Súmula {n} do {trib}", "jurisprudencia", "sumula", res.classificacao, res.id_canonico, "sumula_inventada")
 
     def _texto_lei(self, rng: random.Random, artigo: int, chave: str) -> str:
         definido, nome = rng.choice(moldes.NOMES_DE_LEI[chave])
@@ -179,9 +237,12 @@ class Fabrica:
 
     def real_lei(self, rng: random.Random) -> Fabricada:
         r = rng.choice(self.dispositivos)
-        candidatos = self.indice.por_lei_artigo(r.lei_chave, r.artigo)  # type: ignore[arg-type]
-        classe, id_ = classificar(candidatos, candidatos)
-        return Fabricada(self._texto_lei(rng, int(r.artigo), r.lei_chave), "lei", "lei_artigo", classe, id_, "real_lei")  # type: ignore[arg-type]
+        campos = Campos(
+            tribunal=None, classe_principal=None, cadeia_recursos=(), numero=None, uf=None,
+            ano=None, relator=None, lei_chave=r.lei_chave, artigo=r.artigo, correcao_ocr=False, fonte="regras",
+        )
+        res = decidir(campos, "lei_artigo", self.indice)
+        return Fabricada(self._texto_lei(rng, int(r.artigo), r.lei_chave), "lei", "lei_artigo", res.classificacao, res.id_canonico, "real_lei")  # type: ignore[arg-type]
 
     def lei_inventada(self, rng: random.Random) -> Fabricada:
         chave = rng.choice(sorted(moldes.NOMES_DE_LEI))

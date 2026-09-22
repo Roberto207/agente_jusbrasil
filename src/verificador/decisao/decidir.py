@@ -37,7 +37,7 @@ def decidir(campos: Campos, forma: str, indice: Indice) -> Resolucao:
         return Resolucao("inventada", None, c.LEI_AUSENTE if lei else c.NUMERO_AUSENTE, (), None)
 
     validos = c.consistentes(campos, candidatos)
-    if not validos:  # R40: o número existe, mas o que a citação declara contradiz todos os registros
+    if not validos:  # R40: número existe, mas tribunal/UF/família de classe contradizem todos
         return Resolucao("inventada", None, c.NUMERO_CONTRADITO, _ids(candidatos), None)
 
     if len(validos) > 1:  # R7

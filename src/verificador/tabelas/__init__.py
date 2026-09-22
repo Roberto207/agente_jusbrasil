@@ -114,6 +114,32 @@ def classes() -> list[tuple[str, str]]:
     return pares
 
 
+@lru_cache(maxsize=1)
+def familias_classe() -> tuple[frozenset[str], ...]:
+    """Estágios recursais do mesmo tipo de processo.
+
+    Candidato único cujo número casa, mas a classe é outro estágio da família,
+    é o mesmo caso — não número emprestado. Ver `familias_classe.json`.
+    """
+    bruto = _ler_json("familias_classe.json")
+    return tuple(frozenset(familia) for familia in bruto["familias"])
+
+
+def familia_da_classe(sigla: str) -> frozenset[str]:
+    """Família da sigla; se ela não estiver em nenhuma, só ela mesma."""
+    for familia in familias_classe():
+        if sigla in familia:
+            return familia
+    return frozenset({sigla})
+
+
+def mesma_familia_classe(a: str, b: str) -> bool:
+    """True se `a` e `b` são o mesmo estágio ou estágios do mesmo caso."""
+    if a == b:
+        return True
+    return any(a in familia and b in familia for familia in familias_classe())
+
+
 def _so_ascii(texto: str) -> str:
     nfd = unicodedata.normalize("NFD", texto.casefold())
     return "".join(ch for ch in nfd if unicodedata.category(ch) != "Mn")

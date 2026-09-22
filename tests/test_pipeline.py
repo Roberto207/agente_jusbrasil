@@ -59,27 +59,19 @@ def test_amostra_nunca_chama_inventada_de_real_e_acha_todos_os_spans(run_amostra
         assert all(n["b"] > 0 for n in _relatorio(run_amostra)["amostra"]["niveis"].values())
 
 
-def test_amostra_so_perde_o_caso_conhecido(run_amostra) -> None:
-    """`gen_n2_005`: a citação diz `AgARR`, o registro do gabarito é `AIRR` — mesmo caso (mesmo CNJ),
-    estágio recursal diferente. O R40 veta o único candidato por divergência de classe e devolve
-    `inventada`.
-
-    Histórico dos dois casos que já estiveram nesta lista:
-
-    - `gen_n2_010` saiu quando `EDv` entrou em `classes.json`: os dois registros daquele número
-      diferem na cadeia, então o filtro de consistência resolve o que era `numero_ambiguo`.
-    - `gen_n2_005` mudou de `numero_desempatado` para `numero_contradito` quando o parser do TST
-      parou de deixar um registro reivindicar número que ele apenas cita. Antes ele acertava a
-      classe por acaso, porque o candidato espúrio (`ARR`+`AgRg`) casava com a citação.
-
-    A página Data do desafio manda decidir pela cardinalidade ("exatamente 1 → real"), o que
-    sugeriria não vetar candidato único por classe. Mas o R40 existe para o "número emprestado"
-    (`inventada` com número real e classe trocada), que o sintético exercita — mexer nele com base
-    neste único caso cairia no ADR-009.
+def test_amostra_nao_deixa_erro_de_decisao(run_amostra) -> None:
+    """Estágio do mesmo caso (candidato único, família TST de revista) resolve; R40 segue
+    pegando número emprestado de outra família. Nenhum `gen_n2_*` deve restar no dump.
     """
     erros = (run_amostra / "erros.md").read_text(encoding="utf-8").split("## Conjunto `ajuste`")[0]
-    assert erros.count("| gen_n2_") == 1 and "numero_contradito" in erros
+    assert "| gen_n2_" not in erros
+    assert "numero_contradito" not in erros
     assert "numero_ambiguo" not in erros
+    rel = _relatorio(run_amostra)["amostra"]
+    assert rel["analise"]["recall_spans"] == 1.0
+    from verificador.decisao.confianca import carregar
+    if carregar() and carregar().get("enviar"):
+        assert rel["score_final"] >= 1.099
 
 
 def test_toda_real_cumpre_r14_e_o_rastro_bate_com_o_json(run_amostra, indice) -> None:

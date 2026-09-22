@@ -1,73 +1,28 @@
 {
-  "brier_constante": 0.003311,
-  "brier_controle": 0.003047,
+  "brier_constante": 0.0,
+  "brier_controle": 0.0,
   "enviar": true,
   "minimo_ocorrencias": 5,
   "n_controle": 301,
-  "taxa_constante": 0.996678,
+  "taxa_constante": 1.0,
   "taxa_media_por_classe": {
-    "incompleta": 0.985507,
+    "incompleta": 1.0,
     "inventada": 1.0,
     "real": 1.0
   },
   "taxas": [
     {
-      "acertos": 35,
+      "acertos": 39,
       "caminho": "lei_ausente",
       "correcao_ocr": false,
       "fonte": "regras",
-      "n": 35,
-      "taxa": 1.0,
-      "usou_fallback": false
-    },
-    {
-      "acertos": 26,
-      "caminho": "lei_unica",
-      "correcao_ocr": false,
-      "fonte": "regras",
-      "n": 26,
-      "taxa": 1.0,
-      "usou_fallback": false
-    },
-    {
-      "acertos": 11,
-      "caminho": "numero_ambiguo",
-      "correcao_ocr": false,
-      "fonte": "regras",
-      "n": 12,
-      "taxa": 0.916667,
-      "usou_fallback": false
-    },
-    {
-      "acertos": 3,
-      "caminho": "numero_ambiguo",
-      "correcao_ocr": true,
-      "fonte": "regras",
-      "n": 3,
-      "taxa": 0.985507,
-      "usou_fallback": true
-    },
-    {
-      "acertos": 43,
-      "caminho": "numero_ausente",
-      "correcao_ocr": false,
-      "fonte": "regras",
-      "n": 43,
-      "taxa": 1.0,
-      "usou_fallback": false
-    },
-    {
-      "acertos": 6,
-      "caminho": "numero_ausente",
-      "correcao_ocr": true,
-      "fonte": "regras",
-      "n": 6,
+      "n": 39,
       "taxa": 1.0,
       "usou_fallback": false
     },
     {
       "acertos": 22,
-      "caminho": "numero_contradito",
+      "caminho": "lei_unica",
       "correcao_ocr": false,
       "fonte": "regras",
       "n": 22,
@@ -75,11 +30,65 @@
       "usou_fallback": false
     },
     {
-      "acertos": 4,
+      "acertos": 3,
+      "caminho": "numero_ambiguo",
+      "correcao_ocr": false,
+      "fonte": "regras",
+      "n": 3,
+      "taxa": 1.0,
+      "usou_fallback": true
+    },
+    {
+      "acertos": 1,
+      "caminho": "numero_ambiguo",
+      "correcao_ocr": true,
+      "fonte": "regras",
+      "n": 1,
+      "taxa": 1.0,
+      "usou_fallback": true
+    },
+    {
+      "acertos": 45,
+      "caminho": "numero_ausente",
+      "correcao_ocr": false,
+      "fonte": "regras",
+      "n": 45,
+      "taxa": 1.0,
+      "usou_fallback": false
+    },
+    {
+      "acertos": 10,
+      "caminho": "numero_ausente",
+      "correcao_ocr": true,
+      "fonte": "regras",
+      "n": 10,
+      "taxa": 1.0,
+      "usou_fallback": false
+    },
+    {
+      "acertos": 29,
+      "caminho": "numero_contradito",
+      "correcao_ocr": false,
+      "fonte": "regras",
+      "n": 29,
+      "taxa": 1.0,
+      "usou_fallback": false
+    },
+    {
+      "acertos": 5,
       "caminho": "numero_contradito",
       "correcao_ocr": true,
       "fonte": "regras",
-      "n": 4,
+      "n": 5,
+      "taxa": 1.0,
+      "usou_fallback": false
+    },
+    {
+      "acertos": 1,
+      "caminho": "numero_desempatado",
+      "correcao_ocr": false,
+      "fonte": "regras",
+      "n": 1,
       "taxa": 1.0,
       "usou_fallback": true
     },
@@ -93,11 +102,11 @@
       "usou_fallback": false
     },
     {
-      "acertos": 12,
+      "acertos": 8,
       "caminho": "numero_unico",
       "correcao_ocr": true,
       "fonte": "regras",
-      "n": 12,
+      "n": 8,
       "taxa": 1.0,
       "usou_fallback": false
     },
