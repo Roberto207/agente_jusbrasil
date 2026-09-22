@@ -47,7 +47,23 @@ Por isso **o máximo possível é 1,100**: 1,000 de acerto perfeito vezes 1,10 d
 | ↳ parte de ajuste (14 docs) | 0,9955 | 1,0000 | 0,9932 | 0 | 101/101 |
 | ↳ parte de controle (12 docs) | 0,9823 | 1,0000 | 0,9734 | 0 | 91/91 |
 
-Das 192 citações, **190 recebem a resposta certa**. As 2 erradas não são defeito do sistema:
+Das 192 citações, **190 recebem a resposta certa**. As 2 erradas:
+
+> ⚠️ **Corrigido em 2026-09-21.** O texto abaixo era o entendimento da época e **estava errado nos dois
+> casos**. A investigação está em `docs/gerais/limites_de_decisao.md`; o resumo é:
+>
+> - **`gen_n2_010` não é empate entre registros idênticos.** Os dois registros são processos diferentes:
+>   `2684973273` é `AgInt no RECURSO ESPECIAL`, e `2679428592` é `AgInt nos EMBARGOS DE DIVERGÊNCIA EM
+>   RESP`. A citação diz "Recurso Especial" e casa só com o primeiro. A ambiguidade é fabricada por uma
+>   lacuna nossa: `classes.json` não conhece "Embargos de Divergência" (11 registros da base têm essa
+>   classe), então o índice lê os dois como `REsp` e o desempate do ADR-007 fica sem sinal. **É defeito
+>   do sistema, e corrigível.**
+> - **`gen_n2_005` provavelmente não é erro do gabarito.** Três registros TST dividem o mesmo número CNJ
+>   (estágios do mesmo caso) e o gabarito aponta o mais antigo. A hipótese mais provável é que a
+>   organização vincule ao **caso**, não ao estágio recursal — o que seria um critério de desempate, não
+>   um erro. Falta confirmar com a organização.
+
+*Texto original, mantido para registro:*
 
 - **`gen_n2_010`** — a base tem **dois registros idênticos** para o mesmo processo (mesma classe, recurso e UF). Não há
   como escolher um sem chutar, e a regra é "na dúvida, nunca `real`": o sistema responde `incompleta`, o gabarito `real`.
