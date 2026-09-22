@@ -1,7 +1,7 @@
 {
   "aliases": [
     {"sigla": "EDcl", "padroes": ["embargos de declara[cç][aã]o", "e\\s*d\\s*cl", "eds", "\\bed\\b"]},
-    {"sigla": "EDv", "padroes": ["embargos de diverg[eê]ncia", "diverg[eê]ncia em", "\\bedv\\b"]},
+    {"sigla": "EDv", "padroes": ["nos?\\s*embargos de diverg[eê]ncia", "embargos de diverg[eê]ncia", "\\bedv\\b"]},
     {"sigla": "AREsp", "padroes": ["agravo em recurso especial", "a\\.?\\s*resp", "aresp", "arespel"]},
     {"sigla": "REspe", "padroes": ["recurso especial eleitoral", "respe\\.?"]},
     {"sigla": "REsp", "padroes": ["recurso especial", "rec\\.?\\s*esp\\.?", "r\\.?\\s*esp\\.?", "resp\\.?"]},

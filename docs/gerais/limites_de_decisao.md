@@ -5,8 +5,11 @@
 ADR-007 (desempate por classe), ADR-011 (encoder em união), ADR-015 (forma (d) ancorada)
 
 Este documento registra um diagnóstico que **corrige uma explicação anterior errada** e propõe
-caminhos para subir o acerto sem depender de encoder. Nada aqui foi implementado — são propostas com
-risco e critério de aceite, para a equipe decidir.
+caminhos para subir o acerto sem depender de encoder.
+
+> **Leia a seção 9 em diante antes de agir.** As seções 1–8 descrevem o estado de 21/09 **antes** da
+> correção; a ideia A já foi aplicada (`EDv`), as auditorias A e B já foram rodadas, e os números
+> mudaram. O que continua aberto está na seção 11.
 
 ---
 
@@ -203,3 +206,81 @@ python -m verificador comparar --run mrg --run <run>
 - O critério de desempate da organização (ideia D) — bloqueia decidir C com fundamento.
 - Se o conjunto cego usa a mesma base canônica (`scope.md`, "Ainda em aberto").
 - Quanto dos 75 grupos indistinguíveis sobra depois da auditoria A — só medindo.
+
+---
+
+# Atualização — 2026-09-21 (depois do `EDv`)
+
+**Base de medida:** commit do fix do padrão solto (runs `fix` / `fix_sint`)
+
+## 9. O que mudou
+
+A ideia A deste documento foi aplicada: `EDv` entrou em `classes.json` (commit `7b3ea35`) e o
+`gen_n2_010` está resolvido.
+
+| Conjunto | Antes | Depois |
+|---|---|---|
+| Amostra oficial | 1,08603 | **1,09648** |
+| **Controle** | 1,07923 | **1,10000** ← teto teórico exato |
+| Sintético | 1,09571 | 1,09571 |
+| Sintético-controle | 1,08530 | 1,08530 |
+
+O controle atingir 1,10000 é o dado mais informativo aqui: **o sistema chega ao teto quando o dado
+permite**. O que sobra na amostra não é limitação do pipeline.
+
+Detalhe do ajuste posterior no alias em `specs/edv_padrao_solto.md`.
+
+## 10. Auditorias A e B: ambas rodadas, ambas limpas
+
+Este documento propunha as duas. Foram executadas, e o resultado é **evidência negativa** — vale
+registrar para ninguém refazer:
+
+| Auditoria | Método | Resultado |
+|---|---|---|
+| **A** — tabela de classes × base | `classe_principal` de todos os 1014 registros | **1008/1014 (99,4%)** já mapeados. Os 6 restantes são cabeçalhos com OCR corrompido (`AGRAVO REGIMÈNTAL`, `EMBARGOS DE DECLARAcA0`) ou formato atípico do TSE (`ACÓRDÃO - CLASSE 32 ELEITORAL`) — não classes ausentes |
+| **B** — índice × ADR-002 | posição da 1ª ocorrência do número no texto | 802 registros têm o número nos primeiros 400 caracteres. Os 193 "tardios" são **todos TST**, onde o número vem do rodapé `PROCESSO Nº TST-…` **por especificação**. **Zero violações** |
+
+**Conclusão: o `EDv` era a lacuna real, e não há mais ganho a colher nessas duas frentes.**
+
+## 11. O que falta para 1,100 — e por que não vamos atrás
+
+Faltam **0,00352** na amostra, e é **uma causa só**, não duas:
+
+| Cenário | Score | Ganho |
+|---|---|---|
+| Hoje | 1,09648 | — |
+| Só corrigir o link do `gen_n2_005` | 1,09928 | +0,00281 |
+| Só zerar o Brier | 1,09719 | +0,00071 |
+| Os dois | **1,10000** | +0,00352 |
+
+O nível 1 já tem **Brier exatamente zero**. No nível 2 o Brier é 0,010753, e há 93 citações:
+`1/93 = 0,010753`, bate na sexta casa. Ou seja, o Brier não-zero **é** a única predição errada,
+enviada com confiança ≈1,0. Corrigir o link levaria macro-F1 a 1,0 e Brier a 0 simultaneamente.
+
+**Não vamos implementar**, e o motivo é a base empírica:
+
+- só **2** citações `real` da amostra têm número com mais de um registro na base;
+- uma (`gen_n2_010`) já foi resolvida pela classe `EDv`;
+- sobra **n=1**.
+
+A regra "escolher o mais antigo" acerta 2/2 — assim como "classe mais próxima", "menor id" e outras.
+Com um exemplo efetivo, a regra é infalsificável, e escrevê-la é o que o **ADR-009** proíbe.
+
+Isso permanece como a **ideia D**: perguntar à organização se o vínculo é ao caso (número CNJ) ou ao
+estágio recursal.
+
+## 12. Procedimento novo: regenerar o sintético depois de mexer no índice
+
+Descoberto nesta rodada, e quase virou falso alarme de regressão.
+
+O gerador sintético deriva a verdade do índice (`sintetico/citacoes.py:66` usa `classe_principal`).
+Quando o `EDv` entrou, o sintético em disco ficou **velho**: o gabarito ainda dizia que
+`Agravo Interno no Recurso Especial 1.726.922` era `real`, porque na geração aquele registro era lido
+como `REsp`. Com o índice corrigido, o pipeline passou a dizer `inventada` — e o placar caiu de
+1,09571 para 1,09350, com duas citações `real|inventada`.
+
+Não era regressão. Depois de `gerar-sintetico`, voltou a 1,09571 exato.
+
+> **Regra:** toda mudança em `classes.json`, em `base/` ou em qualquer coisa que altere o índice exige
+> `python -m verificador gerar-sintetico … --semente 0` **antes** de medir. Sem isso o gabarito
+> sintético contradiz o código e a medição mente nas duas direções.

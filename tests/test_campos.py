@@ -196,3 +196,17 @@ def test_no_dentro_de_palavra_nao_e_o_n_do_numero() -> None:
     """`Agravo Interno 7000249-04…`: o `no` de "Interno" não pode cortar a classe ao meio."""
     _, campos = _extrair_campos("Cf. Agravo Interno 7000249-04.2021.7.00.0000, que decide.")
     assert campos is not None and campos.classe_principal == "AgInt"
+
+
+def test_edv_nao_entra_na_cadeia_por_prosa() -> None:
+    """`divergência em` no meio da frase não pode virar classe: a cadeia lida seria `['EDv','REsp']`
+    e o filtro de consistência rejeitaria o registro certo, transformando uma `real` em `inventada`."""
+    campos = ler_campos(_cand("havendo divergência em torno do REsp 1.234.567", "com_numero"))
+    assert campos is not None
+    assert "EDv" not in campos.cadeia_recursos and campos.classe_principal != "EDv"
+
+
+def test_edv_legitimo_entra_na_cadeia() -> None:
+    campos = ler_campos(_cand("AgInt nos EMBARGOS DE DIVERGÊNCIA EM RESP Nº 1597443 - PR", "com_numero"))
+    assert campos is not None
+    assert "EDv" in campos.cadeia_recursos

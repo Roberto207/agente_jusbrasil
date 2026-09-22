@@ -203,3 +203,33 @@ def test_resolver_descarta_contida() -> None:
     curta = Candidata(12, 20, "x" * 8, "jurisprudencia", "com_numero", "a", frozenset({"regex"}))
     saida = resolver([longa, curta])
     assert saida == [longa]
+
+
+def test_edv_nao_captura_prosa_comum() -> None:
+    """O alias `EDv` já teve um padrão `divergência em` que pegava prosa corrente.
+
+    Era redundante — nenhum dos 11 registros da base com "Embargos de Divergência" dependia dele —
+    e abria três modos de falha: duas citações falsas e a corrupção da cadeia de uma citação real.
+    """
+    for frase in (
+        "houve divergência em 2024 sobre o tema",
+        "a divergência em 1.234.567 casos analisados",
+        "não há divergência em relação ao voto do relator",
+    ):
+        assert not any(c.forma == "com_numero" for c in extrair(preparar(frase))), frase
+
+
+def test_edv_reconhecido_mesmo_colado_no_conector() -> None:
+    """O cabeçalho da base vem sem espaço em 4 registros (`AgInt nosEMBARGOS DE DIVERGÊNCIA`).
+
+    O guarda `(?<![A-Za-z])` do padrão de classe barra `EMBARGOS` quando ele encosta em `nos`, então
+    o alias precisa tolerar o prefixo. Sem isso o registro é indexado como `REsp` puro e volta a
+    empatar com o `AgInt no REsp` de mesmo número (`gen_n2_010`).
+    """
+    from verificador.extracao.campos import _classes_no_texto
+
+    for cabecalho in (
+        "AgInt nosEMBARGOS DE DIVERGÊNCIA EM RESP Nº 1597443 - PR",
+        "AgInt nos EMBARGOS DE DIVERGÊNCIA EM RESP Nº 1597443 - PR",
+    ):
+        assert "EDv" in _classes_no_texto(cabecalho), cabecalho
