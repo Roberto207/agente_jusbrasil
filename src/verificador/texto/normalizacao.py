@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
-from verificador.tabelas import ocr
+from verificador.tabelas import chave_ocr, ocr, vocabulario_ocr
 
 _TRACOS = {
     "\u2010",
@@ -25,7 +25,18 @@ _NUMERO = re.compile(
 _N_NUMERO = re.compile(
     r"(?<![A-Za-zÁ-ú])(?:[nN][º°oO]|[nN]\.)(?=\s*[\dIlOSgl])",
 )
-_CINCO_UMULA = re.compile(r"5[úu]mula", re.IGNORECASE)
+# O `rn` no meio cobre a corrupção dupla (`5úrnula`): o `5` já é âncora suficiente para não haver
+# ambiguidade, então não é preciso passar pelo vocabulário.
+_CINCO_UMULA = re.compile(r"5[úu](?:m|rn)ula", re.IGNORECASE)
+
+# Correção `m↔rn` (Tier 1 de `tarefas_equipe.md` 3.2). Só palavras que contêm `m` ou `rn` entram —
+# as demais nem são examinadas.
+_PALAVRA_OCR = re.compile(
+    r"(?<![A-Za-zÀ-ÿ])[A-Za-zÀ-ÿ]*(?:m|rn)[A-Za-zÀ-ÿ]*",
+    re.IGNORECASE,
+)
+_RN = re.compile(r"rn", re.IGNORECASE)
+_M = re.compile(r"m", re.IGNORECASE)
 _ESPACO_NO_NUMERO = re.compile(
     r"(?<=\d) +(?=[\d.\-])|(?<=\d\.) +(?=\d)",
 )
@@ -53,7 +64,13 @@ def _aplicar(
         del chars[ini:fim]
         del mapa[ini:fim]
         return
-    if len(novo) <= len(orig):
+    if len(novo) < len(orig) and len(novo) >= 2:
+        # Encurtou: o último caractere novo tem de apontar para o último original, senão o span
+        # perde a cauda da palavra. `RNilitar` → `Militar` saía como `RNilita`, e aí `ler_campos`
+        # normalizava `RNilita` — que não é termo conhecido — e a lei deixava de resolver.
+        # Com um caractere só (`- ` → `-`) não há como cobrir as duas pontas; fica o início.
+        novo_mapa = orig[: len(novo) - 1] + [orig[-1]]
+    elif len(novo) <= len(orig):
         novo_mapa = orig[: len(novo)]
     else:
         novo_mapa = orig + [orig[-1]] * (len(novo) - len(orig))
@@ -70,6 +87,8 @@ def _substituir(
     texto = "".join(chars)
     for m in reversed(list(padrao.finditer(texto))):
         novo = reposicao(m) if callable(reposicao) else reposicao
+        if novo == m.group(0):
+            continue  # nada a fazer: poupa reescrever o mapa palavra por palavra
         _aplicar(chars, mapa, m.start(), m.end(), novo)
 
 
@@ -97,6 +116,69 @@ def _ocr_no_token(token: str) -> str:
     return "".join(partes)
 
 
+def _rn_para_m(trecho: str) -> str:
+    return "M" if trecho[0].isupper() else "m"
+
+
+def _m_para_rn(trecho: str) -> str:
+    return "RN" if trecho.isupper() else "rn"
+
+
+def _escolhas(spans: list[tuple[int, int]]) -> list[list[tuple[int, int]]]:
+    """Cada ocorrência isolada e, se houver mais de uma, todas juntas.
+
+    O OCR costuma corromper uma ocorrência por palavra, mas `complementar` tem
+    dois `m`. Enumerar as combinações todas seria exponencial sem ganho: estas
+    duas formas cobrem o que aparece.
+    """
+    if not spans:
+        return []
+    escolhas: list[list[tuple[int, int]]] = [[span] for span in spans]
+    if len(spans) > 1:
+        escolhas.append(list(spans))
+    return escolhas
+
+
+def _trocar(palavra: str, spans: list[tuple[int, int]], converter) -> str:
+    saida = palavra
+    for ini, fim in reversed(spans):
+        saida = saida[:ini] + converter(palavra[ini:fim]) + saida[fim:]
+    return saida
+
+
+def _variantes(palavra: str) -> set[str]:
+    """Formas da palavra trocando `rn`→`m` e `m`→`rn`, nos dois sentidos."""
+    variantes: set[str] = set()
+    for spans in _escolhas([m.span() for m in _RN.finditer(palavra)]):
+        variantes.add(_trocar(palavra, spans, _rn_para_m))
+    for spans in _escolhas([m.span() for m in _M.finditer(palavra)]):
+        variantes.add(_trocar(palavra, spans, _m_para_rn))
+    variantes.discard(palavra)
+    return variantes
+
+
+def _corrigir_palavra(palavra: str) -> str:
+    """Repara `m↔rn` só quando o resultado é termo conhecido.
+
+    Três guardas, nesta ordem:
+    1. palavra que já está no vocabulário nunca é tocada — é o que protege
+       `interno` de virar `intemo`;
+    2. palavra fora do vocabulário só muda se alguma variante cair nele — é o
+       que protege sobrenomes de relator (`Fernandes` → `Femandes` não é termo
+       conhecido, então nada acontece);
+    3. duas variantes conhecidas ao mesmo tempo é ambiguidade: não troca.
+    """
+    if len(palavra) < 2:
+        return palavra
+    vocabulario = vocabulario_ocr()
+    if chave_ocr(palavra) in vocabulario:
+        return palavra
+    conhecidas = {v for v in _variantes(palavra) if chave_ocr(v) in vocabulario}
+    if len(conhecidas) != 1:
+        return palavra
+    return conhecidas.pop()
+
+
 def normalizar(texto: str) -> tuple[str, list[int]]:
     chars: list[str] = []
     mapa: list[int] = []
@@ -111,6 +193,9 @@ def normalizar(texto: str) -> tuple[str, list[int]]:
 
     _substituir(chars, mapa, _N_NUMERO, "nº")
     _substituir(chars, mapa, _CINCO_UMULA, "Súmula")
+    # Palavra antes de número: as duas correções não se cruzam (uma só olha letras, a outra exige
+    # dígito no token), mas manter a ordem torna o resultado auditável.
+    _substituir(chars, mapa, _PALAVRA_OCR, lambda m: _corrigir_palavra(m.group(0)))
     # OCR antes de colapsar hífen/espaço: senão `7I. 346` e `1. o21` perdem o
     # vizinho digitável, e `21737l8 - SP` cola a UF no token do número (causa 4).
     _substituir(chars, mapa, _NUMERO, lambda m: _ocr_no_token(m.group(0)))

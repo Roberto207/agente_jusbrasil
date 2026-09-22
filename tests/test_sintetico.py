@@ -100,7 +100,11 @@ def test_transformacoes_de_ruido() -> None:
     assert "\n" in ruido.quebra_de_linha_no_numero("7000380-08.2023", rng)
     assert ruido.variacao_no("REsp nº 1", rng) != "REsp nº 1"
     assert ruido.cinco_umula("Súmula 83", rng) == "5úmula 83"
-    assert ruido.ruidoso("sem número nenhum", rng) == "sem número nenhum"
+    # `m↔rn` dentro de palavra (página Data do desafio): é ruído de letra, então age mesmo onde não
+    # há número — por isso o caso "sem nada para corromper" agora é uma palavra sem `m` nem `rn`.
+    assert "rn" in ruido.m_vira_rn("Súmula 83", rng)
+    assert ruido.rn_vira_m("Agravo Interno", rng) == "Agravo Intemo"
+    assert ruido.ruidoso("tese s/ base legal", rng) == "tese s/ base legal"
 
 
 def test_dataset_no_formato_da_amostra_e_aceito_pela_metrica(indice, pasta_dados, tmp_path) -> None:

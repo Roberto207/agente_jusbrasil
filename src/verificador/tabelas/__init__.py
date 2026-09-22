@@ -58,6 +58,31 @@ def tst_sigla(token: str) -> tuple[str, ...]:
 
 
 @lru_cache(maxsize=1)
+def vocabulario_ocr() -> frozenset[str]:
+    """Termos que a correção `m↔rn` pode produzir (vocabulário fechado).
+
+    A página Data do desafio lista `m↔rn` entre os ruídos do nível 2, mas trocar
+    às cegas destrói texto correto (`interno` → `intemo`, e `AgInt` é *Agravo
+    **Interno***). Por isso a correção só acontece quando o resultado cai neste
+    conjunto — âncora, não vocabulário solto (mesmo princípio do ADR-015).
+
+    Chaves iniciadas por `_` são nota de manutenção, não palavras.
+    """
+    bruto = _ler_json("vocabulario_ocr.json")
+    palavras: set[str] = set()
+    for chave, valor in bruto.items():
+        if chave.startswith("_"):
+            continue
+        palavras.update(_so_ascii(palavra) for palavra in valor)
+    return frozenset(palavras)
+
+
+def chave_ocr(palavra: str) -> str:
+    """Forma comparável de uma palavra: minúscula, sem acento."""
+    return _so_ascii(palavra)
+
+
+@lru_cache(maxsize=1)
 def ufs() -> dict[str, tuple[str, ...]]:
     bruto = _ler_json("ufs.json")
     return {sigla: tuple(nomes) for sigla, nomes in bruto.items()}
