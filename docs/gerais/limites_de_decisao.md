@@ -284,3 +284,79 @@ Não era regressão. Depois de `gerar-sintetico`, voltou a 1,09571 exato.
 > **Regra:** toda mudança em `classes.json`, em `base/` ou em qualquer coisa que altere o índice exige
 > `python -m verificador gerar-sintetico … --semente 0` **antes** de medir. Sem isso o gabarito
 > sintético contradiz o código e a medição mente nas duas direções.
+
+---
+
+# Atualização — 2026-09-21 (as regras do desafio)
+
+A página **Data** da competição responde perguntas que este documento deixava abertas. Ela foi lida
+na íntegra; a competição é privada, então não há como buscá-la por URL sem login.
+
+## 13. Não existe critério de desempate — e isso inverte o problema
+
+> | Candidatos encontrados | Classe | Saída |
+> | exatamente 1 | **real** | `id_canonico` |
+> | 0 | **inventada** | null |
+> | 2 ou mais candidatos distintos, **sem critério de desempate** | **incompleta** | null |
+>
+> **Cada citação real do desafio resolve para exatamente um registro da base — as duplicatas
+> remanescentes do acervo não têm nenhuma citação apontando para elas.**
+
+A seção 11 deste documento perguntava qual registro escolher quando vários compartilham o número.
+A resposta é que **isso não deveria acontecer**: se o gabarito diz `real` e nós achamos 2 candidatos,
+o candidato a mais é erro nosso. Não é desempate melhor — é candidato indevido.
+
+## 14. O candidato indevido, encontrado
+
+A página nomeia a causa: *"Separar o registro de quem apenas o cita — esta é a armadilha que mais
+custa precisão."* Era exatamente isso.
+
+| Registro | Posição do número | Contexto |
+|---|---|---|
+| `1974934139` (gabarito) | 4.309 | *"**Vistos, relatados e discutidos estes autos de** … nº TST-AIRR-25823-78…"* → é o processo |
+| `2813052232` (nosso) | 32.487 | *"…não provido". (PROCESSO Nº TST-AIRR-25823-78… )* → decisão **transcrita** |
+
+`numero_proprio.py` tentava o rodapé `PROCESSO Nº TST-…` **antes** da fórmula `estes autos de …`, e o
+rodapé pode aparecer dentro de uma transcrição. Invertida a ordem, **20 dos 199 registros do TST
+(10%) passaram a ter o número certo** — o `2813052232` é na verdade
+`TST-Ag-ARR-10132-34.2015.5.03.0018`. Grupos de número compartilhado caíram de 81 para 77.
+
+Antes do fix, cada um desses 20 custava nos dois sentidos: citação ao número verdadeiro deles dava
+`inventada` por engano, e citação ao número roubado dava ambiguidade falsa.
+
+## 15. O que o fix revelou sobre o `gen_n2_005`
+
+Com um único candidato pelo número, o **R40** passou a vetá-lo: a citação diz `AgARR` e o registro é
+`AIRR` — mesmo caso (mesmo CNJ), estágio recursal diferente. Resultado `inventada`, pior que o link
+errado de antes.
+
+O `gen_n2_005` estava **certo pelo motivo errado**: acertava a classe porque existia um candidato
+espúrio cuja classe casava por acaso.
+
+Custo na amostra: 1,09648 → **1,09272**. Controle segue em **1,10000**, sintético em 1,09574.
+**Decisão: manter o fix.** O que conta é o conjunto cego, e lá 20 registros mal numerados custam mais
+que 0,0038 na amostra. A queda vem do R40, não do fix.
+
+A tabela da página sugeriria não vetar candidato único por classe. Mas o R40 existe para o "número
+emprestado" (`inventada` com número real e classe trocada), que o sintético exercita — mexer nele com
+base neste único caso cairia no ADR-009. Fica como pergunta à organização.
+
+## 16. O gabarito distribuído não bate com a página
+
+| | Distribuído | Página Data |
+|---|---|---|
+| Gabarito | `goldenset_offsets.csv`, **192** citações | `goldenset.csv`, **225** |
+| `incompleta` | **32** | **65** |
+| `real` / `inventada` | 96 / 64 | 96 / 64 |
+| Base | **1.014** | **1.016** |
+
+`real` e `inventada` batem exatamente — **os 33 de diferença são todos `incompleta`**, o número
+plausível de referências vagas nos 26 documentos, que a página diz serem `incompleta` e o ADR-005
+exclui.
+
+Novo download em 21/09 veio **byte a byte idêntico** ao de 15/09 — o dataset não mudou. E a submissão
+marcou 1,08604, igual ao cálculo local sobre 192, então o leaderboard usa o arquivo distribuído.
+
+**Risco:** a página diz que o conjunto final terá "distribuição de classes equivalente". Se
+equivalente à página e não ao arquivo, perderíamos 33 de 65 `incompleta` — score para ~0,98.
+É a pergunta de maior valor a fazer à organização, e nenhum teste local a responde. Ver ADR-005.

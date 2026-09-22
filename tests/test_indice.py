@@ -234,3 +234,17 @@ def test_tabelas_resolvem_os_formatos_da_base() -> None:
 def test_numero_proprio_reduz_a_digitos() -> None:
     assert so_digitos("1.741.784") == so_digitos("1741784") == "1741784"
     assert numero_proprio("STJ", "acordao", "RECURSO ESPECIAL Nº 1.741.784 - PR (2018/0116304-1)")
+
+
+def test_tst_nao_reivindica_numero_que_apenas_cita(indice) -> None:
+    """A fórmula `estes autos de … TST-…` vem antes do rodapé `PROCESSO Nº TST-…`.
+
+    O rodapé pode aparecer **dentro de uma decisão transcrita**: o registro 2813052232 é o processo
+    `TST-Ag-ARR-10132-34.2015.5.03.0018` (posição 3191), mas herdava
+    `TST-AIRR-25823-78.2015.5.24.0091` de uma citação na posição 32466 — e passava a disputar aquele
+    número com 1974934139, que é o processo de verdade. Eram 20 dos 199 registros do TST.
+    A página Data do desafio chama isso de "a armadilha que mais custa precisão".
+    """
+    por_id = {r.id: r for r in indice.registros}
+    assert por_id["2813052232"].numero == "101323420155030018"
+    assert por_id["1974934139"].numero == "258237820155240091"

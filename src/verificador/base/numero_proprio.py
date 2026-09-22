@@ -117,9 +117,18 @@ def numero_tse(texto: str) -> str | None:
     return so_digitos(m.group(1)) if m else None
 
 
-# TST — dois padrões, nesta ordem de confiança:
-#   1. rodapé `PROCESSO Nº TST-ED-E-ED-RR-3400-05.2011.5.21.0009`
-#   2. `estes autos de ... nº TST-AIRR-25823-78.2015.5.24.0091`
+# TST — três padrões, nesta ordem de confiança:
+#   1. `estes autos de ... nº TST-AIRR-25823-78.2015.5.24.0091`
+#   2. rodapé `PROCESSO Nº TST-ED-E-ED-RR-3400-05.2011.5.21.0009`
+#   3. qualquer `TST-CLASSE-número` (frágil, primeira ocorrência)
+# A fórmula processual `Vistos, relatados e discutidos estes autos de …` é o
+# registro apresentando o **próprio** caso, e por isso vem antes do rodapé: um
+# `PROCESSO Nº TST-…` pode aparecer **dentro de uma decisão transcrita**. Era o
+# caso do registro 2813052232, cujo processo é `TST-Ag-ARR-10132-34.2015.5.03.0018`
+# (posição 3191) mas que herdava `TST-AIRR-25823-78.2015.5.24.0091` de uma citação
+# na posição 32466 — passando a disputar aquele número com o registro 1974934139,
+# que é o processo de verdade. A página Data do desafio chama isso de "a armadilha
+# que mais custa precisão": separar o registro de quem apenas o cita.
 # O `DESIGN.md` previa só o primeiro, que cobre 11 de 198 registros (Tarefa 1).
 # Classes que nunca são o próprio processo: `ArgInc` é a arguição de
 # inconstitucionalidade que centenas de acórdãos do TST citam na ementa como
@@ -141,7 +150,7 @@ _TST_QUALQUER = re.compile(
 
 
 def numero_tst(texto: str) -> str | None:
-    """TST: rodapé `PROCESSO Nº TST-…`, senão `estes autos de … TST-…`.
+    """TST: `estes autos de … TST-…`, senão o rodapé `PROCESSO Nº TST-…`.
 
     O número do TST **não** está no início do texto: o cabeçalho começa com a
     ementa, que cita a lei de regência (`EMBARGOS REGIDOS PELA LEI Nº
@@ -152,7 +161,7 @@ def numero_tst(texto: str) -> str | None:
     **primeira** ocorrência do texto: o próprio processo é apresentado antes de
     os precedentes serem discutidos.
     """
-    for padrao in (_TST_RODAPE, _TST_AUTOS, _TST_QUALQUER):
+    for padrao in (_TST_AUTOS, _TST_RODAPE, _TST_QUALQUER):
         m = padrao.search(texto)
         if m:
             return so_digitos(m.group(1))
