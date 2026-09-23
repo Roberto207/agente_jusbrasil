@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 TipoCitacao = Literal["jurisprudencia", "lei"]
-FormaCitacao = Literal["com_numero", "sumula", "lei_artigo", "sem_numero"]
+FormaCitacao = Literal["com_numero", "sumula", "lei_artigo", "sem_numero", "referencia_vaga"]
 OrigemCandidata = Literal["regex", "encoder"]
 FonteCampos = Literal["regras", "llm"]
 Classificacao = Literal["real", "inventada", "incompleta"]

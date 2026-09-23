@@ -57,6 +57,7 @@ CASOS = [
     ("lei_ausente", "lei_artigo", campos(lei_chave="LEI-13105-2015", artigo="1134"), "inventada", None),
     ("lei_unica", "lei_artigo", campos(lei_chave="LEI-13105-2015", artigo="373"), "real", "7"),
     ("lei_ambigua", "lei_artigo", campos(lei_chave="DL-5452-1943", artigo="818"), "incompleta", None),
+    ("referencia_vaga", "referencia_vaga", campos(), "incompleta", None),
 ]
 
 
@@ -68,8 +69,8 @@ def test_um_teste_por_caminho(indice, caminho, forma, c, classe, id_) -> None:
     assert CLASSE_DO_CAMINHO[caminho] == classe
 
 
-def test_a_tabela_tem_exatamente_os_dez_caminhos_do_design() -> None:
-    assert set(CAMINHOS_DECISAO) == {x[0] for x in CASOS} and len(CAMINHOS_DECISAO) == 10
+def test_a_tabela_tem_exatamente_os_onze_caminhos_do_design() -> None:
+    assert set(CAMINHOS_DECISAO) == {x[0] for x in CASOS} and len(CAMINHOS_DECISAO) == 11
 
 
 def test_contradicao_por_uf_e_por_tribunal(indice) -> None:

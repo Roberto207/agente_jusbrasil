@@ -77,7 +77,7 @@ DE VOLTA PARA CADA CITAÇÃO
 [4] Decisão           campos × índice → candidatos → consistentes → caminho      R5–R9, R12–R14, R40 · ADR-006, ADR-007
 [5] Confiança         caminho → taxa de acerto medida no controle                R26 · ADR-008
 [6] Saída             JSON por documento → json_to_submission.py → CSV           R15–R19, R38, R42
-[7] Avaliação         kaggle_metric.py (amostra + controle) → relatório          R28, R41, R43, R49 · ADR-009
+[7] Avaliação         kaggle_metric.py (amostra + controle) → relatório          R28, R41, R43, R49, R50 · ADR-009
 ```
 
 ### [A] Índice da base
@@ -164,8 +164,12 @@ campos; o que não se encaixa é descartado (impede que "a jurisprudência pací
 (com número > sem número), depois a presente nas duas fontes, depois a mais longa. Candidata contida
 em outra é descartada.
 
-O detector de **referência vaga** existe atrás de uma chave **desligada**, enquanto a equipe analisa
-a divergência com o regulamento (ADR-005).
+O detector de **referência vaga** (5ª forma, `referencia_vaga`) existe implementado e testado atrás
+da chave `extrair_referencia_vaga`, **desligada por padrão** — vocabulário fechado em
+`tabelas/referencia_vaga.json`, nunca consulta o índice, sempre `incompleta`. Ligar contra o
+gabarito distribuído hoje custa ~0,049 de score (medido: 11 espúrios) — a divergência com a página
+Data (ADR-005) continua sem resolver; decisão de ligar é da Fase 2, com o leaderboard público como
+árbitro (ver `tarefas_equipe.md`, Tier 3).
 
 ### [3] Campos
 
@@ -208,7 +212,8 @@ Cada citação termina em exatamente um **caminho** com nome estável:
 | `lei_ausente` | forma (c), 0 candidatos | inventada | — | R8 |
 | `lei_unica` | forma (c), 1 candidato | real | `id` | R9 |
 | `lei_ambigua` | forma (c), N candidatos | incompleta | — | R7 |
-| `campos_nao_lidos` | citação detectada cujos campos as regras não leram e não há LLM (11º caminho, emitido pela integração) | incompleta | — | ADR-006 |
+| `referencia_vaga` | forma (e), opcional (`extrair_referencia_vaga`, desligada por padrão), nunca consulta o índice | incompleta | — | ADR-005 |
+| `campos_nao_lidos` | citação detectada cujos campos as regras não leram e não há LLM (12º caminho, emitido pela integração) | incompleta | — | ADR-006 |
 
 A tabela é exaustiva e os caminhos são disjuntos. O caminho não depende de quem leu os campos
 (regras ou LLM); a origem fica registrada para a confiança.
@@ -231,8 +236,10 @@ oficial, chamado sem modificação (R16); o manifesto guarda o hash do script.
 
 `kaggle_metric.py` (a função `avaliar()`, sem reimplementação) roda sobre a amostra e sobre o
 conjunto de controle (parte de medida da amostra + fatia reservada do sintético). Testes metamórficos:
-pares limpo × ruidoso (R35), nomes de documento trocados (R41). A submissão só é enviada se duas
-execuções derem CSV idêntico (R49).
+pares limpo × ruidoso (R35), nomes de documento trocados (R41). Toda citação `real` do gabarito
+nunca cai no caminho `numero_ausente` (R50; a organização garante que ruído sobre citação real é
+sempre recuperável por normalização). A submissão só é enviada se duas execuções derem CSV
+idêntico (R49).
 
 ## Contratos entre módulos
 

@@ -2,9 +2,11 @@
 
 **Data:** 2026-09-22 · **ADR:** 009 (protocolo anti-overfitting) · **Item:** `tarefas_equipe.md`,
 seção 3.2, Tier 1, item 2
-**Status:** **proposta** — não implementada nesta sessão de propósito; um colaborador aparentemente já
-resolveu este item em paralelo. Esta spec fica como o desenho de referência para comparar com o
-`git pull` do trabalho dele antes de decidir o que entra.
+**Status:** **implementada em 2026-09-22.** O `git pull` do colaborador (commit `e679784`, Beatriz)
+resolveu um item diferente (`numero_contradito`/família de classe, `gen_n2_005`) — este invariante
+(`numero_ausente`) continuava aberto, então o desenho abaixo foi implementado como planejado. Dois
+testes novos em `tests/test_pipeline.py`, `R50` registrado em `specs/DESIGN.md`. Passou sem tocar
+em código de produção — a garantia já era estrutural (ver seção "Contexto").
 
 ## Objetivo
 

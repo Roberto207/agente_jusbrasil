@@ -9,6 +9,7 @@ _ESPECIFICA = {
     "sumula": 2,
     "lei_artigo": 1,
     "sem_numero": 0,
+    "referencia_vaga": -1,  # ADR-005: menos informação que qualquer outra forma, inclusive sem_numero
 }
 
 

@@ -510,29 +510,68 @@ fechar lacunas que a organização documentou e construir um instrumento de medi
       181 testes. Dois defeitos achados no caminho: o mapa de offsets truncava a cauda da palavra
       encurtada, e o vocabulário nascera sem `MS`, `RMS`, `CPM` e `consumidor` — agora há teste que
       acusa a lacuna sozinho. Detalhe em `docs/gerais/feat-verificar-ocr-caio.md`.
-- [ ] **Invariante a partir da garantia do organizador.** A página afirma: *"todo ruído aplicado a uma
+- [x] **Invariante a partir da garantia do organizador.** A página afirma: *"todo ruído aplicado a uma
       citação real é recuperável por normalização; um dígito nunca é trocado por outro dígito"*. Logo,
       **toda citação `real` do gabarito que caia em `numero_ausente` é bug nosso, sempre**. Vira teste.
+      *2026-09-22, feito pelo Roberto* — dois testes de regressão em `tests/test_pipeline.py`
+      (`test_amostra_toda_real_nunca_cai_em_numero_ausente`, `test_sintetico_toda_real_nunca_cai_em_numero_ausente`),
+      cruzando o gabarito `real` (por IoU, via `_correspondencia_por_iou`) com o caminho gravado no
+      `rastro.jsonl`. Registrado como `R50` em `specs/DESIGN.md`. Passou sem nenhuma correção de
+      código: a garantia já era estrutural no gerador e na normalização (`tabelas/ocr.json` só mapeia
+      letra→dígito, `_ocr_no_token` preserva todo dígito existente) — o valor do item é travar
+      regressão futura e o conjunto cego, não corrigir nada hoje. Spec completa em
+      `specs/invariante_real_nunca_numero_ausente.md`. 190 testes verdes.
 
 #### Tier 2 — o instrumento de medida (pré-requisito do que é caro)
 
-- [ ] **LeNER-Br como sonda externa de recall.** Texto jurídico brasileiro real, público, com entidades
+- [x] **LeNER-Br como sonda externa de recall.** Texto jurídico brasileiro real, público, com entidades
       `JURISPRUDENCIA`. Não é pontuável contra o nosso gabarito (convenção diferente), mas responde à
       única pergunta que importa: *em texto que ninguém da equipe escreveu, quantas referências a
       julgados nossos padrões deixam passar?* Barato, sem GPU, e é a **única evidência externa
       disponível**.
-- [ ] **LLM diversificando o sintético (ADR-012, item já previsto na Fase 4).** Não melhora o sistema,
+      *2026-09-22, feito pelo Roberto* — `tests/test_lener_br.py` + `tests/lener_br_helpers.py`
+      (parser CoNLL/IOB próprio, alinha token→offset contra `raw_text/`, sem depender de nada do
+      pacote `verificador` além do parser em si). Roda só `preparar()`+`extrair()` — extração de
+      spans não depende de índice/base. **Resultado: recall de 47,4% (692/1461)** nas 70 entidades
+      `JURISPRUDENCIA` do dataset — bem abaixo dos ~99% medidos na amostra/sintético, exatamente o
+      tipo de sinal que a sonda deveria pegar. Investigado um dos piores casos (0/39,
+      `ACORDAOTCU25052016`) pra descartar bug de parsing: é achado genuíno, não bug — são citações
+      no formato do **TCU** (`"Acórdão nº 1.160/2016-TCU-Plenário"`, `"TC 001.396/97-8"`), tribunal
+      fora do escopo do desafio (que cobre só STF/STJ/STM/TSE/TST), então nossos padrões nunca
+      foram desenhados pra reconhecer. Não é regressão nem exige ação — é o retrato honesto do que
+      "generalização" significa fora da nossa própria bolha de moldes. Dataset baixado local
+      (`lener-br/`, `.gitignore`), licença registrada em `docs/gerais/conformidade_dados_externos.md`
+      (achado 2 — MIT no repo, "unknown" no card do HF; uso como sonda interna é de baixo risco).
+- [i] **LLM diversificando o sintético (ADR-012, item já previsto na Fase 4).** Não melhora o sistema,
       melhora a **medida**. Os moldes do sintético são nossos, então toda afirmação de generalização é
       circular — inclusive a de que as âncoras cobrem "9 de 10 moldes novos". **Precisa vir antes do
       encoder:** com recall em 99,4%, não há margem mensurável para o encoder mostrar ganho.
+      *2026-09-22, notebook preparado pelo Roberto, não executado* — `notebooks/kaggle/05_llm_diversifica_sintetico.ipynb`,
+      modelo **Qwen2.5-7B-Instruct** (Apache 2.0, ~15GB VRAM, decodificação determinística). Precisa
+      rodar no Kaggle (GPU) e publicar no Hugging Face — nenhuma das duas coisas é possível neste
+      ambiente. Ver `docs/gerais/conformidade_dados_externos.md` (achado 3, licenças consideradas).
 
 #### Tier 3 — opção, não melhoria
 
-- [ ] **Detector de referência vaga, implementado e desligado.** Valor esperado **zero** sozinho: é
+- [x] **Detector de referência vaga, implementado e desligado.** Valor esperado **zero** sozinho: é
       cara ou coroa, ~0,046 para cada lado. O `verificador.toml` já tem `extrair_referencia_vaga`, mas
-      `extracao/__init__.py` **ignora a flag** (`del cfg`), então hoje não dá para ligar nem sabendo a
+      `extracao/__init__.py` **ignorava a flag** (`del cfg`), então não dava para ligar nem sabendo a
       resposta. Construí-lo desligado compra o direito de decidir na fase 2, com o leaderboard público
       de 40% como árbitro. **Seguro barato, não melhoria.** Ver `ADR-005`.
+      *2026-09-23, feito pelo Roberto* — 5ª forma opcional (`referencia_vaga`), vocabulário fechado
+      em `tabelas/referencia_vaga.json` (5 frases já validadas pelo teste R33 e pela página Data,
+      ADR-015: âncora, não vocabulário solto), nunca consulta o índice, sempre `incompleta`
+      (`decisao/decidir.py`, `decisao/caminhos.py` — novo caminho `REFERENCIA_VAGA`, 12º da tabela).
+      `extracao/__init__.py:50-51` liga a forma só quando `cfg.extrair_referencia_vaga` for `True`;
+      com a flag desligada (default), o comportamento é **byte-idêntico** ao de antes — confirmado
+      rodando a amostra oficial (1,100000, sem mudança) e os 194 testes (`test_r33_...`,
+      `test_forma_d_exige_ano_e_relator_...` inalterados). Dois testes novos em `test_extracao.py`
+      confirmam o oposto com a flag ligada. **Medido, não só estimado:** ligar contra o gabarito
+      distribuído hoje (192 citações, sem anotação de referência vaga) custa **11 espúrios e
+      −0,049 de score** (1,100000 → 1,051146) — bate quase exato com a estimativa antiga de ~0,046.
+      **Continua desligado por padrão.** A decisão de ligar ou não é da Fase 2, quando o leaderboard
+      público (40% do conjunto cego) der sinal real de qual lado do ADR-005 é o certo — não decidir
+      às cegas agora. Revisitar este item assim que esse sinal existir.
 
 #### O que foi avaliado e descartado
 

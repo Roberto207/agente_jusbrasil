@@ -1,7 +1,9 @@
 """Frente B2 — extração das quatro formas e leitura de campos.
 
-Débito consciente (não extraído): artigo sem lei, súmula sem número,
-citações no plural (`arts. 489 e 1.022`) e referência vaga (ADR-005).
+Débito consciente (não extraído): artigo sem lei, súmula sem número, e
+citações no plural (`arts. 489 e 1.022`). Referência vaga tem forma própria
+(ADR-005), mas fica atrás da flag `extrair_referencia_vaga` (desligada por
+padrão) — ver docs/gerais/conformidade_dados_externos.md.
 """
 
 from __future__ import annotations
@@ -9,7 +11,7 @@ from __future__ import annotations
 from verificador.configuracao import carregar
 from verificador.contratos import Candidata, TextoPreparado
 from verificador.extracao.campos import ler_campos
-from verificador.extracao.padroes import COM_NUMERO, LEI_ARTIGO, SEM_NUMERO, SUMULA
+from verificador.extracao.padroes import COM_NUMERO, LEI_ARTIGO, REFERENCIA_VAGA, SEM_NUMERO, SUMULA
 from verificador.extracao.sobreposicao import resolver
 from verificador.texto import inicio_corpo_normalizado, voltar_ao_original
 
@@ -19,6 +21,7 @@ _FORMAS = (
     (LEI_ARTIGO, "lei_artigo", "lei", "lei_artigo"),
     (SEM_NUMERO, "sem_numero", "jurisprudencia", "sem_numero"),
 )
+_FORMA_REFERENCIA_VAGA = (REFERENCIA_VAGA, "referencia_vaga", "jurisprudencia", "referencia_vaga")
 
 
 def _candidata(
@@ -48,11 +51,11 @@ def _candidata(
 def extrair(t: TextoPreparado, encoder=None) -> list[Candidata]:
     del encoder  # Fase 4: união com NER; hoje só regex.
     cfg = carregar()
-    del cfg  # extrair_referencia_vaga fica desligada (ADR-005)
+    formas = _FORMAS + (_FORMA_REFERENCIA_VAGA,) if cfg.extrair_referencia_vaga else _FORMAS
     corpo = inicio_corpo_normalizado(t)
     faixa = t.normalizado[corpo:]
     cruas: list[Candidata] = []
-    for padrao, forma, tipo, nome in _FORMAS:
+    for padrao, forma, tipo, nome in formas:
         for m in padrao.finditer(faixa):
             cand = _candidata(
                 t,

@@ -1,10 +1,10 @@
-"""Regex das quatro formas de citação, sobre o corpo normalizado."""
+"""Regex das quatro formas de citação (+ referência vaga, opcional, ADR-005), sobre o corpo normalizado."""
 
 from __future__ import annotations
 
 import re
 
-from verificador.tabelas import classes, padrao_ufs, tst_tokens
+from verificador.tabelas import classes, frases_referencia_vaga, padrao_ufs, tst_tokens
 
 _FLAGS = re.IGNORECASE
 _CONECTOR = r"(?:no|na|nos|nas|-)"
@@ -174,8 +174,16 @@ def _compilar_sem_numero() -> re.Pattern[str]:
     return re.compile(rf"(?:{ano_primeiro}|{relator_primeiro})", _FLAGS)
 
 
+def _compilar_referencia_vaga() -> re.Pattern[str]:
+    """ADR-005, atrás de `extrair_referencia_vaga` (desligada por padrão) — vocabulário fechado
+    em `tabelas/referencia_vaga.json`, mesmo princípio de âncora do `_padrao_classe()` acima."""
+    partes = [re.sub(r"\s+", r"\\s+", frase) for frase in frases_referencia_vaga()]
+    return re.compile(r"(?:" + "|".join(f"(?:{p})" for p in partes) + r")", _FLAGS)
+
+
 COM_NUMERO = _compilar_com_numero()
 TST_NUMERO = re.compile(_padrao_tst(), _FLAGS)
 SUMULA = _compilar_sumula()
 LEI_ARTIGO = _compilar_lei()
 SEM_NUMERO = _compilar_sem_numero()
+REFERENCIA_VAGA = _compilar_referencia_vaga()

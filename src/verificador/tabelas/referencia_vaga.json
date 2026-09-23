@@ -1,0 +1,11 @@
+{
+  "_nota": "Vocabulário fechado de referência vaga (ADR-005): frases que citam jurisprudência ou lei sem identificador nenhum. Âncora, não vocabulário solto (mesmo princípio do ADR-015) — cada entrada vem da página Data do desafio ou do teste R33 já existente (test_r33_referencia_vaga_conhecida_nao_vira_candidata, tests/test_extracao.py), nunca da amostra distribuída. Extração fica atrás da flag `extrair_referencia_vaga` (desligada por padrão) — ver docs/gerais/conformidade_dados_externos.md.",
+
+  "frases": [
+    "jurisprudência pacífica",
+    "entendimento sumulado",
+    "artigo correspondente",
+    "orientação jurisprudencial da Corte Superior",
+    "dispositivo legal de regência"
+  ]
+}

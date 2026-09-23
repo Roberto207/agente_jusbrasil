@@ -21,6 +21,10 @@ LEI_APELIDO_DESCONHECIDO = "lei_apelido_desconhecido"
 LEI_AUSENTE = "lei_ausente"
 LEI_UNICA = "lei_unica"
 LEI_AMBIGUA = "lei_ambigua"
+# ADR-005: extração desligada por padrão (`extrair_referencia_vaga=false`); quando ligada, nunca
+# consulta o índice — classe fixada por analogia à página Data, não confirmada contra o gabarito
+# distribuído (ver docs/gerais/conformidade_dados_externos.md e o aviso em tarefas_equipe.md).
+REFERENCIA_VAGA = "referencia_vaga"
 # Citação detectada cujos campos as regras não leram (e não há LLM): nunca vira `real` (ADR-006).
 CAMPOS_NAO_LIDOS = "campos_nao_lidos"
 
@@ -35,11 +39,12 @@ CLASSE_DO_CAMINHO: dict[str, str] = {
     LEI_AUSENTE: "inventada",
     LEI_UNICA: "real",
     LEI_AMBIGUA: "incompleta",
+    REFERENCIA_VAGA: "incompleta",
     CAMPOS_NAO_LIDOS: "incompleta",
 }
 
 
-# Os 10 caminhos da tabela do DESIGN; `CAMPOS_NAO_LIDOS` é o 11º, emitido só pela integração.
+# Os 11 caminhos da tabela do DESIGN; `CAMPOS_NAO_LIDOS` é o 12º, emitido só pela integração.
 CAMINHOS_DECISAO = tuple(k for k in CLASSE_DO_CAMINHO if k != CAMPOS_NAO_LIDOS)
 
 

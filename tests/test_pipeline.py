@@ -8,12 +8,13 @@ from pathlib import Path
 
 import pytest
 
+from tests.helpers import iou_offsets
 from verificador import cli
 from verificador.avaliacao.rastro import carregar_rastro
 from verificador.base import construir_indice
 from verificador.decisao import CLASSE_DO_CAMINHO
 from verificador.decisao.candidatos import normalizar_sumula
-from verificador.decisao.caminhos import CAMPOS_NAO_LIDOS
+from verificador.decisao.caminhos import CAMPOS_NAO_LIDOS, NUMERO_AUSENTE
 
 
 @pytest.fixture(scope="module")
@@ -42,6 +43,21 @@ def run_sintetico(pasta_dados, tmp_path_factory):
 
 def _relatorio(run: Path) -> dict:
     return json.loads((run / "relatorio.json").read_text(encoding="utf-8"))
+
+
+def _correspondencia_por_iou(jsons: Path, doc: str, gold: dict, limiar: float = 0.5) -> dict | None:
+    """Citação prevista cujo span mais se aproxima do span do gabarito, por IoU.
+
+    None quando nenhuma prevista alcança o limiar: é perda de recall, fora de escopo do invariante
+    R50 (coberta por test_amostra_nunca_chama_inventada_de_real_e_acha_todos_os_spans /
+    test_sintetico_recall_de_spans_tem_piso).
+    """
+    esperado = (int(gold["inicio"]), int(gold["fim"]))
+    citacoes = json.loads((jsons / f"{doc}.json").read_text(encoding="utf-8"))["citacoes"]
+    if not citacoes:
+        return None
+    melhor = max(citacoes, key=lambda c: iou_offsets(esperado, (c["inicio"], c["fim"])))
+    return melhor if iou_offsets(esperado, (melhor["inicio"], melhor["fim"])) >= limiar else None
 
 
 # -- amostra oficial ------------------------------------------------------------------------
@@ -94,6 +110,26 @@ def test_toda_real_cumpre_r14_e_o_rastro_bate_com_o_json(run_amostra, indice) ->
                 numero = normalizar_sumula(campos["numero"]) if linha["forma"] == "sumula" else campos["numero"]
                 assert registro.numero == numero  # R14
     assert emitidas == len(rastro)
+
+
+def test_amostra_toda_real_nunca_cai_em_numero_ausente(run_amostra, gabarito) -> None:
+    """R50: a organização garante que todo ruído sobre uma citação real é recuperável por
+    normalização — um dígito nunca é trocado por outro dígito. Logo nenhuma citação `real` do
+    gabarito pode terminar em `numero_ausente`; se acontecer é sempre bug nosso.
+    """
+    rastro = carregar_rastro(run_amostra)
+    jsons = run_amostra / "jsons"
+    violadoras = []
+    for linha in gabarito:
+        if linha["classificacao"] != "real":
+            continue
+        pred = _correspondencia_por_iou(jsons, linha["documento_id"], linha)
+        if pred is None:
+            continue  # recall é outra métrica
+        caminho = rastro[(linha["documento_id"], pred["inicio"], pred["fim"])]["caminho"]
+        if caminho == NUMERO_AUSENTE:
+            violadoras.append((linha["documento_id"], linha["inicio"], linha["fim"]))
+    assert not violadoras, f"real do gabarito virou numero_ausente: {violadoras}"
 
 
 def test_duas_execucoes_dao_o_mesmo_csv_e_o_mesmo_rastro(pasta_dados, tmp_path) -> None:
@@ -187,6 +223,25 @@ def test_r35_par_limpo_e_ruidoso_concorda(run_sintetico) -> None:
             if ra != rb:
                 assert "perdida" in (ra[0], rb[0]), f"classe divergiu no par {par}: {ra} × {rb}"
     assert iguais / total >= 0.9  # hoje ~0,96
+
+
+def test_sintetico_toda_real_nunca_cai_em_numero_ausente(run_sintetico) -> None:
+    """R50, versão sintética: cobre também os pares ruidosos (letra_no_lugar_de_digito, m↔rn etc.)."""
+    dados = run_sintetico / "dados"
+    jsons = run_sintetico / "runs" / "sint" / "jsons"
+    rastro = carregar_rastro(run_sintetico / "runs" / "sint")
+    with (dados / "goldenset_offsets.csv").open(encoding="utf-8", newline="") as fh:
+        gold_reais = [l for l in csv.DictReader(fh) if l["classificacao"] == "real"]
+
+    violadoras = []
+    for linha in gold_reais:
+        pred = _correspondencia_por_iou(jsons, linha["documento_id"], linha)
+        if pred is None:
+            continue
+        caminho = rastro[(linha["documento_id"], pred["inicio"], pred["fim"])]["caminho"]
+        if caminho == NUMERO_AUSENTE:
+            violadoras.append((linha["documento_id"], linha["inicio"], linha["fim"]))
+    assert not violadoras, f"real do gabarito virou numero_ausente: {violadoras}"
 
 
 def test_campos_nao_lidos_e_um_caminho_incompleta() -> None:

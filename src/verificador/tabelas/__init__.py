@@ -89,6 +89,12 @@ def ufs() -> dict[str, tuple[str, ...]]:
 
 
 @lru_cache(maxsize=1)
+def frases_referencia_vaga() -> tuple[str, ...]:
+    """Vocabulário fechado de referência vaga (ADR-005) — ver `referencia_vaga.json`."""
+    return tuple(_ler_json("referencia_vaga.json")["frases"])
+
+
+@lru_cache(maxsize=1)
 def leis() -> list[tuple[str, str]]:
     """Lista (alias_normalizado, lei_chave), maior alias primeiro."""
     bruto = _ler_json("leis.json")

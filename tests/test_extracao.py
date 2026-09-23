@@ -79,6 +79,49 @@ def test_r33_referencia_vaga_conhecida_nao_vira_candidata(textos) -> None:
                     raise AssertionError(f"referência vaga capturada: {cand.trecho!r}")
 
 
+def test_referencia_vaga_vira_candidata_so_com_a_flag_ligada(monkeypatch) -> None:
+    """Espelho do R33 acima: as mesmas frases conhecidas continuam invisíveis com a flag
+    desligada (default), e viram candidata `forma="referencia_vaga"` só quando ligada
+    (ADR-005) — nunca por acidente."""
+    marcas = (
+        "jurisprudência pacífica",
+        "entendimento sumulado",
+        "artigo correspondente",
+        "orientação jurisprudencial da Corte Superior",
+    )
+    for marca in marcas:
+        texto = f"Trata-se de parecer.\n\nSegundo a {marca} desta Corte, a tese não merece acolhimento."
+        pos = texto.lower().find(marca.lower())
+        fim = pos + len(marca)
+
+        desligada = extrair(preparar(texto))
+        assert not any(c.inicio <= pos and c.fim >= fim for c in desligada), (
+            f"referência vaga capturada com a flag desligada (default): {marca!r}"
+        )
+
+        monkeypatch.setenv("VERIFICADOR_EXTRAIR_REFERENCIA_VAGA", "1")
+        ligada = extrair(preparar(texto))
+        monkeypatch.delenv("VERIFICADOR_EXTRAIR_REFERENCIA_VAGA")
+        achou = [c for c in ligada if c.inicio <= pos and c.fim >= fim]
+        assert achou, f"referência vaga não virou candidata com a flag ligada: {marca!r}"
+        assert achou[0].forma == "referencia_vaga"
+
+
+def test_referencia_vaga_e_sempre_incompleta_pela_decisao(monkeypatch) -> None:
+    """Ponta a ponta (extração + decisão): com a flag ligada, a referência vaga nunca consulta
+    o índice e sempre resolve `incompleta` (ADR-005) — usa a função real `decidir`, não hardcode."""
+    from verificador.decisao import decidir
+
+    monkeypatch.setenv("VERIFICADOR_EXTRAIR_REFERENCIA_VAGA", "1")
+    texto = "Trata-se de parecer.\n\nSegundo a jurisprudência pacífica desta Corte, o pedido procede."
+    candidatas = [c for c in extrair(preparar(texto)) if c.forma == "referencia_vaga"]
+    assert candidatas, "nenhuma candidata referencia_vaga com a flag ligada"
+    campos = ler_campos(candidatas[0])
+    assert campos is not None
+    resolucao = decidir(campos, candidatas[0].forma, indice=None)  # type: ignore[arg-type]
+    assert (resolucao.classificacao, resolucao.id_canonico) == ("incompleta", None)
+
+
 def test_amostra_tem_recall_e_campos_completos(textos, gabarito) -> None:
     emitidas = 0
     golds = 0

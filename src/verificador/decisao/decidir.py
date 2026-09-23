@@ -28,6 +28,10 @@ def decidir(campos: Campos, forma: str, indice: Indice) -> Resolucao:
     if forma == "sem_numero":  # R6: tribunal/classe + ano + relator sem número
         return Resolucao("incompleta", None, c.SEM_NUMERO, (), None)
 
+    if forma == "referencia_vaga":  # ADR-005: incompleta sem passar pelo banco (classe não
+        # confirmada contra o gabarito distribuído — só a página Data descreve o caso)
+        return Resolucao("incompleta", None, c.REFERENCIA_VAGA, (), None)
+
     lei = forma == "lei_artigo"
     if lei and not campos.lei_chave:
         return Resolucao("inventada", None, c.LEI_APELIDO_DESCONHECIDO, (), None)

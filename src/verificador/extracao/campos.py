@@ -268,6 +268,25 @@ def _campos_sem_numero(trecho: str) -> Campos | None:
     )
 
 
+def _campos_referencia_vaga() -> Campos:
+    """Sempre vazio: por definição, uma referência vaga não tem identificador nenhum para ler
+    (ADR-005). Explícito (em vez de cair no `return None` genérico) para não entrar por engano
+    na fila de difíceis/LLM quando `usar_llm=True` estiver ligado (Fase 4)."""
+    return Campos(
+        tribunal=None,
+        classe_principal=None,
+        cadeia_recursos=(),
+        numero=None,
+        uf=None,
+        ano=None,
+        relator=None,
+        lei_chave=None,
+        artigo=None,
+        correcao_ocr=False,
+        fonte="regras",
+    )
+
+
 def ler_campos(c: Candidata) -> Campos | None:
     norm, _ = normalizar(c.trecho)
     if c.forma == "com_numero":
@@ -281,4 +300,6 @@ def ler_campos(c: Candidata) -> Campos | None:
         return _campos_lei(norm)
     if c.forma == "sem_numero":
         return _campos_sem_numero(norm)
+    if c.forma == "referencia_vaga":
+        return _campos_referencia_vaga()
     return None
