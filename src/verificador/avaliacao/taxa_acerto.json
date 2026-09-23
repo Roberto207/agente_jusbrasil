@@ -4,11 +4,11 @@
   "enviar": true,
   "minimo_ocorrencias": 5,
   "n_controle": 301,
-  "taxa_constante": 1.0,
+  "taxa_constante": 0.999318,
   "taxa_media_por_classe": {
-    "incompleta": 1.0,
-    "inventada": 1.0,
-    "real": 1.0
+    "incompleta": 0.996769,
+    "inventada": 0.998444,
+    "real": 0.998279
   },
   "taxas": [
     {
@@ -17,7 +17,8 @@
       "correcao_ocr": false,
       "fonte": "regras",
       "n": 39,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": false
     },
     {
@@ -26,7 +27,8 @@
       "correcao_ocr": false,
       "fonte": "regras",
       "n": 22,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": false
     },
     {
@@ -35,7 +37,8 @@
       "correcao_ocr": false,
       "fonte": "regras",
       "n": 3,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": true
     },
     {
@@ -44,7 +47,8 @@
       "correcao_ocr": true,
       "fonte": "regras",
       "n": 1,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": true
     },
     {
@@ -53,7 +57,8 @@
       "correcao_ocr": false,
       "fonte": "regras",
       "n": 45,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": false
     },
     {
@@ -62,7 +67,8 @@
       "correcao_ocr": true,
       "fonte": "regras",
       "n": 10,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": false
     },
     {
@@ -71,7 +77,8 @@
       "correcao_ocr": false,
       "fonte": "regras",
       "n": 29,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": false
     },
     {
@@ -80,7 +87,8 @@
       "correcao_ocr": true,
       "fonte": "regras",
       "n": 5,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": false
     },
     {
@@ -89,7 +97,8 @@
       "correcao_ocr": false,
       "fonte": "regras",
       "n": 1,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": true
     },
     {
@@ -98,7 +107,8 @@
       "correcao_ocr": false,
       "fonte": "regras",
       "n": 84,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": false
     },
     {
@@ -107,7 +117,8 @@
       "correcao_ocr": true,
       "fonte": "regras",
       "n": 8,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": false
     },
     {
@@ -116,7 +127,8 @@
       "correcao_ocr": false,
       "fonte": "regras",
       "n": 54,
-      "taxa": 1.0,
+      "taxa": 0.999318,
+      "usou_constante": true,
       "usou_fallback": false
     }
   ]

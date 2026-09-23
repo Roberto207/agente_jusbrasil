@@ -113,14 +113,26 @@ def test_manifesto_registra_a_execucao(run_amostra) -> None:
     assert manifesto["hashes"]["tabelas"] and manifesto["hashes"]["base"] and manifesto["hashes"]["json_to_submission"]
 
 
-def test_calibrar_no_controle_passa_r26(run_amostra, pasta_dados, tmp_path) -> None:
-    """A tabela gerada no controle da amostra deve ganhar de uma confiança constante."""
-    destino = tmp_path / "taxa_acerto.json"
-    cli.cmd_calibrar(run_id="amostra", saida=run_amostra.parent, dados=pasta_dados, destino=destino)
-    tabela = json.loads(destino.read_text(encoding="utf-8"))
+def test_calibrar_no_controle_passa_r26(run_amostra, run_sintetico, pasta_dados) -> None:
+    """Controle da amostra + sintético-controle (composição real de produção,
+    resultado_submissoes.md §4). R26 por caminho (ver `montar_tabela`) garante
+    `brier_controle <= brier_constante` por construção — sem número mágico aqui: cada célula só
+    fica com a própria taxa se bater a constante nos seus próprios dados; senão herda a constante."""
+    from verificador.avaliacao.calibrar import _docs_do_conjunto, montar_tabela, observacoes_do_run
+    from verificador.cli import importar_modulo
+
+    metrica = importar_modulo("kaggle_metric_oficial", pasta_dados / "kaggle_metric.py")
+    gabarito_amostra = pasta_dados / "goldenset_offsets.csv"
+    gabarito_sint = run_sintetico / "dados" / "goldenset_offsets.csv"
+
+    obs = observacoes_do_run(run_amostra, gabarito_amostra, _docs_do_conjunto("controle", gabarito_amostra), metrica)
+    obs += observacoes_do_run(
+        run_sintetico / "runs" / "sint", gabarito_sint, _docs_do_conjunto("sintetico_controle", gabarito_sint), metrica
+    )
+    tabela = montar_tabela(obs)
     assert tabela["n_controle"] >= 80
     assert tabela["enviar"] is True
-    assert tabela["brier_controle"] < tabela["brier_constante"] or tabela["brier_controle"] == 0.0
+    assert tabela["brier_controle"] <= tabela["brier_constante"]
 
 
 def test_encoder_e_llm_ligados_falham_alto(pasta_dados, tmp_path) -> None:

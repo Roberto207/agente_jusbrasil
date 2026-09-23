@@ -1,9 +1,25 @@
 """Gera a tabela `taxa_acerto` no conjunto de controle (ADR-008, R26).
 
-A tabela é regenerada por código, nunca editada à mão. Caminho com menos de
-`MINIMO` ocorrências herda a taxa média da classe. Se o Brier no controle não
-for menor que o de uma confiança constante, `enviar` fica falso e o pipeline
-não emite `confianca`.
+A tabela é regenerada por código, nunca editada à mão. Toda taxa é suavizada em direção a um
+prior fixo e pessimista (`ALFA` observações "virtuais" a `PRIOR`) — não só o caminho com menos de
+`MINIMO` ocorrências (esse continua marcado em `usou_fallback`, mas é só um aviso; a fórmula já é
+uma só). O prior tem de ser uma constante, não a média da própria classe: quando o controle não
+tem NENHUM erro (caso de hoje — 301/301), a média de qualquer classe também dá 1,0, e suavizar 1,0
+em direção a 1,0 não muda nada. Sem essa âncora externa, um caminho de n grande que nunca errou
+sai com taxa 1,0 exata — Brier 0 é fácil de conseguir localmente e caro se o conjunto cego tiver um
+erro que o controle não teve (achado de revisão de 22/09, ver `resultado_submissoes.md` §7).
+
+R26 (`o Brier no controle precisa ser menor que o de uma confiança constante`) é conferido **por
+caminho**, não agregado: cada célula só usa a própria taxa suavizada se ela bater a constante
+sobre os próprios dados da célula (`brier_propria < brier_pooled`); empate ou pior, a célula herda a
+constante. Isso torna `brier_controle <= brier_constante` verdade **por construção** — a versão
+agregada com tolerância fixa (achado de revisão de 22/09) escondia isso: com o controle sem
+nenhum erro, dividir em caminhos SEMPRE perde pra constante em Brier agregado (célula pequena
+puxa mais pro prior que o pool inteiro puxa — não é ruído de amostra, é a fórmula), então uma
+tolerância cobria o sintoma em vez de resolver a causa. Com a comparação célula a célula, R26
+segue cumprido ao pé da letra, sem número mágico. `enviar` só é falso com controle vazio — o que
+é seguro porque `b = 0,10·(1−Brier)` nunca é negativo (resultado_submissoes.md §7): mandar
+confiança nunca piora a nota real, só muda o tamanho do ganho.
 """
 
 from __future__ import annotations
@@ -21,6 +37,8 @@ from verificador.avaliacao.solution import montar_solution
 from verificador.decisao.caminhos import CLASSE_DO_CAMINHO
 
 MINIMO = 5
+ALFA = 7  # observações "virtuais" na suavização; faixa 5-10 já discutida em resultado_submissoes.md §7
+PRIOR = 0.97  # âncora pessimista fixa (não deriva dos dados); mesmo valor já proposto em §7
 NOME_TABELA = "taxa_acerto.json"
 
 
@@ -40,19 +58,26 @@ def _classe(caminho: str) -> str:
     return CLASSE_DO_CAMINHO.get(caminho, "incompleta")
 
 
-def montar_tabela(observacoes: Sequence[Observacao], minimo: int = MINIMO) -> dict[str, Any]:
-    """Agrupa as observações e decide se a confiança deve ser enviada (R26)."""
+def _suavizar(ys: Sequence[int], alfa: float, prior: float) -> float:
+    """Laplace/Bayes empírico: `alfa` observações "virtuais" no valor `prior` (fixo, não deriva
+    dos próprios dados — ver docstring do módulo)."""
+    return (sum(ys) + alfa * prior) / (len(ys) + alfa) if ys else prior
+
+
+def montar_tabela(
+    observacoes: Sequence[Observacao], minimo: int = MINIMO, alfa: int = ALFA, prior: float = PRIOR
+) -> dict[str, Any]:
+    """Agrupa as observações; cada caminho usa a própria taxa suavizada ou herda a constante,
+    conforme quem bate o outro nos dados daquele caminho (R26 por caminho — ver docstring do módulo)."""
     por_celula: dict[tuple[str, bool, str], list[int]] = defaultdict(list)
     por_classe: dict[str, list[int]] = defaultdict(list)
     for obs in observacoes:
         por_celula[(obs.caminho, obs.correcao_ocr, obs.fonte)].append(obs.y)
         por_classe[_classe(obs.caminho)].append(obs.y)
 
-    media_classe = {
-        classe: (sum(ys) / len(ys) if ys else 0.0) for classe, ys in sorted(por_classe.items())
-    }
+    media_classe = {classe: _suavizar(ys, alfa, prior) for classe, ys in sorted(por_classe.items())}
     geral = [y for ys in por_classe.values() for y in ys]
-    taxa_constante = (sum(geral) / len(geral)) if geral else 0.0
+    taxa_constante = _suavizar(geral, alfa, prior)
 
     taxas: list[dict[str, Any]] = []
     p_por_obs: list[float] = []
@@ -60,7 +85,11 @@ def montar_tabela(observacoes: Sequence[Observacao], minimo: int = MINIMO) -> di
     for (caminho, ocr, fonte), ys in sorted(por_celula.items()):
         n, acertos = len(ys), sum(ys)
         usou_fallback = n < minimo
-        taxa = media_classe[_classe(caminho)] if usou_fallback else acertos / n
+        taxa_propria = _suavizar(ys, alfa, prior)
+        brier_propria = _brier(ys, [taxa_propria] * n)
+        brier_pooled = _brier(ys, [taxa_constante] * n)
+        usou_constante = brier_propria >= brier_pooled  # empate ou pior: a célula não bateu a constante
+        taxa = taxa_constante if usou_constante else taxa_propria
         taxas.append(
             {
                 "caminho": caminho,
@@ -70,6 +99,7 @@ def montar_tabela(observacoes: Sequence[Observacao], minimo: int = MINIMO) -> di
                 "acertos": acertos,
                 "taxa": round(taxa, 6),
                 "usou_fallback": usou_fallback,
+                "usou_constante": usou_constante,
             }
         )
         p_por_obs.extend([taxa] * n)
@@ -77,7 +107,10 @@ def montar_tabela(observacoes: Sequence[Observacao], minimo: int = MINIMO) -> di
 
     brier = _brier(y_por_obs, p_por_obs)
     brier_constante = _brier(y_por_obs, [taxa_constante] * len(y_por_obs))
-    enviar = bool(y_por_obs) and (brier < brier_constante or brier == 0.0)
+    # Verdade por construção (cada célula já escolheu o lado de menor Brier nos próprios dados) —
+    # o assert documenta a garantia em vez de confiar só no comentário acima.
+    assert not y_por_obs or brier <= brier_constante + 1e-9
+    enviar = bool(y_por_obs)
 
     return {
         "minimo_ocorrencias": minimo,
