@@ -146,6 +146,14 @@ def escolher(metricas: dict[str, dict]) -> str:
     return principal
 
 
+def _progresso(feitos: int, total: int, t0: float) -> str:
+    """`12s decorridos · 1.40s/item · faltam ~8.0 min`, a partir da velocidade medida até aqui."""
+    decorrido = time.time() - t0
+    por_item = decorrido / feitos
+    faltam = por_item * (total - feitos)
+    return f"{decorrido:.0f}s decorridos · {por_item:.2f}s/item · faltam ~{faltam / 60:.1f} min"
+
+
 # --- com torch ------------------------------------------------------------------------------------
 
 def janelas_do_exemplo(ex: dict, tokenizer, cfg: Config) -> list[Janela]:
@@ -199,10 +207,13 @@ def medir(modelo, tokenizer, exemplos: list[dict], cfg: Config, dispositivo) -> 
     modelo.eval()
     por_conjunto: dict[str, Counter[str]] = {}
     vistos: Counter[str] = Counter()
-    for ex in exemplos:
+    alvo = [ex for ex in exemplos if f"{ex['fonte']}/{ex['divisao']}" in CONJUNTOS_DE_MEDIDA]
+    print(f"medindo {len(alvo)} documentos em {len(CONJUNTOS_DE_MEDIDA)} conjuntos…", flush=True)
+    t0 = time.time()
+    for k, ex in enumerate(alvo, start=1):
         conjunto = f"{ex['fonte']}/{ex['divisao']}"
-        if conjunto not in CONJUNTOS_DE_MEDIDA:
-            continue
+        if k % 50 == 0:
+            print(f"medição {k}/{len(alvo)} · {_progresso(k, len(alvo), t0)}", flush=True)
         if cfg.max_docs_medida is not None and vistos[conjunto] >= cfg.max_docs_medida:
             continue
         vistos[conjunto] += 1
@@ -211,6 +222,7 @@ def medir(modelo, tokenizer, exemplos: list[dict], cfg: Config, dispositivo) -> 
         por_conjunto.setdefault(conjunto, Counter()).update(
             contar_acertos(gold, pred, [tuple(s) for s in ex["ignorar"]])  # type: ignore[arg-type]
         )
+    print(f"medição concluída em {time.time() - t0:.0f}s", flush=True)
     return {c: resumir(por_conjunto.get(c, Counter())) for c in CONJUNTOS_DE_MEDIDA}
 
 
@@ -273,8 +285,8 @@ def treinar(cfg: Config, dataset: Path, saida: Path) -> dict[str, object]:
             escala.update()
             agenda.step()
             passo += 1
-            if passo == 1 or passo % 50 == 0 or passo == total:
-                print(f"passo {passo}/{total} · perda {perda.item():.4f} · {time.time() - t0:.0f}s", flush=True)
+            if passo in (1, 10) or passo % 50 == 0 or passo == total:
+                print(f"passo {passo}/{total} · perda {perda.item():.4f} · {_progresso(passo, total, t0)}", flush=True)
 
     metricas = medir(modelo, tokenizer, exemplos, cfg, dispositivo)
     saida.mkdir(parents=True, exist_ok=True)
