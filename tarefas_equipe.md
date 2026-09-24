@@ -607,6 +607,20 @@ dependem de quanto da semana se quer apostar.
 1. OCR em palavras com vocabulário fechado  2. LeNER-Br como sonda  3. Detector desligado
 4. LLM diversificando o sintético  5. Encoder — **só se o item 4 mostrar margem**
 
+#### Ajustes pequenos registrados em 2026-09-24 — **não seguir por enquanto**
+
+Decisão do Roberto: ficam anotados, sem execução, até a decisão sobre o encoder (Fase 4).
+
+- [ ] **Perda residual do sintético diversificado:** `Invoca-se, ainda, o disposto em ROT n° 7000804-…`
+      (inventada, n1 e n2), a única citação perdida em 992/994. Provável relação com o achado de 24/09
+      de que `ROT`, `IRR` e `RRAG` só são extraídas no formato com hífen (`RRAG-…`); com espaço
+      (`ROT n° …`, `IRR 243-51…`) não saem. São 26 acórdãos do TST no acervo. Só entra se amostra e
+      controle não piorarem.
+- [ ] **Suavização da calibração** (`taxa = (acertos + α·m)/(n + α)`), pendente desde 21/09. Vale
+      ~0,0003 de nota porque o bônus `b` está saturado. Tende a ser descartada.
+- [ ] **Detector de referência vaga:** continua desligado. A decisão é da fase 2, com o sinal do
+      leaderboard público (ver Tier 3).
+
 ---
 
 ## Fase 4 — Encoder NER e sintético com LLM (25–28/09) · **opcional: só se a Fase 3 estiver fechada**
