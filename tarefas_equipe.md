@@ -779,7 +779,27 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
         inteiro roda; em 400 passos a perda cai de 1,57 para ~0,18 e o recall sai do zero, com
         previsões dentro das citações certas. Isso motivou um ajuste na decodificação: `B-` colado no
         token anterior (subpalavra) continua o span em vez de abrir outro.
-        **Falta:** rodar no Kaggle e registrar aqui a tabela de métricas e o modelo escolhido.
+        *2026-09-24, executado no Kaggle (T4)* — dataset com o **mesmo sha256** do local; 385 passos em
+        **168 s** (BERTimbau) e 174 s (Legal), pico de **5,05 GB** de VRAM. Encoder **sozinho**, IoU ≥ 0,5:
+
+        | Conjunto | BERTimbau JUR | prec. | BERTimbau LEI | prec. | Legal JUR | prec. | Legal LEI | prec. |
+        |---|---|---|---|---|---|---|---|---|
+        | `lener/dev` | 15/22 | 0,714 | 120/127 | 0,856 | 16/22 | 0,640 | 119/127 | 0,758 |
+        | sintético base, controle | 164/164 | 1,0 | 46/46 | 1,0 | 164/164 | 1,0 | 46/46 | 1,0 |
+        | sintético diversificado, controle | 164/164 | 1,0 | 46/46 | 1,0 | 164/164 | 0,994 | 46/46 | 1,0 |
+        | amostra, controle | 76/76 | 0,987 | 15/15 | 1,0 | 76/76 | 1,0 | 15/15 | 1,0 |
+        | amostra, treino (otimista) | 88/88 | 1,0 | 13/13 | 1,0 | 88/88 | 1,0 | 13/13 | 1,0 |
+
+        **Escolhido: BERTimbau** (o Legal acha 1 a mais no `dev`, dentro do ruído, com precisão pior).
+        Para comparar: no mesmo `dev`, o **regex reforçado sozinho acha 19/22**. O que decide é a
+        **união**: quantas o encoder acha que o regex não acha. Isso só se mede com a integração.
+        **Reprodutibilidade:** o `transformers` carregou `model.safetensors` da conversão automática do
+        HF, de outra revisão (BERTimbau `4a78cfbf…`, Legal `60419295…`), e não do `pytorch_model.bin`
+        da revisão fixada. O conteúdo é o mesmo, mas o card dos pesos deve dizer isso, e um retreino
+        deve passar `use_safetensors=False` (ou fixar a revisão da conversão). O R45 não é afetado:
+        na execução se carrega o nosso modelo, com revisão própria.
+        Pesos: `treino_encoder_resuts1.zip` (Output do Kaggle, fora do git), JSONs em
+        `runs/kaggle_enc001/`.
 - [ ] **3. Decisão em 27/09, 22h (go/no-go).** Critérios na seção do protocolo. Se não passar, fica
       `usar_encoder=false` (ADR-011 já prevê) e os pesos não são publicados.
 - [ ] *Opcional — camada 3 do sintético:* o LLM escreve a **própria citação** a partir de um registro do
