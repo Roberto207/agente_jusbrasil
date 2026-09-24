@@ -623,15 +623,121 @@ Decisão do Roberto: ficam anotados, sem execução, até a decisão sobre o enc
 - [ ] **Detector de referência vaga:** continua desligado. A decisão é da fase 2, com o sinal do
       leaderboard público (ver Tier 3).
 
+
+      - essas alterações so fazem sentido se trouxerem um ganho real para o sistema, e nao ficarem so gastando espaço e poder computacional.
+
 ---
 
-## Fase 4 — Encoder NER e sintético com LLM (25–28/09) · **opcional: só se a Fase 3 estiver fechada**
+## Fase 4 — Encoder NER e sintético com LLM (25–28/09) · **Testar em cima dos docs de LeNER-BR pra testar ganho de recall que justifica o uso do encoder**
 
 > **Risco de prazo.** É a etapa que mais pode estourar (GPU do Kaggle com cota compartilhada de ~30 h/semana
 > por conta, treino, publicação). O sistema já prevê `usar_encoder=false` e `usar_llm=false`; se não der tempo,
 > a submissão final é só-regras e continua válida. **Decidir em 25/09 se esta fase começa.**
 
 **Responsável:** ____ (sugestão: frente C, que já tem o gerador) · **ADR:** 011, 012
+
+### Decisão de 2026-09-24: encoder como rede de segurança, com prazo fixo e teste no LeNER-Br
+
+**Status:** registrado, ainda não iniciado. Conversa Roberto × Claude em 24/09, depois da `sub-005`.
+
+**Por que o encoder volta à mesa, apesar de amostra, controle e sintético saturados.** O 992/994 do
+sintético diversificado só testou o **contexto em volta** da citação: o trecho ia ao LLM como marcador
+e voltava byte a byte. **A superfície da citação nunca foi testada fora dos nossos moldes.** O
+LeNER-Br, filtrado para o escopo do desafio, mostra que é aí que está o risco:
+
+| LeNER-Br (todas as divisões) | Recall do regex |
+|---|---|
+| Fora do escopo (TCU, TJ, TRF, TRT) | 2% (esperado, não conta) |
+| Citações com número de STF, STJ, TST, TSE e STM (457) | 57,5% achadas · 9,4% com borda diferente · 33% não detectadas |
+
+Lacunas confirmadas direto no extrator, todas de superfície e não de frase nova:
+
+| Lacuna | Exemplo que falha |
+|---|---|
+| Hífen entre classe e número | `MS-27350/DF`, `TST-RR-578.030/99.5` |
+| Classes do acervo escritas com espaço | `ROT n° 7000804-…`, `IRR 243-51…` (o acervo tem **26 acórdãos RRAG, ROT e IRR**, que só saem no formato `RRAG-…`) |
+| Formas de súmula | `Súmula n.º 691 do STF`, `Enunciado n° 279 da Súmula do STF`, `Súmulas 219 e 329 do TST` |
+| Tribunal por extenso depois da súmula | `Súmula nº 83 do colendo Superior Tribunal de Justiça` sai só `Súmula nº 83`: IoU < 0,5 e o tribunal se perde |
+| Classes fora do acervo | `EREsp`, `ARE` / `Recurso Extraordinário com Agravo` |
+
+**Ressalva:** o LeNER-Br é texto real; o conjunto final é gerado pelo organizador com "o mesmo formato,
+os mesmos níveis e distribuição de classes equivalente" (a amostra escreve o TST sempre como
+`TST-RR-…`). O risco real fica entre os dois números.
+
+**Por que o encoder não é "garantia máxima de recall".** Ele só acha o que os dados de treino ensinam.
+O sintético usa o nosso vocabulário (o encoder tende a imitar o regex); o LeNER-Br tem 70 documentos e
+outra convenção (marca "STF" sozinho, inclui TCU/TJ); a amostra é o que medimos. O ganho real é
+generalizar pelo **formato** (`SIGLA nº 123.456/UF` em contexto de citação, mesmo com sigla nova). Os
+custos são falso positivo nos distratores (autos, protocolo, OAB, fls.), classe desconhecida que o
+`ler_campos` não lê, publicação dos pesos até 30/09 e determinismo (R49). Por isso: **rede de
+segurança, não extrator principal**.
+
+#### Modelos preferidos (licença conferida na API do HF em 24/09 — regra 6c exige OSI)
+
+| Ordem | Modelo | Licença | Nota |
+|---|---|---|---|
+| 1 | **Legal-BERTimbau** (`rufimelo/Legal-BERTimbau-base`) | MIT | Domínio jurídico, base BERTimbau |
+| 2 | **BERTimbau** (`neuralmind/bert-base-portuguese-cased`) | MIT | Referência; F1 0,889 no LeNER-Br |
+| 3 | BERTomelo-ModernBERT-Large (`unb-labia/BERTomelo-ModernBERT-Large-v1`) | Apache 2.0 | F1 0,892 no LeNER-Br, mas 377M parâmetros |
+| reserva | GLiNER multi v2.1 (`urchade/gliner_multi-v2.1`) | Apache 2.0 | Zero-shot, sem avaliação jurídica conhecida |
+| **fora** | RoBERTaLexPT, `dominguesm/legal-bert-ner-base-cased-ptbr` | CC BY 4.0 | Não é licença OSI |
+| **fora** | `pierreguillou/ner-bert-*-lenerbr` | sem licença | Não pode redistribuir |
+
+Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
+
+#### Atividades, em ordem
+
+- [ ] **1. Reforço do regex (25/09, ~1 dia).** Atacar as lacunas da tabela acima: hífen entre classe e
+      número, `ROT`/`IRR`/`RRAG` com espaço, formas de súmula (`n.º`, "Enunciado … da Súmula", plural) e
+      tribunal por extenso depois da súmula. Criar um conjunto de "variantes" como teste. Só entra se
+      amostra, controle e sintético não piorarem e a precisão seguir 1,0. **Guiar as correções só pelas
+      divisões `train` e `dev` do LeNER-Br** (ver protocolo abaixo).
+- [ ] **2. Encoder como rede de segurança (25–27/09).** Legal-BERTimbau ou BERTimbau-base, marcação BIO.
+      Treino: sintético base + diversificado (HF, revisão `0209a85…`) + LeNER-Br `train`, só entidades
+      `JURISPRUDENCIA`/`LEGISLACAO` do escopo. Uma candidata do encoder **só entra** se: (a) o regex não
+      achou nada sobreposto; (b) tem dígito e sigla, súmula, artigo ou tribunal; (c) passa pelo
+      `ler_campos`. Senão, descartada. Inferência em **CPU** (determinismo, R49).
+- [ ] **3. Decisão em 27/09, 22h (go/no-go).** Critérios na seção do protocolo. Se não passar, fica
+      `usar_encoder=false` (ADR-011 já prevê) e os pesos não são publicados.
+- [ ] *Opcional — camada 3 do sintético:* o LLM escreve a **própria citação** a partir de um registro do
+      acervo; o gabarito é localizado pelos dígitos, e a citação é descartada se algum dígito mudar. Mede
+      o ponto cego atual e dá treino variado ao encoder. Reaproveita o notebook 005.
+- [ ] *Opcional — LLM como auditor de recall:* o Qwen lista toda referência a julgado, súmula ou lei num
+      texto; o que só ele achou vira candidato a correção de regex, revisado por uma pessoa. Fora da
+      execução da submissão, sem efeito no determinismo.
+
+**Carga:** trabalho para duas pessoas em paralelo (1 e 2). Se for uma só, fazer o 1 e uma versão
+mínima do 2.
+
+#### Protocolo do teste no LeNER-Br (a régua do encoder)
+
+Amostra, controle e sintético estão saturados: neles o encoder só consegue mostrar **perda**. A única
+régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo.
+
+- **Filtro do escopo** (o mesmo da medição de 24/09): entidade `JURISPRUDENCIA` cujo trecho **não**
+  cita TCU, TC, Tribunal de Contas, TRF, TJ*, TRT, TRE, Tribunal Regional, Tribunal de Justiça ou
+  "Acórdão"; que menciona STF, STJ, TST, TSE, STM, Supremo, Superior Tribunal, Tribunal Superior ou
+  Suprema Corte no trecho **ou** em até 40 caracteres em volta; que tem dígito e ao menos 6 caracteres.
+- **Métrica:** recall por IoU ≥ 0,5 (mesmo critério da métrica oficial) e, à parte, qualquer sobreposição.
+- **Linha de base do regex (commit `70ff324`, `sub-005`):**
+
+  | Divisão | Docs | Citações no escopo | IoU ≥ 0,5 | Qualquer sobreposição |
+  |---|---|---|---|---|
+  | `train` | 50 | 352 | 222 (63,1%) | 250 (71,0%) |
+  | `dev` | 10 | 31 | 3 (9,7%) | 3 (9,7%) |
+  | **`test`** | 10 | **74** | **38 (51,4%)** | 53 (71,6%) |
+
+- **Higiene:** o `test` não guia nenhuma correção de regex nem ajuste do encoder; `train` e `dev` sim.
+  Atenção: a análise de 24/09 listou exemplos de todas as divisões, então alguns casos do `test` já
+  foram vistos. Registrar quais regras vieram desses exemplos, para a comparação ser honesta.
+- **O encoder entra se, e só se:**
+  1. aumentar o recall no `test` do escopo acima do regex **reforçado** (atividade 1), não do regex de hoje;
+  2. não perder nada em amostra (192/192), controle e sintético (988/994 e 992/994 no diversificado);
+  3. não gerar **nenhum** falso positivo novo nos distratores da amostra (autos CNJ do cabeçalho,
+     protocolo, OAB, fls., valor da causa);
+  4. manter precisão de spans 1,0 e τ = 0 em todos os conjuntos, e R49 verde.
+- **Limite estatístico:** são só 74 citações no `test`. Um ganho de 1 ou 2 é ruído; registrar o número
+  absoluto, não só a porcentagem.
 
 - [x] **Camada LLM do gerador sintético** (Apache 2.0, ex.: Qwen3 8B ou Gemma 4 E4B; temperatura 0, semente
       fixa): reescreve o parecer em volta das citações com frases variadas **sem alterar os trechos**
@@ -648,6 +754,8 @@ Decisão do Roberto: ficam anotados, sem execução, até a decisão sobre o enc
       na calibração da `sub-002`) está em `base/`, e a camada 2 (Qwen) na raiz, com dataset card.
 - [ ] **Escolher o encoder** por medição e licença OSI (R21): RoBERTaLexPT, BERTimbau, Legal-BERTimbau (e
       modelos já ajustados no LeNER-Br). **Conferir a licença antes de treinar.**
+      *2026-09-24* — licenças conferidas: preferência Legal-BERTimbau → BERTimbau → BERTomelo; RoBERTaLexPT
+      e os modelos já ajustados no LeNER-Br ficam fora (ver "Decisão de 2026-09-24" acima).
 - [ ] **Treinar o NER** (marcação BIO) em `treino/`, com o sintético (+ opcionalmente LeNER-Br), tolerando ruído
       de OCR no corpo original (não na cópia normalizada).
 - [ ] **Publicar os pesos** no Hugging Face com revisão fixa (R45, R46).

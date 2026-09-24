@@ -96,6 +96,26 @@ Todos cabem no envelope de avaliação do desafio (1 GPU 24GB VRAM). Modelos des
 atenderem aos critérios: Sabiá (só API paga), Gervásio-PT/Bode/derivados de Llama 2 (herdam Llama
 License), BLOOM/BLOOMZ (licença BigScience OpenRAIL-M, não aprovada pela OSI).
 
+## Achado 4 — licenças dos encoders candidatos (2026-09-24)
+
+Conferidas pela tag `license:` da API do Hugging Face, contra a regra 6c (`specs/scope.md:151`:
+licença aprovada pela OSI, sem restringir uso comercial). Contexto da decisão: `tarefas_equipe.md`,
+Fase 4, "Decisão de 2026-09-24".
+
+| Modelo | Licença | Situação |
+|---|---|---|
+| [rufimelo/Legal-BERTimbau-base](https://huggingface.co/rufimelo/Legal-BERTimbau-base) e `-large` | MIT | **Pode** — preferência 1 |
+| [neuralmind/bert-base-portuguese-cased](https://huggingface.co/neuralmind/bert-base-portuguese-cased) e `-large` | MIT | **Pode** — preferência 2 |
+| [unb-labia/BERTomelo-ModernBERT-Large-v1](https://huggingface.co/unb-labia/BERTomelo-ModernBERT-Large-v1) | Apache 2.0 | **Pode** — preferência 3 (377M parâmetros) |
+| [urchade/gliner_multi-v2.1](https://huggingface.co/urchade/gliner_multi-v2.1) | Apache 2.0 | **Pode** — reserva, zero-shot |
+| [eduagarcia/RoBERTaLexPT-base](https://huggingface.co/eduagarcia/RoBERTaLexPT-base) | CC BY 4.0 | **Fora** — Creative Commons não é licença aprovada pela OSI |
+| [dominguesm/legal-bert-ner-base-cased-ptbr](https://huggingface.co/dominguesm/legal-bert-ner-base-cased-ptbr) | CC BY 4.0 | **Fora** — idem |
+| [pierreguillou/ner-bert-base-cased-pt-lenerbr](https://huggingface.co/pierreguillou/ner-bert-base-cased-pt-lenerbr) (e `-large`) | não declarada | **Fora** — sem permissão de redistribuir |
+
+O RoBERTaLexPT constava como candidato no ADR-011 e em `ia_no_pipeline.md`; sai pela licença, não por
+desempenho. Pesos ajustados pela equipe a partir de um modelo MIT/Apache herdam a obrigação de manter
+o aviso de licença do modelo-base no card do Hugging Face.
+
 ## Resumo — o que fica pendente
 
 - [x] Publicar o sintético **atual** (camada 1, código) no Hugging Face — infraestrutura zero, é
