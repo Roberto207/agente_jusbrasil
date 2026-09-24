@@ -674,14 +674,36 @@ segurança, não extrator principal**.
 
 #### Modelos preferidos (licença conferida na API do HF em 24/09 — regra 6c exige OSI)
 
+**Escolha registrada em 2026-09-24 (Roberto): BERTimbau-base é o principal.** A ordem anterior punha o
+Legal-BERTimbau em 1º; ela mudou depois do levantamento abaixo.
+
 | Ordem | Modelo | Licença | Nota |
 |---|---|---|---|
-| 1 | **Legal-BERTimbau** (`rufimelo/Legal-BERTimbau-base`) | MIT | Domínio jurídico, base BERTimbau |
-| 2 | **BERTimbau** (`neuralmind/bert-base-portuguese-cased`) | MIT | Referência; F1 0,889 no LeNER-Br |
-| 3 | BERTomelo-ModernBERT-Large (`unb-labia/BERTomelo-ModernBERT-Large-v1`) | Apache 2.0 | F1 0,892 no LeNER-Br, mas 377M parâmetros |
+| **principal** | **BERTimbau-base** (`neuralmind/bert-base-portuguese-cased` @ `94d69c95f98f7d5b2a8700c420230ae10def0baa`) | MIT | F1 0,889 ± 0,009 no LeNER-Br; distingue maiúsculas; 110M, leve em CPU |
+| comparação | Legal-BERTimbau-base (`rufimelo/Legal-BERTimbau-base` @ `c75cd428bb28c620369823950fcca3a6f2c2611c`) | MIT | Mesmo tokenizador e arquitetura: treina no mesmo notebook trocando só o nome |
+| reserva | BERTomelo-ModernBERT-Base (`unb-labia/BERTomelo-ModernBERT-Base-v1`) | Apache 2.0 | F1 0,899 ± 0,010, mas o tokenizador converte tudo para minúsculas |
 | reserva | GLiNER multi v2.1 (`urchade/gliner_multi-v2.1`) | Apache 2.0 | Zero-shot, sem avaliação jurídica conhecida |
-| **fora** | RoBERTaLexPT, `dominguesm/legal-bert-ner-base-cased-ptbr` | CC BY 4.0 | Não é licença OSI |
+| descartado | BERTomelo-Large, BERTimbau-large, XLM-R | Apache/MIT | Large não ganha do Base no LeNER-Br (0,892) e custa ~3×; XLM-R funde número e pontuação num token só (`-27`, `9.5`) |
+| **fora** | Albertina-900M | "other" | Licença não OSI na tag do HF |
+| **fora** | RoBERTaLexPT, RoBERTaCrawlPT, `dominguesm/legal-bert-ner-base-cased-ptbr` | CC BY 4.0 | Não é licença OSI |
 | **fora** | `pierreguillou/ner-bert-*-lenerbr` | sem licença | Não pode redistribuir |
+
+F1 no LeNER-Br: tabela do card do BERTomelo, mesmo protocolo, várias sementes. O número cobre todas as
+entidades, não só jurisprudência. É indicador, não previsão.
+
+**Por que a ordem mudou:**
+- **Legal-BERTimbau é jurídico de Portugal.** O pré-treino continuado usou frases do Supremo Tribunal de
+  Justiça português (`rufimelo/PortugueseLegalSentences-v0`), não do Brasil. O card tem erros (diz que a
+  base é o BERTimbau Large) e não publica resultado de NER. O ganho de domínio para `REsp …/SP` ou
+  `TST-RR-…` é incerto.
+- **BERTomelo perde maiúsculas.** `MS` vira `m s` e `STF` vira `stf`, e maiúscula é sinal forte de
+  sigla de classe. A vantagem de F1 dele cabe em um desvio. A janela de 1024 tokens também não evita
+  janela deslizante: 8 dos 26 documentos da amostra passam de 1024.
+- **Detalhe do BERTimbau:** o `º` de `n.º` vira `[UNK]` (110 vezes nos 26 documentos). Os offsets
+  continuam corretos, só perde o sinal do caractere.
+
+**Como decidir entre principal e comparação:** pelo `dev` do LeNER-Br e pelos controles (sintético e
+amostra), **nunca pelo `test`**. O `dev` tem só 31 citações no escopo: se empatar, fica o BERTimbau.
 
 Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
 
@@ -692,11 +714,36 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
       tribunal por extenso depois da súmula. Criar um conjunto de "variantes" como teste. Só entra se
       amostra, controle e sintético não piorarem e a precisão seguir 1,0. **Guiar as correções só pelas
       divisões `train` e `dev` do LeNER-Br** (ver protocolo abaixo).
-- [ ] **2. Encoder como rede de segurança (25–27/09).** Legal-BERTimbau ou BERTimbau-base, marcação BIO.
-      Treino: sintético base + diversificado (HF, revisão `0209a85…`) + LeNER-Br `train`, só entidades
-      `JURISPRUDENCIA`/`LEGISLACAO` do escopo. Uma candidata do encoder **só entra** se: (a) o regex não
+- [ ] **2. Encoder como rede de segurança (25–27/09).** BERTimbau-base (Legal-BERTimbau-base como
+      comparação), marcação BIO.
+      Treino: sintético base + diversificado (HF, revisão `0209a85…`) + amostra `ajuste` + LeNER-Br
+      `train`, só entidades `JURISPRUDENCIA`/`LEGISLACAO` do escopo. Uma candidata do encoder **só entra** se: (a) o regex não
       achou nada sobreposto; (b) tem dígito e sigla, súmula, artigo ou tribunal; (c) passa pelo
       `ler_campos`. Senão, descartada. Inferência em **CPU** (determinismo, R49).
+  - [x] **2a. Dataset de treino** (`src/verificador/treino/`, `tests/test_treino.py`).
+        *2026-09-24* — Decisões do Roberto: LeNER-Br **entra** nos pesos publicados (a regra do desafio
+        permite "qualquer dataset público"; o repositório declara MIT; e-mail aos autores em paralelo,
+        ver `conformidade_dados_externos.md`, achado 2), e os **14 documentos de `ajuste`** da amostra
+        entram no treino (os 12 de `controle`, nunca).
+        Comando: `python -m verificador.treino.dataset --sintetico sintetico_hf --amostra
+        desafio-jusbrasil-bracis-2026 --lener lener-br/leNER-Br` → `runs/encoder_dataset/`
+        (`dataset.jsonl` + `manifesto.json`). O `sintetico_hf/` é o snapshot do HF na revisão
+        `0209a85…` (a camada 1 em `base/` é idêntica ao `sintetico/` local, conferido com `diff`).
+        - **Formato:** spans por caractere, sem depender de tokenizador; a tokenização e o BIO vão para
+          o notebook (`treino/bio.py`). A ida e volta com o tokenizador do BERTimbau recupera **3435 de
+          3435** spans exatamente, janela de 510 tokens com sobreposição de 128.
+        - **Conversão do LeNER-Br para a convenção do desafio:** jurisprudência no escopo → `JUR`;
+          fora do escopo (TCU, TJ…) → O; **número do próprio processo** e casos ambíguos → fora da perda;
+          `LEGISLACAO` só vira `LEI` com "art." e dígito (o gabarito não tem lei sem artigo).
+        - **Higiene por construção:** o `test` do LeNER-Br nem é lido; controle do sintético, controle
+          da amostra e `dev` do LeNER-Br saem marcados e não vão para o treino (testado).
+        - **Contagens:** treino = sintético 1244 JUR/324 LEI (320 docs), amostra 88/13 (14 docs),
+          LeNER-Br 279/827 (50 docs). Em janelas: LeNER-Br 921 (281 só com O), sintético 355, amostra
+          **37** — a fonte mais parecida com o conjunto final é só ~3% das janelas; a mistura do
+          notebook precisa reforçá-la.
+        - O `dataset.jsonl` contém texto da amostra (dados da competição): fica em `runs/`, **não se
+          publica**. Publica-se os pesos e o código.
+  - [ ] **2b. Notebook de treino no Kaggle** (T4): ver "Próximos passos do encoder" abaixo.
 - [ ] **3. Decisão em 27/09, 22h (go/no-go).** Critérios na seção do protocolo. Se não passar, fica
       `usar_encoder=false` (ADR-011 já prevê) e os pesos não são publicados.
 - [ ] *Opcional — camada 3 do sintético:* o LLM escreve a **própria citação** a partir de um registro do
@@ -718,14 +765,27 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
   cita TCU, TC, Tribunal de Contas, TRF, TJ*, TRT, TRE, Tribunal Regional, Tribunal de Justiça ou
   "Acórdão"; que menciona STF, STJ, TST, TSE, STM, Supremo, Superior Tribunal, Tribunal Superior ou
   Suprema Corte no trecho **ou** em até 40 caracteres em volta; que tem dígito e ao menos 6 caracteres.
+  Sem distinção de maiúsculas. Implementado em `verificador.treino.lener.no_escopo`, com teste que
+  trava as contagens (`tests/test_treino.py`).
 - **Métrica:** recall por IoU ≥ 0,5 (mesmo critério da métrica oficial) e, à parte, qualquer sobreposição.
 - **Linha de base do regex (commit `70ff324`, `sub-005`):**
 
   | Divisão | Docs | Citações no escopo | IoU ≥ 0,5 | Qualquer sobreposição |
   |---|---|---|---|---|
   | `train` | 50 | 352 | 222 (63,1%) | 250 (71,0%) |
-  | `dev` | 10 | 31 | 3 (9,7%) | 3 (9,7%) |
+  | `dev` | 10 | 35 | 3 (8,6%) | 3 (8,6%) |
   | **`test`** | 10 | **74** | **38 (51,4%)** | 53 (71,6%) |
+
+  *2026-09-24* — ao reimplementar o filtro, `train` (222/352) e `test` (38/74) bateram exatamente;
+  o `dev` deu **35**, não 31, com os mesmos 3 acertos. A contagem de 31 não foi reproduzida e fica
+  corrigida para 35.
+
+  **Número do próprio processo.** O LeNER-Br marca o número do processo do próprio documento
+  (cabeçalho, ementa: `HC 110260 / SP` 19 vezes num só documento) como `JURISPRUDENCIA`. No desafio
+  isso é distrator (R34), não citação. Identificado pelo `titulo` dos metadados:
+  `train` **73 de 352**, `dev` 13 de 35, `test` **10 de 74**. A régua acima **não muda** (senão a
+  comparação com a linha de base se perde), mas o relatório do go/no-go traz também a linha "sem
+  número próprio" (`test`: 64 citações). No treino, esses spans ficam fora da perda.
 
 - **Higiene:** o `test` não guia nenhuma correção de regex nem ajuste do encoder; `train` e `dev` sim.
   Atenção: a análise de 24/09 listou exemplos de todas as divisões, então alguns casos do `test` já
@@ -734,10 +794,34 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
   1. aumentar o recall no `test` do escopo acima do regex **reforçado** (atividade 1), não do regex de hoje;
   2. não perder nada em amostra (192/192), controle e sintético (988/994 e 992/994 no diversificado);
   3. não gerar **nenhum** falso positivo novo nos distratores da amostra (autos CNJ do cabeçalho,
-     protocolo, OAB, fls., valor da causa);
+     protocolo, OAB, fls., valor da causa). **Medido no `controle` da amostra (12 documentos)**: os 14
+     de `ajuste` estão no treino e ali o número seria otimista. Reportar os dois, separados;
   4. manter precisão de spans 1,0 e τ = 0 em todos os conjuntos, e R49 verde.
 - **Limite estatístico:** são só 74 citações no `test`. Um ganho de 1 ou 2 é ruído; registrar o número
   absoluto, não só a porcentagem.
+
+#### Próximos passos do encoder (registrado em 2026-09-24, depois do dataset)
+
+1. **Reforço do regex (atividade 1), em paralelo.** Continua pré-requisito do go/no-go: o critério 1
+   compara com o regex *reforçado*. Guiado só por `train`/`dev` do LeNER-Br.
+2. **Notebook de treino no Kaggle (T4)**, `notebooks/kaggle/07_treino_encoder.ipynb`:
+   - clona o repo; baixa o sintético na revisão `0209a85…`; clona o LeNER-Br no commit
+     `4999cb7f63191f1d6904206f312eeca8f5b45c5a`; usa a amostra dos dados da competição;
+   - roda `python -m verificador.treino.dataset` e **confere o `sha256_dataset`** contra o do
+     `manifesto.json` local (mesmo dataset dos dois lados);
+   - tokeniza com `AutoTokenizer` na revisão fixa, janelas de `treino/bio.py`;
+   - mistura: toda janela com citação; ~1/3 das janelas só-O do LeNER-Br; amostra `ajuste` repetida
+     ~4×. Registrar a mistura no manifesto dos pesos;
+   - mesmos hiperparâmetros para os dois modelos (semente 0, lr 5e-5, ~5 épocas, lote 16, fp16);
+   - mede, por modelo: recall/precisão de `JUR` no `dev` do LeNER-Br (régua do escopo) e nos
+     controles do sintético e da amostra. Escolhe pelo `dev` + controles; empate → BERTimbau.
+3. **Integração** em `extracao/` atrás do `usar_encoder`: inferência em CPU por janelas
+   (`dono_por_token` + `decodificar`), regras (a), (b) e (c), e descarte no cabeçalho. Exige `torch`
+   (CPU) e `transformers` no ambiente, nas versões da imagem do Kaggle (ADR-014).
+4. **Go/no-go em 27/09, 22h**, com o relatório: régua do `test` (74 e "sem número próprio", 64),
+   controles, distratores no controle da amostra, precisão, τ e R49.
+5. **Se passar: publicar os pesos** no HF com revisão fixa (R45, R46), card com o aviso MIT do
+   modelo-base e as fontes de treino (link + revisão; a amostra só citada, não incluída).
 
 - [x] **Camada LLM do gerador sintético** (Apache 2.0, ex.: Qwen3 8B ou Gemma 4 E4B; temperatura 0, semente
       fixa): reescreve o parecer em volta das citações com frases variadas **sem alterar os trechos**
@@ -752,10 +836,11 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
       *2026-09-24* — [`Roberto2799/jusbrasil-sintetico-diversificado`](https://huggingface.co/datasets/Roberto2799/jusbrasil-sintetico-diversificado),
       MIT, revisão `0209a853e6e59b263b138200963b579105baca24`. A camada 1 (idêntica ao `sintetico/` usado
       na calibração da `sub-002`) está em `base/`, e a camada 2 (Qwen) na raiz, com dataset card.
-- [ ] **Escolher o encoder** por medição e licença OSI (R21): RoBERTaLexPT, BERTimbau, Legal-BERTimbau (e
+- [x] **Escolher o encoder** por medição e licença OSI (R21): RoBERTaLexPT, BERTimbau, Legal-BERTimbau (e
       modelos já ajustados no LeNER-Br). **Conferir a licença antes de treinar.**
-      *2026-09-24* — licenças conferidas: preferência Legal-BERTimbau → BERTimbau → BERTomelo; RoBERTaLexPT
-      e os modelos já ajustados no LeNER-Br ficam fora (ver "Decisão de 2026-09-24" acima).
+      *2026-09-24* — licenças conferidas; RoBERTaLexPT e os modelos já ajustados no LeNER-Br ficam fora.
+      Depois do levantamento de tokenizador e corpus de pré-treino, **escolhido BERTimbau-base**, com
+      Legal-BERTimbau-base como comparação no mesmo treino (ver "Modelos preferidos" acima).
 - [ ] **Treinar o NER** (marcação BIO) em `treino/`, com o sintético (+ opcionalmente LeNER-Br), tolerando ruído
       de OCR no corpo original (não na cópia normalizada).
 - [ ] **Publicar os pesos** no Hugging Face com revisão fixa (R45, R46).

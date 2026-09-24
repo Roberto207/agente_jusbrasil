@@ -75,6 +75,20 @@ a licença por escrito com os autores (contato do paper: `pedrohluzaraujo@gmail.
 prosseguir. Enquanto for só sonda de recall interna, o risco é baixo e a regra "dataset público" já
 cobre o uso.
 
+**Fronteira cruzada em 2026-09-24 (decisão do Roberto):** o LeNER-Br `train` entra no treino do
+encoder, e os pesos serão publicados se o go/no-go passar. Fundamento: a regra do desafio permite
+"qualquer dataset público" no treino, e o `LICENSE` na raiz do repositório declara MIT. O corpus não é
+redistribuído (os pesos não o contêm, e o card só aponta link + commit `4999cb7…`). **Pendente:**
+e-mail aos autores pedindo confirmação de que o MIT cobre o corpus. Se houver objeção, retreinar
+sem o LeNER-Br custa minutos (`verificador.treino.dataset` sem essa fonte).
+
+**Amostra do desafio no treino (mesma data):** os 14 documentos de `ajuste` entram no treino. A
+licença da aba Data é "Subject to Competition Rules": treinar com eles é o uso previsto ("para as
+equipes construírem suas soluções"), mas **não se republica** o texto. O `dataset.jsonl` fica em
+`runs/` (fora do git e do HF), e o card dos pesos só cita a fonte. A regra 4b (rotulagem manual de
+dados de validação/teste) não se aplica: o gabarito é da organização e a amostra não é o conjunto
+final. **O conjunto final nunca entra em treino**, nem por pseudo-rótulo.
+
 ## Achado 3 — restrição de licença já conhecida, relevante para a LLM diversificadora
 
 `specs/scope.md:151` proíbe explicitamente **Llama e Gemma** ("licenças próprias, não aprovadas
@@ -104,10 +118,13 @@ Fase 4, "Decisão de 2026-09-24".
 
 | Modelo | Licença | Situação |
 |---|---|---|
-| [rufimelo/Legal-BERTimbau-base](https://huggingface.co/rufimelo/Legal-BERTimbau-base) e `-large` | MIT | **Pode** — preferência 1 |
-| [neuralmind/bert-base-portuguese-cased](https://huggingface.co/neuralmind/bert-base-portuguese-cased) e `-large` | MIT | **Pode** — preferência 2 |
-| [unb-labia/BERTomelo-ModernBERT-Large-v1](https://huggingface.co/unb-labia/BERTomelo-ModernBERT-Large-v1) | Apache 2.0 | **Pode** — preferência 3 (377M parâmetros) |
+| [neuralmind/bert-base-portuguese-cased](https://huggingface.co/neuralmind/bert-base-portuguese-cased) e `-large` | MIT | **Pode** — **escolhido** (base) |
+| [rufimelo/Legal-BERTimbau-base](https://huggingface.co/rufimelo/Legal-BERTimbau-base) e `-large` | MIT | **Pode** — comparação (base) |
+| [unb-labia/BERTomelo-ModernBERT-Base-v1](https://huggingface.co/unb-labia/BERTomelo-ModernBERT-Base-v1) e `-Large-v1` | Apache 2.0 | **Pode** — reserva |
 | [urchade/gliner_multi-v2.1](https://huggingface.co/urchade/gliner_multi-v2.1) | Apache 2.0 | **Pode** — reserva, zero-shot |
+| [PORTULAN/albertina-100m-portuguese-ptbr-encoder](https://huggingface.co/PORTULAN/albertina-100m-portuguese-ptbr-encoder) | MIT | **Pode** — não priorizado |
+| [PORTULAN/albertina-900m-portuguese-ptbr-encoder](https://huggingface.co/PORTULAN/albertina-900m-portuguese-ptbr-encoder) | "other" | **Fora** — tag de licença não OSI |
+| [eduagarcia/RoBERTaCrawlPT-base](https://huggingface.co/eduagarcia/RoBERTaCrawlPT-base) | CC BY 4.0 | **Fora** — idem RoBERTaLexPT |
 | [eduagarcia/RoBERTaLexPT-base](https://huggingface.co/eduagarcia/RoBERTaLexPT-base) | CC BY 4.0 | **Fora** — Creative Commons não é licença aprovada pela OSI |
 | [dominguesm/legal-bert-ner-base-cased-ptbr](https://huggingface.co/dominguesm/legal-bert-ner-base-cased-ptbr) | CC BY 4.0 | **Fora** — idem |
 | [pierreguillou/ner-bert-base-cased-pt-lenerbr](https://huggingface.co/pierreguillou/ner-bert-base-cased-pt-lenerbr) (e `-large`) | não declarada | **Fora** — sem permissão de redistribuir |
@@ -115,6 +132,10 @@ Fase 4, "Decisão de 2026-09-24".
 O RoBERTaLexPT constava como candidato no ADR-011 e em `ia_no_pipeline.md`; sai pela licença, não por
 desempenho. Pesos ajustados pela equipe a partir de um modelo MIT/Apache herdam a obrigação de manter
 o aviso de licença do modelo-base no card do Hugging Face.
+
+*Atualizado em 2026-09-24:* a ordem de preferência mudou depois de comparar tokenizadores e corpus de
+pré-treino (o Legal-BERTimbau é jurídico de Portugal; o BERTomelo converte tudo para minúsculas).
+Escolha e motivos em `tarefas_equipe.md`, Fase 4, "Modelos preferidos".
 
 ## Resumo — o que fica pendente
 
