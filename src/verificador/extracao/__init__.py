@@ -1,7 +1,8 @@
 """Frente B2 — extração das quatro formas e leitura de campos.
 
 Débito consciente (não extraído): artigo sem lei, súmula sem número, e
-citações no plural (`arts. 489 e 1.022`). Referência vaga tem forma própria
+artigos no plural (`arts. 489 e 1.022`). Súmulas no plural (`Súmulas 219 e 329
+do TST`) saem como um span só, com o primeiro número. Referência vaga tem forma própria
 (ADR-005), mas fica atrás da flag `extrair_referencia_vaga` (desligada por
 padrão) — ver docs/gerais/conformidade_dados_externos.md.
 """

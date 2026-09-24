@@ -37,6 +37,15 @@
     {"sigla": "ADI", "padroes": ["a[cç][aã]o direta de inconstitucionalidade", "adi"]},
     {"sigla": "AC", "padroes": ["a[cç][aã]o cautelar", "\\bac\\b"]},
     {"sigla": "DCG", "padroes": ["\\bdcg\\b"]},
-    {"sigla": "AIRR", "padroes": ["agravo de instrumento em recurso de revista", "airr"]}
+    {"sigla": "AIRR", "padroes": ["agravo de instrumento em recurso de revista", "airr"]},
+    {"sigla": "RRAG", "padroes": ["\\brrag\\b"]},
+    {"sigla": "ROT", "padroes": ["recurso ordin[aá]rio trabalhista", "\\brot\\b"]},
+    {"sigla": "IRR", "padroes": ["incidente de recursos? de revista repetitivos?", "\\birr\\b"]},
+    {"sigla": "ACO", "padroes": ["a[cç][aã]o c[ií]vel origin[aá]ria", "\\baco\\b"]},
+    {"sigla": "ADC", "padroes": ["a[cç][aã]o declarat[oó]ria de constitucionalidade", "a[cç][aã]o direta de constitucionalidade", "\\badc\\b"]},
+    {"sigla": "ADO", "padroes": ["a[cç][aã]o direta de inconstitucionalidade por omiss[aã]o", "\\bado\\b"]},
+    {"sigla": "ADPF", "padroes": ["arg[uü]i[cç][aã]o de descumprimento de preceito fundamental", "\\badpf\\b"]},
+    {"sigla": "ARE", "padroes": ["recurso extraordin[aá]rio com agravo", "\\bare\\b"]},
+    {"sigla": "EREsp", "padroes": ["embargos de diverg[eê]ncia em recurso especial", "\\beresp\\b"]}
   ]
 }

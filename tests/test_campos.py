@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from verificador.contratos import Candidata
 from verificador.extracao import ler_campos
 from verificador.extracao.campos import normalizar_relator
@@ -210,3 +212,39 @@ def test_edv_legitimo_entra_na_cadeia() -> None:
     campos = ler_campos(_cand("AgInt nos EMBARGOS DE DIVERGÊNCIA EM RESP Nº 1597443 - PR", "com_numero"))
     assert campos is not None
     assert "EDv" in campos.cadeia_recursos
+
+
+
+
+@pytest.mark.parametrize(
+    ("trecho", "tribunal"),
+    [
+        ("Súmula nº 12 do colendo Superior Tribunal de Justiça", "STJ"),
+        ("Súmula 45 do Superior Tribunal Militar", "STM"),
+        ("enunciado nº 606 da Súmula do Supremo Tribunal Federal", "STF"),
+        ("Súmula nº 202, item II, do Tribunal Superior do Trabalho", "TST"),
+        ("Súmula 9 do Tribunal Superior Eleitoral", "TSE"),
+        ("verbete sumular 33 deste Tribunal Superior", None),
+    ],
+)
+def test_sumula_le_tribunal_por_extenso(trecho: str, tribunal: str | None) -> None:
+    campos = ler_campos(_cand(trecho, "sumula"))
+    assert campos is not None and campos.tribunal == tribunal
+
+
+def test_sumulas_no_plural_leem_o_primeiro_numero() -> None:
+    campos = ler_campos(_cand("Súmulas nºs 110 e 220 do TST", "sumula"))
+    assert campos is not None and campos.numero == "S110" and campos.tribunal == "TST"
+
+
+def test_orientacao_jurisprudencial_nao_vira_sumula() -> None:
+    """`OJ 150` não pode casar com a Súmula 150: o número tem outro prefixo e o tribunal é o TST."""
+    for trecho in ("Orientação Jurisprudencial nº 150 da SBDI-1", "OJ 150/SDI-1/TST"):
+        campos = ler_campos(_cand(trecho, "sumula"))
+        assert campos is not None and campos.numero == "OJ150" and campos.tribunal == "TST"
+
+
+def test_classes_de_controle_concentrado_e_are() -> None:
+    for trecho, classe in (("ADPF 101", "ADPF"), ("ARE 1.234.567", "ARE"), ("AgRg nos EREsp 1.111.222/PR", "EREsp")):
+        campos = ler_campos(_cand(trecho, "com_numero"))
+        assert campos is not None and campos.classe_principal == classe

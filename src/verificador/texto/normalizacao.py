@@ -22,8 +22,10 @@ _NUMERO = re.compile(
     r"(?<![\w])(?=[\dIlOSgl.\- ]{0,40}\d)[\dIlOSgl]+(?:[.\-] ?[\dIlOSgl]+)*(?![A-Za-zÀ-ÿ])",
     re.IGNORECASE,
 )
+# `n.º`, `n.°` e `N º` (com espaço) antes das formas curtas: senão o `n.` casava sozinho, o `º`
+# sobrava entre o marcador e o número e `Súmula n.º 691` não era extraída.
 _N_NUMERO = re.compile(
-    r"(?<![A-Za-zÁ-ú])(?:[nN][º°oO]|[nN]\.)(?=\s*[\dIlOSgl])",
+    r"(?<![A-Za-zÁ-ú])(?:[nN]\. ?[º°]|[nN] [º°]|[nN][º°oO]|[nN]\.)(?=\s*[\dIlOSgl])",
 )
 # O `rn` no meio cobre a corrupção dupla (`5úrnula`): o `5` já é âncora suficiente para não haver
 # ambiguidade, então não é preciso passar pelo vocabulário.

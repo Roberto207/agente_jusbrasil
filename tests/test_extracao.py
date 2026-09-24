@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from verificador.contratos import Candidata
 from verificador.extracao import extrair, ler_campos
 from verificador.extracao.sobreposicao import iou, resolver
@@ -276,3 +278,83 @@ def test_edv_reconhecido_mesmo_colado_no_conector() -> None:
         "AgInt nos EMBARGOS DE DIVERGÊNCIA EM RESP Nº 1597443 - PR",
     ):
         assert "EDv" in _classes_no_texto(cabecalho), cabecalho
+
+
+# --- Variantes de superfície (reforço do regex, Fase 4, atividade 1) -------------------------------
+# Frases escritas à mão, uma por lacuna medida no `train`/`dev` do LeNER-Br. Nenhuma é trecho da
+# amostra (R43). O span esperado é o trecho inteiro: é o que a borda do gabarito exige (IoU ≥ 0,5).
+
+
+VARIANTES_POSITIVAS = [
+    # súmula com tribunal por extenso, honorífico, complemento ou barra
+    ("sumula", "Súmula nº 12 do colendo Superior Tribunal de Justiça"),
+    ("sumula", "Súmula 45 do Superior Tribunal Militar"),
+    ("sumula", "Súmula 70 deste Superior Tribunal de Justiça"),
+    ("sumula", "Súmula 101, IV e V, do TST"),
+    ("sumula", "Súmula nº 202, item II, do Tribunal Superior do Trabalho"),
+    ("sumula", "Súmula de nº 303, I, do C. TST"),
+    ("sumula", "Súmula 404/STF"),
+    ("sumula", "Súmula n.º 505 do Supremo Tribunal Federal"),
+    # enunciado e verbete (exigem tribunal)
+    ("sumula", "Enunciado nº 18, do STJ"),
+    ("sumula", "verbete sumular 33 do TSE"),
+    ("sumula", "enunciado n. 606 da Súmula do Supremo Tribunal Federal"),
+    ("sumula", "Enunciado 707 do C.TST"),
+    # plural: um span só
+    ("sumula", "Súmulas nºs 110 e 220 do TST"),
+    ("sumula", "Súmulas 30, I, e 40 do STJ"),
+    ("sumula", "SÚMULAS 8 E 9 DO STJ"),
+    # Orientação Jurisprudencial do TST
+    ("sumula", "Orientação Jurisprudencial nº 150 da SBDI-1 do TST"),
+    ("sumula", "OJ 250/SDI-1/TST"),
+    # classes com espaço e classes de controle concentrado
+    ("com_numero", "ROT nº 1000123-45.2021.5.02.0000"),
+    ("com_numero", "IRR 2000-11.2020.5.00.0000"),
+    ("com_numero", "RRAG 3000-22.2019.5.03.0000"),
+    ("com_numero", "ADPF 101"),
+    ("com_numero", "ADO 7"),
+    ("com_numero", "ACO 55/SP"),
+    ("com_numero", "ADC nº 9-DF"),
+    ("com_numero", "ARE 1.234.567"),
+    ("com_numero", "Recurso Extraordinário com Agravo nº 765.432/MG"),
+    ("com_numero", "AgRg nos EREsp 1.111.222/PR"),
+    # hífen entre classe e número curto; `n.º` normalizado
+    ("com_numero", "RE-123456-7"),
+    ("com_numero", "HC-98765/RJ"),
+    ("com_numero", "ADI n.º 4321"),
+]
+
+VARIANTES_NEGATIVAS = [
+    "o enunciado 3 da questão",
+    "Enunciado Administrativo 5 do STJ",
+    "o verbete 12 do dicionário",
+    "AC 50",
+    "ado 22 vezes",
+    "AI-5",
+    "OJ 44",
+]
+
+
+@pytest.mark.parametrize(("forma", "citacao"), VARIANTES_POSITIVAS)
+def test_variante_extraida_com_o_span_inteiro(forma: str, citacao: str) -> None:
+    texto = f"Nesse sentido, {citacao}, e assim decido."
+    inicio = texto.index(citacao)
+    cands = extrair(preparar(texto))
+    assert [(c.inicio, c.fim, c.forma) for c in cands] == [(inicio, inicio + len(citacao), forma)]
+    assert ler_campos(cands[0]) is not None
+
+
+@pytest.mark.parametrize("frase", VARIANTES_NEGATIVAS)
+def test_variante_negativa_nao_vira_citacao(frase: str) -> None:
+    assert extrair(preparar(f"Consta dos autos {frase}, sem mais.")) == []
+
+
+def test_complemento_sem_tribunal_fica_fora_do_span() -> None:
+    texto = "Aplica-se a Súmula 7, a seguir transcrita."
+    assert [c.trecho for c in extrair(preparar(texto))] == ["Súmula 7"]
+
+
+def test_controle_concentrado_no_fim_da_frase_e_milhar() -> None:
+    """O ponto final não impede a citação; o ponto de milhar impede cortar o número ao meio."""
+    assert [c.trecho for c in extrair(preparar("Ver a ADPF 101. Depois, nada."))] == ["ADPF 101"]
+    assert all(c.trecho != "ADPF 101" for c in extrair(preparar("Ver a ADPF 101.234 de ontem.")))

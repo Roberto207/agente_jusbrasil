@@ -3,11 +3,11 @@
 
   "_fonte": "padroes.py: MARCADOR_RELATOR, _TRIBUNAL, _compilar_sumula, tema da repercussão geral; classes.json: nomes por extenso; leis.json: 'lei complementar'.",
 
-  "sumula": ["súmula", "súmulas", "súm"],
+  "sumula": ["súmula", "súmulas", "súm", "sumular", "sumulares"],
 
   "relator": ["ministro", "ministra", "ministros", "ministras", "min"],
 
-  "tribunal": ["stm"],
+  "tribunal": ["stm", "supremo"],
 
   "classes": [
     "em",
@@ -26,7 +26,11 @@
     "militar",
     "cautinom",
     "ms",
-    "rms"
+    "rms",
+    "com",
+    "omissão",
+    "descumprimento",
+    "fundamental"
   ],
 
   "lei": ["complementar", "cpm", "consumidor"],

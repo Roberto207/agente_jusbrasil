@@ -4,6 +4,7 @@
   "familias": [
     ["RR", "AIRR", "ARR", "RRAG", "IRR", "AgARR"],
     ["REsp", "AREsp", "AgREsp", "EDv"],
+    ["RE", "ARE"],
     ["HC", "RHC"],
     ["MS", "RMS"],
     ["RO", "ROE"]

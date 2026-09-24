@@ -709,11 +709,36 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
 
 #### Atividades, em ordem
 
-- [ ] **1. Reforço do regex (25/09, ~1 dia).** Atacar as lacunas da tabela acima: hífen entre classe e
+- [x] **1. Reforço do regex (25/09, ~1 dia).** Atacar as lacunas da tabela acima: hífen entre classe e
       número, `ROT`/`IRR`/`RRAG` com espaço, formas de súmula (`n.º`, "Enunciado … da Súmula", plural) e
       tribunal por extenso depois da súmula. Criar um conjunto de "variantes" como teste. Só entra se
       amostra, controle e sintético não piorarem e a precisão seguir 1,0. **Guiar as correções só pelas
       divisões `train` e `dev` do LeNER-Br** (ver protocolo abaixo).
+      *2026-09-24* — feito. Diagnóstico no `train`+`dev`: 162 de 387 perdidas (24 eram número próprio).
+      Decisões do Roberto: súmulas no plural viram **um span só** (lê o primeiro número), e as classes
+      que o acervo não tem (ACO, ADC, ADO, ADPF, EREsp, OJ) **entram**, para a régua do go/no-go não
+      premiar o encoder por achar classe que o desafio nem usa.
+      - **Mudanças:** normalização de `n.º`/`N º`; classes `ROT`, `IRR`, `RRAG`, `ACO`, `ADC`, `ADO`,
+        `ADPF`, `ARE`, `EREsp`; súmula com tribunal por extenso, honorífico (`colendo`, `C.`,
+        `deste`), complemento (`, V e VI,`), `/STF`, `da Súmula do …`; `Enunciado`/`verbete sumular`
+        e OJ (exigem tribunal ou SBDI); plural; hífen com número curto (`RE-120134-7`); ADI/ADO/ADC/
+        ADPF/ACO com número curto sem `nº` (maiúsculas exatas: `AC 50` segue fora). `ler_campos` lê o
+        tribunal por extenso, e OJ vira `OJ<n>` (não casa com a súmula de mesmo número).
+      - **Achado no acervo:** 8 acórdãos do STF são **ARE** e eram lidos como RE ("recurso
+        extraordinário com agravo" casava "recurso extraordinário"). A leitura foi corrigida e RE/ARE
+        viraram família (`familias_classe.json`), como REsp/AREsp: citar "RE" de um ARE com número
+        único continua real. Só esses 8 registros mudaram (conferido contra o commit anterior).
+      - **Procedência:** `MS-27350/DF` e `TST-RR-578.030/99.5` foram vistos no `test` em 24/09. O hífen
+        com número curto ficou porque há evidência independente no `train` (`RE-120134-7`,
+        `RE-211984-9/SP`); o formato antigo do TST (`578.030/99.5`) **não** entrou. `ROT n° 7000804-…`
+        veio do sintético, e ROT/IRR/RRAG do acervo. Todo o resto veio do `train`/`dev`.
+      - **Não piorou:** amostra 192/192, precisão 1,0, score 1,1, zero mudança de classe; sintético
+        base e diversificado 1,0989 → **1,1000** (2 citações a mais: `ROT n° 7000804-…` e a borda de
+        `Súmula Vinculante 10 do STF`); R49 idêntico. 276 testes (38 variantes escritas à mão).
+      - **Régua:** `python -m verificador.treino.regua --splits train dev test` (tabela no protocolo).
+      - **Não corrigido de propósito:** número próprio; `Enunciado Administrativo` (não é súmula);
+        `RT 691/310` (doutrina); autos de TJ; `S. 331` (o OCR lê `5.331`); OCR ilegível
+        (`sumuiar`, `AgR-Al`); plural que o LeNER-Br partiu em duas entidades.
 - [ ] **2. Encoder como rede de segurança (25–27/09).** BERTimbau-base (Legal-BERTimbau-base como
       comparação), marcação BIO.
       Treino: sintético base + diversificado (HF, revisão `0209a85…`) + amostra `ajuste` + LeNER-Br
@@ -786,6 +811,17 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
   | `train` | 50 | 352 | 222 (63,1%) | 250 (71,0%) |
   | `dev` | 10 | 35 | 3 (8,6%) | 3 (8,6%) |
   | **`test`** | 10 | **74** | **38 (51,4%)** | 53 (71,6%) |
+
+- **Linha de base do regex reforçado (atividade 1, 24/09) — é esta que o encoder precisa superar:**
+
+  | Divisão | Citações no escopo | IoU ≥ 0,5 | Qualquer sobreposição | Sem nº próprio | IoU ≥ 0,5 sem nº próprio |
+  |---|---|---|---|---|---|
+  | `train` | 352 | 318 (90,3%) | 331 (94,0%) | 279 | 256 (91,8%) |
+  | `dev` | 35 | 19 (54,3%) | 32 (91,4%) | 22 | 19 (86,4%) |
+  | **`test`** | **74** | **58 (78,4%)** | 66 (89,2%) | **64** | **51 (79,7%)** |
+
+  Regex antigo, na mesma régua: `test` 38/74 e **31/64** sem número próprio. O `test` foi medido
+  **uma vez**, com as regras congeladas; nenhum ajuste depois disso.
 
   *2026-09-24* — ao reimplementar o filtro, `train` (222/352) e `test` (38/74) bateram exatamente;
   o `dev` deu **35**, não 31, com os mesmos 3 acertos. A contagem de 31 não foi reproduzida e fica

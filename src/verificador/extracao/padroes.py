@@ -23,6 +23,19 @@ _NUMERO = (
     r")"
 )
 _TRIBUNAL = r"(?:STF|STJ|STM|TSE|TST)"
+# Nome por extenso de cada tribunal do escopo. P\u00fablico porque `campos._tribunal` o traduz para a
+# sigla: se as duas listas divergirem, a s\u00famula \u00e9 extra\u00edda mas o tribunal n\u00e3o \u00e9 lido.
+TRIBUNAL_EXTENSO = {
+    "STF": r"Supremo\s+Tribunal\s+Federal|Suprema\s+Corte",
+    "STJ": r"Superior\s+Tribunal\s+de\s+Justi[\u00e7c]a",
+    "TST": r"Tribunal\s+Superior\s+do\s+Trabalho",
+    "TSE": r"Tribunal\s+Superior\s+Eleitoral",
+    "STM": r"Superior\s+Tribunal\s+Militar",
+}
+_EXTENSO = "(?:" + "|".join(f"(?:{v})" for v in TRIBUNAL_EXTENSO.values()) + ")"
+_HONORIFICO = r"(?:(?:colendo|egr[e\u00e9]gio|excelso|C\.)\s*)"
+# Marcador de n\u00famero da s\u00famula, tamb\u00e9m no plural (`n\u00bas`, `n\u00b0s`, `nos`, `ns.`).
+_N_SUMULA = r"(?:n(?:[o\u00ba\u00b0]s?|s)?\.?\s*)?"
 _GRAU = "\u00ba"
 
 # \u00c2ncoras da forma (d) \u2014 ADR-015. O vocabul\u00e1rio sai das 31 cita\u00e7\u00f5es `incompleta` da amostra oficial.
@@ -82,31 +95,61 @@ def _compilar_com_numero() -> re.Pattern[str]:
     classe = _padrao_classe()
     cadeia = rf"(?:{classe}\s*{_CONECTOR}\s*)*"
     uf = _padrao_uf()
-    # O hífen só vale como conector quando o que vem depois é número CNJ (`DCG-1340-57.2017.5.17.0010`):
-    # é formato distintivo o bastante para não capturar por engano. Classes do TST já entram pelo `tst_bloco`.
+    # O hífen vale como conector antes de número CNJ (`DCG-1340-57.2017.5.17.0010`) ou de número com
+    # 4+ dígitos e dígito verificador opcional (`RE-120134-7`, `MS-27350/DF`): formatos distintivos o
+    # bastante para não capturar por engano (`AI-5` fica de fora). Classes do TST já entram pelo `tst_bloco`.
     # Número curto (`CautInom nº 87`) exige o marcador `nº` explícito — sem ele, `AC 50` viraria citação.
     comum = (
         rf"(?:{_ORDINAL})?{_PROCESSO}(?P<cadeia>{cadeia})(?P<classe>{classe})"
         rf"(?:\s*{_N}(?P<numero>{_NUMERO})"
-        rf"|-(?P<numero_hifen>{_NUMERO_CNJ})"
+        rf"|-(?P<numero_hifen>{_NUMERO_CNJ}|(?:\d{{1,3}}(?:\.\d{{3}})+|\d{{4,}})(?:-\d(?!\d))?)"
         rf"|\s*{_N_EXPLICITO}(?P<numero_curto>\d{{1,3}})(?!\d))"
         rf"(?:\s*(?P<uf>{uf}))?"
     )
     tema = (
         r"[Tt]em[aã]\s+(?P<numero_tema>\d+(?:\.\d+)?)\s+da\s+repercuss[aã]o\s+geral"
     )
+    # Ações de controle concentrado são citadas com número curto e sem `nº` (`ADI 3767`, `ADPF 333`).
+    # Só essas siglas, em maiúsculas exatas, dispensam o marcador: `AC 50` continua de fora.
+    controle = rf"(?-i:ADPF|ADI|ADO|ADC|ACO)\s+(?P<numero_controle>\d{{1,4}})(?!\d|\.\d)(?:\s*(?P<uf_controle>{uf}))?"
     return re.compile(
-        rf"(?:(?P<tema>{tema})|(?P<tst_bloco>{_padrao_tst()})|(?P<comum>{comum}))", _FLAGS
+        rf"(?:(?P<tema>{tema})|(?P<tst_bloco>{_padrao_tst()})|(?P<comum>{comum})|(?P<controle>{controle}))", _FLAGS
     )
 
 
 def _compilar_sumula() -> re.Pattern[str]:
-    return re.compile(
-        rf"(?:S[úu]mula\s+Vinculante|S[ÚU]MULA\s+VINCULANTE)\s*{_N}(?P<numero_sv>\d+)"
-        rf"|(?:S[úu]mula|S[ÚU]MULA|S[úu]m\.)\s*{_N}(?P<numero>\d+)"
-        rf"(?:\s+do\s+(?P<tribunal>{_TRIBUNAL}))?",
-        _FLAGS,
+    """Súmula, enunciado, verbete sumular e Orientação Jurisprudencial do TST.
+
+    `Súmula N` vale sozinha; `Enunciado`, `verbete` e `OJ` só com o tribunal (ou a SBDI) logo
+    depois — sem isso, "o enunciado 3 da questão" viraria citação. O complemento (`, V e VI,`,
+    `, item I,`) só entra no span quando há tribunal depois dele. A lista (`219 e 329`) só vale no
+    plural. Sem grupos nomeados: as alternativas os repetiriam, e `ler_campos` reanalisa o trecho.
+    """
+    romano = r"(?-i:[IVX]{1,5})"
+    item = rf"(?:item\s+)?{romano}(?:\s*(?:,|e)\s*{romano})*"
+    complemento = rf"\s*,\s*{item}\s*,?"
+    lista = rf"(?:(?:{complemento})?\s*(?:,|e)\s*{_N_SUMULA}\d+)+"
+    da_sumula = r"\s*,?\s+da\s+S[úu]mula(?:\s+de\s+jurisprud[eê]ncia(?:\s+predominante)?)?"
+    tribunal = rf"(?:{_TRIBUNAL}\b|{_EXTENSO}|Tribunal\s+Superior)"
+    cauda = (
+        rf"(?:\s*/\s*{_TRIBUNAL}\b"
+        rf"|\s*,?\s+(?:d[oa]|deste|desta)\s+{_HONORIFICO}?{tribunal}"
+        rf"|\s*,\s*{_TRIBUNAL}\b)"
     )
+    singular = rf"(?:S[úu]mula(?:\s+Vinculante)?|S[úu]m\.)(?:\s+de)?\s*{_N_SUMULA}\d+(?:(?:{complemento})?{cauda})?"
+    plural = rf"S[úu]mulas(?:\s+Vinculantes)?\s*{_N_SUMULA}\d+(?:{lista})?(?:(?:{complemento})?{cauda})?"
+    enunciado = (
+        rf"(?:Enunciados?|verbetes?\s+sumular(?:es)?)\s*{_N_SUMULA}\d+(?:{lista})?"
+        rf"(?:{complemento})?(?:{da_sumula})?{cauda}"
+    )
+    orgao = r"S\.?\s?B?\.?\s?D\.?\s?I\.?(?:\s*-\s*|\s+)(?:[I1]{1,2}\b|\d)"
+    tst = rf"(?:TST\b|{TRIBUNAL_EXTENSO['TST']})"
+    oj = (
+        rf"(?:Orienta[çc][ãa]o\s+Jurisprudencial|OJ)\s*{_N_SUMULA}\d+"
+        rf"\s*,?\s*(?:d[ao]\s+|-|/)\s*{orgao}"
+        rf"(?:\s*,?\s*(?:d[oa]\s+{_HONORIFICO}?|/)\s*{tst})?"
+    )
+    return re.compile(rf"(?<![A-Za-zÀ-ÿ])(?:{singular}|{plural}|{enunciado}|{oj})", _FLAGS)
 
 
 def _compilar_lei() -> re.Pattern[str]:

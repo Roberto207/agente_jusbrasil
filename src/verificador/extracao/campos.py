@@ -8,7 +8,7 @@ import unicodedata
 from dataclasses import replace
 
 from verificador.contratos import Campos, Candidata
-from verificador.extracao.padroes import MARCADOR_RELATOR, TST_NUMERO
+from verificador.extracao.padroes import MARCADOR_RELATOR, TRIBUNAL_EXTENSO, TST_NUMERO
 from verificador.tabelas import classes, ocr, resolver_lei, resolver_uf, tst_sigla
 from verificador.texto.normalizacao import normalizar
 
@@ -105,9 +105,16 @@ def _classes_no_texto(texto: str) -> list[str]:
     return usadas
 
 
+_TRIBUNAL_POR_EXTENSO = tuple((sigla, re.compile(p, re.IGNORECASE)) for sigla, p in TRIBUNAL_EXTENSO.items())
+_OJ = re.compile(r"^\s*(?:orienta[çc][ãa]o\s+jurisprudencial|oj)\b", re.IGNORECASE)
+
+
 def _tribunal(texto: str) -> str | None:
+    """Sigla do tribunal, escrita como sigla ou por extenso (`do colendo Superior Tribunal de Justiça`)."""
     m = _TRIBUNAL.search(texto)
-    return m.group(1).upper() if m else None
+    if m:
+        return m.group(1).upper()
+    return next((sigla for sigla, p in _TRIBUNAL_POR_EXTENSO if p.search(texto)), None)
 
 
 def _uf_apos_numero(trecho: str, fim_numero: int) -> str | None:
@@ -196,10 +203,15 @@ def _campos_sumula(trecho: str) -> Campos | None:
     m = re.search(r"(\d+)", trecho)
     if not m:
         return None
-    vinc = bool(_SUMULA_VINC.search(trecho))
-    numero = f"SV{m.group(1)}" if vinc else f"S{m.group(1)}"
+    # No plural (`Súmulas 219 e 329`) vale o primeiro número. Orientação Jurisprudencial não é
+    # súmula: `OJ<n>` não existe no índice e não casa por engano com a Súmula de mesmo número.
+    if _OJ.search(trecho):
+        numero, tribunal = f"OJ{m.group(1)}", "TST"
+    else:
+        vinc = bool(_SUMULA_VINC.search(trecho))
+        numero, tribunal = (f"SV{m.group(1)}" if vinc else f"S{m.group(1)}"), _tribunal(trecho)
     return Campos(
-        tribunal=_tribunal(trecho),
+        tribunal=tribunal,
         classe_principal=None,
         cadeia_recursos=(),
         numero=numero,
