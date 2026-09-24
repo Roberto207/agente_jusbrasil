@@ -616,8 +616,10 @@ Decisão do Roberto: ficam anotados, sem execução, até a decisão sobre o enc
       de que `ROT`, `IRR` e `RRAG` só são extraídas no formato com hífen (`RRAG-…`); com espaço
       (`ROT n° …`, `IRR 243-51…`) não saem. São 26 acórdãos do TST no acervo. Só entra se amostra e
       controle não piorarem.
-- [ ] **Suavização da calibração** (`taxa = (acertos + α·m)/(n + α)`), pendente desde 21/09. Vale
-      ~0,0003 de nota porque o bônus `b` está saturado. Tende a ser descartada.
+- [x] **Suavização da calibração** (`taxa = (acertos + α·m)/(n + α)`). Já estava feita depois da
+      `sub-004`: `avaliacao/calibrar.py` com `ALFA = 7` e `PRIOR = 0.97`, R26 conferido por caminho.
+      É a única diferença de saída entre `sub-004` e `sub-005` (confiança 1,0000 → 0,9993; spans,
+      classes e ids idênticos na amostra).
 - [ ] **Detector de referência vaga:** continua desligado. A decisão é da fase 2, com o sinal do
       leaderboard público (ver Tier 3).
 
