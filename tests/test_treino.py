@@ -58,6 +58,12 @@ def test_i_sem_b_abre_span_novo_na_decodificacao() -> None:
     assert bio.decodificar(off, [bio.ID_ROTULO["I-JUR"], bio.ID_ROTULO["I-JUR"]]) == [(0, 5, "JUR")]
 
 
+def test_b_colado_no_token_anterior_continua_o_span() -> None:
+    """Subpalavras de "precedente": `preced` (0, 6) e `##ente` (6, 10), sem espaço entre elas."""
+    b = bio.ID_ROTULO["B-JUR"]
+    assert bio.decodificar([(0, 6), (6, 10)], [b, b]) == [(0, 10, "JUR")]
+
+
 @pytest.mark.parametrize("n", [1, 509, 510, 511, 900, 5000])
 def test_janelas_cobrem_tudo_e_dono_e_o_mais_central(n: int) -> None:
     cortes = bio.janelas(n)
@@ -160,3 +166,49 @@ def test_pares_do_sintetico_ficam_do_mesmo_lado(dataset) -> None:
 def test_amostra_entra_inteira_com_os_192_trechos(dataset) -> None:
     exemplos, _ = dataset
     assert sum(len(ex.spans) for ex in exemplos if ex.fonte == "amostra") == 192
+
+
+# --- treinar (partes puras) -----------------------------------------------------------------------
+
+from verificador.treino.treinar import CONTROLES, Config, Janela, contar_acertos, escolher, misturar  # noqa: E402
+
+O, B = bio.ID_ROTULO["O"], bio.ID_ROTULO["B-JUR"]
+
+
+def test_mistura_so_treino_repete_amostra_e_corta_so_o_do_lener() -> None:
+    cfg = Config(modelo="m", revisao="r", fracao_so_o_lener=0.0, repeticoes_amostra=4)
+    janelas = [
+        Janela("amostra", "a", "treino", [1], [B]),
+        Janela("amostra", "c", "controle", [1], [B]),
+        Janela("lener", "l1", "treino", [1], [O]),
+        Janela("lener", "l2", "treino", [1], [B]),
+        Janela("lener", "d", "dev", [1], [B]),
+        Janela("sintetico_base", "s", "treino", [1], [B]),
+    ]
+    mistura, contagem = misturar(janelas, cfg)
+    assert contagem == {"amostra": 4, "lener": 1, "sintetico_base": 1}
+    assert all(j.divisao == "treino" for j in mistura)
+
+
+def test_contar_acertos_ignora_previsao_em_regiao_ignorada() -> None:
+    gold = [(0, 10, "JUR")]
+    pred = [(0, 9, "JUR"), (20, 25, "JUR"), (40, 45, "JUR")]
+    c = contar_acertos(gold, pred, ignorar=[(38, 50)])
+    assert (c["JUR_gold"], c["JUR_achados"], c["JUR_pred"], c["JUR_pred_certos"]) == (1, 1, 2, 1)
+
+
+def _metricas(dev: int, controle: int) -> dict:
+    m = {"JUR": {"achados": 0}, "LEI": {"achados": 0}}
+    saida = {"lener/dev": {"JUR": {"achados": dev}, "LEI": {"achados": 0}}}
+    for c in CONTROLES:
+        saida[c] = {"JUR": {"achados": controle}, "LEI": m["LEI"]}
+    return saida
+
+
+@pytest.mark.parametrize(
+    ("dev_outro", "controle_outro", "esperado"),
+    [(10, 50, "principal"), (11, 50, "principal"), (12, 50, "outro"), (12, 49, "principal")],
+)
+def test_escolher_so_troca_com_ganho_acima_do_ruido_e_sem_perda(dev_outro, controle_outro, esperado) -> None:
+    metricas = {"principal": _metricas(10, 50), "outro": _metricas(dev_outro, controle_outro)}
+    assert escolher(metricas) == esperado

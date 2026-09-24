@@ -44,7 +44,11 @@ def rotular(
 
 
 def decodificar(offsets: Sequence[tuple[int, int]], rotulos: Sequence[int]) -> list[tuple[int, int, str]]:
-    """Spans por caractere a partir dos rótulos previstos. `I-` sem `B-` antes abre um span novo."""
+    """Spans por caractere a partir dos rótulos previstos. `I-` sem `B-` antes abre um span novo.
+
+    `B-` colado no token anterior do mesmo tipo (sem espaço entre eles, como `preced|ente`) continua
+    o span: citação não começa no meio de uma palavra.
+    """
     saida: list[tuple[int, int, str]] = []
     atual: list = []  # [inicio, fim, tipo]
     for (a, b), r in zip(offsets, rotulos):
@@ -55,7 +59,7 @@ def decodificar(offsets: Sequence[tuple[int, int]], rotulos: Sequence[int]) -> l
                 atual = []
             continue
         prefixo, tipo = nome.split("-")
-        if prefixo == "I" and atual and atual[2] == tipo:
+        if atual and atual[2] == tipo and (prefixo == "I" or a == atual[1]):
             atual[1] = b
             continue
         if atual:

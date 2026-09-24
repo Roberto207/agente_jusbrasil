@@ -744,6 +744,17 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
         - O `dataset.jsonl` contém texto da amostra (dados da competição): fica em `runs/`, **não se
           publica**. Publica-se os pesos e o código.
   - [ ] **2b. Notebook de treino no Kaggle** (T4): ver "Próximos passos do encoder" abaixo.
+        *2026-09-24* — pronto, **não executado**: `notebooks/kaggle/07_treino_encoder_enc-001.ipynb`,
+        clona a tag `enc-001`. Lógica em `verificador.treino.treinar` (loop próprio em torch, sem
+        `Trainer`, para não depender da versão do `transformers` da imagem). O notebook refaz o dataset
+        e **para** se o sha256 não for `ec98c4ea…` (o local; duas montagens locais deram o mesmo).
+        Treina os dois modelos, mede, aplica `treinar.escolher` e, com `HF_TOKEN`, sobe o escolhido
+        para `Roberto2799/jusbrasil-encoder-citacoes` **privado**.
+        Teste de fumaça local (CPU, BERT de 2 camadas com o tokenizador real do BERTimbau): caminho
+        inteiro roda; em 400 passos a perda cai de 1,57 para ~0,18 e o recall sai do zero, com
+        previsões dentro das citações certas. Isso motivou um ajuste na decodificação: `B-` colado no
+        token anterior (subpalavra) continua o span em vez de abrir outro.
+        **Falta:** rodar no Kaggle e registrar aqui a tabela de métricas e o modelo escolhido.
 - [ ] **3. Decisão em 27/09, 22h (go/no-go).** Critérios na seção do protocolo. Se não passar, fica
       `usar_encoder=false` (ADR-011 já prevê) e os pesos não são publicados.
 - [ ] *Opcional — camada 3 do sintético:* o LLM escreve a **própria citação** a partir de um registro do
