@@ -98,10 +98,15 @@ License), BLOOM/BLOOMZ (licença BigScience OpenRAIL-M, não aprovada pela OSI).
 
 ## Resumo — o que fica pendente
 
-- [ ] Publicar o sintético **atual** (camada 1, código) no Hugging Face — infraestrutura zero, é
+- [x] Publicar o sintético **atual** (camada 1, código) no Hugging Face — infraestrutura zero, é
   trabalho a criar do zero (conta, token, script de upload).
-- [ ] Rodar o notebook da LLM diversificadora no Kaggle (precisa de GPU; preparado, não executável
+- [x] Rodar o notebook da LLM diversificadora no Kaggle (precisa de GPU; preparado, não executável
   neste ambiente) e publicar o resultado também.
+  *2026-09-24* — as duas camadas estão em
+  [`Roberto2799/jusbrasil-sintetico-diversificado`](https://huggingface.co/datasets/Roberto2799/jusbrasil-sintetico-diversificado)
+  (público, MIT), com a camada 1 em `base/` e a camada 2 na raiz. Revisão fixa
+  `0209a853e6e59b263b138200963b579105baca24`. Conferido por hash: os 409 arquivos são idênticos aos
+  gerados no Kaggle, e a camada 1 é byte a byte igual ao `sintetico/` local.
 - [ ] Se algum uso do LeNER-Br sair do escopo "sonda interna", confirmar a licença com os autores
   antes de prosseguir.
 

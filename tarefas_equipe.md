@@ -542,7 +542,7 @@ fechar lacunas que a organização documentou e construir um instrumento de medi
       "generalização" significa fora da nossa própria bolha de moldes. Dataset baixado local
       (`lener-br/`, `.gitignore`), licença registrada em `docs/gerais/conformidade_dados_externos.md`
       (achado 2 — MIT no repo, "unknown" no card do HF; uso como sonda interna é de baixo risco).
-- [i] **LLM diversificando o sintético (ADR-012, item já previsto na Fase 4).** Não melhora o sistema,
+- [x] **LLM diversificando o sintético (ADR-012, item já previsto na Fase 4).** Não melhora o sistema,
       melhora a **medida**. Os moldes do sintético são nossos, então toda afirmação de generalização é
       circular — inclusive a de que as âncoras cobrem "9 de 10 moldes novos". **Precisa vir antes do
       encoder:** com recall em 99,4%, não há margem mensurável para o encoder mostrar ganho.
@@ -550,6 +550,22 @@ fechar lacunas que a organização documentou e construir um instrumento de medi
       modelo **Qwen2.5-7B-Instruct** (Apache 2.0, ~15GB VRAM, decodificação determinística). Precisa
       rodar no Kaggle (GPU) e publicar no Hugging Face — nenhuma das duas coisas é possível neste
       ambiente. Ver `docs/gerais/conformidade_dados_externos.md` (achado 3, licenças consideradas).
+      *2026-09-24, executado e publicado pelo Roberto* — a 1ª execução no Kaggle deu recall 974/994, mas
+      a queda era artefato do notebook: o corte da sentença incluía o espaço anterior e o `strip()` da
+      resposta colava as frases ("ponto.De acordo…", 864 vezes, e metade das perdas caía ali), e o Qwen
+      respondeu em chinês em 18 documentos. Corrigido no commit `379714d` (célula 7: sentença sem as
+      bordas, com teste de "LLM identidade" reproduzindo a base byte a byte; rejeição de escrita não
+      latina) e executado de novo: **982/994 sentenças reescritas** (10 rejeitadas por marcador, 2 por
+      escrita), 0 frases coladas, 0 chinês. **Resultado: score 1,0989, recall 992/994, precisão 1,0,
+      τ = 0; controle 1,1000** (camada 1: 1,0957, 988/994). Reproduzido localmente, `submission` e
+      `relatorio` idênticos aos do Kaggle. O LLM mudou as 3 palavras antes da citação em 95% dos casos,
+      então a medida é forte: **o fraseado que o time não escreveu não derruba o recall**. Única perda:
+      `Invoca-se, ainda, o disposto em ROT n° 7000804-…` (inventada, n1 e n2). Ressalva: a decodificação
+      gulosa convergiu para 42 contextos de duas palavras antes da citação, então isto é uma segunda
+      "voz", não qualquer redação. **Consequência:** com 992/994, a margem mensurável para o encoder
+      mostrar ganho no sintético ficou ainda menor. Publicado em
+      [`Roberto2799/jusbrasil-sintetico-diversificado`](https://huggingface.co/datasets/Roberto2799/jusbrasil-sintetico-diversificado)
+      (MIT), com a camada 1 em `base/`. **Revisão fixa: `0209a853e6e59b263b138200963b579105baca24`.**
 
 #### Tier 3 — opção, não melhoria
 
@@ -601,12 +617,19 @@ dependem de quanto da semana se quer apostar.
 
 **Responsável:** ____ (sugestão: frente C, que já tem o gerador) · **ADR:** 011, 012
 
-- [ ] **Camada LLM do gerador sintético** (Apache 2.0, ex.: Qwen3 8B ou Gemma 4 E4B; temperatura 0, semente
+- [x] **Camada LLM do gerador sintético** (Apache 2.0, ex.: Qwen3 8B ou Gemma 4 E4B; temperatura 0, semente
       fixa): reescreve o parecer em volta das citações com frases variadas **sem alterar os trechos**
       (verificar por código que cada trecho continua presente byte a byte).
-- [ ] Rodar a geração no Kaggle GPU (supervisionar: erro no meio da execução gasta cota).
-- [ ] **Publicar o dataset sintético** no Hugging Face, revisão fixa, licença aberta (R46) — antes de
+      *2026-09-24* — feito com Qwen2.5-7B-Instruct (Gemma saiu pela licença, achado 3 de
+      `conformidade_dados_externos.md`). O trecho vai ao LLM como marcador e volta byte a byte (`assert`
+      por citação). Ver o item "LLM diversificando o sintético" no Tier 2.
+- [x] Rodar a geração no Kaggle GPU (supervisionar: erro no meio da execução gasta cota).
+      *2026-09-24* — ver o item "LLM diversificando o sintético" no Tier 2.
+- [x] **Publicar o dataset sintético** no Hugging Face, revisão fixa, licença aberta (R46) — antes de
       30/09 23h59 BRT. Criar a conta HF do projeto se ainda não existir.
+      *2026-09-24* — [`Roberto2799/jusbrasil-sintetico-diversificado`](https://huggingface.co/datasets/Roberto2799/jusbrasil-sintetico-diversificado),
+      MIT, revisão `0209a853e6e59b263b138200963b579105baca24`. A camada 1 (idêntica ao `sintetico/` usado
+      na calibração da `sub-002`) está em `base/`, e a camada 2 (Qwen) na raiz, com dataset card.
 - [ ] **Escolher o encoder** por medição e licença OSI (R21): RoBERTaLexPT, BERTimbau, Legal-BERTimbau (e
       modelos já ajustados no LeNER-Br). **Conferir a licença antes de treinar.**
 - [ ] **Treinar o NER** (marcação BIO) em `treino/`, com o sintético (+ opcionalmente LeNER-Br), tolerando ruído
