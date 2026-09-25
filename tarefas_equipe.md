@@ -829,6 +829,12 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
       `usar_encoder=false` (ADR-011 já prevê) e os pesos não são publicados.
       *2026-09-25:* decisão **em equipe**. Números, custos e pontos em aberto em
       `docs/relatorio-uso-encoder.md` (inclui a proposta de uma régua de lei no go/no-go).
+      *2026-09-25, go/no-go formal executado* (regras congeladas em `d0e264b`; régua de lei fixada em
+      `77b0764` antes de abrir o `test` de lei): **os 4 critérios passam**. `test` jurisprudência
+      58 → 64/74 (5 das 6 são a mesma OJ num único documento; forma fora do acervo); `test` lei
+      115 → 173/202 (30 de leis do acervo, 11 artigos exatos do acervo: complementos `caput`,
+      `parágrafo único`, alíneas); amostra 192/192, zero espúrios, τ = 0, R49 idêntico. **Decisão
+      final ainda não tomada** — análise, opinião e publicação dos pesos no relatório, seções 9 a 11.
 - [ ] *Opcional — camada 3 do sintético:* o LLM escreve a **própria citação** a partir de um registro do
       acervo; o gabarito é localizado pelos dígitos, e a citação é descartada se algum dígito mudar. Mede
       o ponto cego atual e dá treino variado ao encoder. Reaproveita o notebook 005.

@@ -1,6 +1,6 @@
 # Relatório — usar ou não o encoder na submissão
 
-**Data:** 25/09/2026 · **Para:** decisão em equipe · **Prazo final do desafio:** 30/09, 23h59 (BRT)
+**Data:** 25/09/2026 (seções 9 a 11 acrescentadas no mesmo dia, depois do go/no-go formal) · **Para:** decisão em equipe · **Prazo final do desafio:** 30/09, 23h59 (BRT)
 
 Este documento junta o que medimos sobre o encoder para a equipe decidir se ele entra na
 submissão. Os detalhes técnicos estão em `tarefas_equipe.md` (Fase 4). Aqui a ideia é explicar
@@ -51,7 +51,8 @@ veio do **reforço do regex** de 24/09, feito sem o encoder.
 | Sintéticos (os dois) | 1,1000 | **1,1000** (idêntica) |
 | LeNER-Br `dev`, **jurisprudência** | 19 de 35 | **19 de 35** (nenhuma a mais) |
 | LeNER-Br `dev`, **artigos de lei** | 59 de 127 | **99 de 127** (+40; 39 dos 41 extras corretos) |
-| LeNER-Br `test` | 58 de 74 | **não medido de propósito** (fica para o go/no-go formal, seção 7) |
+| LeNER-Br `test`, jurisprudência | 58 de 74 | **64 de 74** (+6; ver seção 9) |
+| LeNER-Br `test`, artigos de lei | 115 de 202 | **173 de 202** (+58; ver seção 9) |
 
 Em resumo:
 
@@ -205,3 +206,116 @@ Pelo que o `dev` já mostra, a expectativa honesta é: **em jurisprudência, o e
 passar no critério 1**; **em lei, deve passar**. A decisão fica mais simples se a equipe
 concordar, antes de abrir o `test`, com esta regra: *"entra se ganhar em pelo menos uma das duas
 réguas e não perder em nada"*.
+
+---
+
+## 9. Resultado do go/no-go formal (25/09)
+
+Regras congeladas no commit `d0e264b` antes de abrir o `test`. A régua de lei foi fixada no commit
+`77b0764`, também antes de o `test` de lei ser medido pela primeira vez. Os arquivos brutos estão
+em `runs/gonogo/` (fora do git).
+
+| Critério | Resultado | Passa? |
+|---|---|---|
+| 1. Ganho no `test`, jurisprudência | 58 → **64** de 74 (sem nº próprio: 51 → 57 de 64). +6, acima do ruído de 1–2 | **sim** |
+| 1'. Ganho no `test`, lei (régua proposta) | 115 → **173** de 202 (+58) | **sim** |
+| 2. Nenhuma perda | Amostra 192/192, nada sumiu nem mudou de classe. Sintéticos: sem perda (ver nota) | **sim** |
+| 3. Nenhum falso positivo novo nos distratores | Controle da amostra: 0 espúrios | **sim** |
+| 4. Precisão 1,0, τ = 0, mesma saída em duas execuções | Precisão 1,0, τ = 0, saída idêntica (mesma máquina) | **sim** |
+
+**Pela letra do protocolo, o resultado é GO.**
+
+*Nota sobre os sintéticos:* a rodada formal foi interrompida por tempo (a máquina estava lenta, com
+swap). Ela é redundante: as portas finais só **descartam** candidatas do encoder, nunca do regex, e
+na rodada de 24/09, com portas mais frouxas, o encoder não acrescentou nada aos sintéticos (nada
+sumiu, nada apareceu, zero espúrios). Com portas mais restritas, o resultado não pode mudar.
+
+### O que está por trás dos números (a parte que importa)
+
+**Jurisprudência (+6): o ganho é frágil.** Das 6, **5 estão num único documento** e são a mesma
+Orientação Jurisprudencial repetida (`OJ Transitória 75 da SBDI-1`, mais uma `OJ SDI-I n° 336`). A
+sexta é um número do TST no formato antigo (`TST-AIRR-581/2006-079-03-40.0`). Nenhuma dessas formas
+existe no acervo do desafio, e no `dev` o ganho foi zero. Passa no critério, mas **eu não contaria
+com esse ganho no conjunto final**.
+
+**Lei (+58): o ganho é sólido e relevante para o desafio.** Classificando cada extra pela lei:
+
+- **30 dos 58 são de leis que estão no acervo** (CLT, CPC, CPP, CF, CC);
+- **11 são artigos exatos do acervo** (seriam `real` no desafio), por exemplo
+  `art. 896, § 1.º-A, I, da CLT` e `art. 312, p.u do CPP`;
+- o regex perde esses casos por **complementos comuns na escrita jurídica** que ele não conhece:
+  `caput`, `parágrafo único` / `p.u`, alíneas (`"a" e "c"`), `§ 1.º-A`, `e seguintes`;
+- os outros 28 são leis fora do acervo (Lei Orgânica do TCU, decretos, regimentos). No desafio
+  valeriam como citação `inventada`, se aparecerem;
+- nenhum falso positivo de verdade: os 5 extras sem anotação correspondente são trechos que se
+  sobrepõem a uma anotação, só com a borda diferente.
+
+Isso responde à dúvida da seção 4: **o ganho em lei não é só "texto real que o desafio não usa"**.
+`art. 37, caput, da Constituição Federal` ou `art. 896, parágrafo 6º, da CLT` são formas
+perfeitamente plausíveis no conjunto final, e cada uma vale 0,001 a 0,003.
+
+## 10. Minha opinião
+
+**Eu seguiria com o encoder (GO), com duas condições.**
+
+1. **Ele passa em tudo o que a equipe definiu como prova**, e o critério de Roberto (melhora sem
+   perda, cabendo na máquina) também: nenhuma perda em nenhum conjunto, nenhum espúrio, ~1 GB de
+   RAM, sem GPU.
+2. **O ganho que importa é o de lei, e ele é concreto:** artigos do acervo escritos com `caput`,
+   `parágrafo único` ou alíneas. O conjunto final é gerado a partir do acervo, e esses complementos
+   são o jeito comum de escrever lei no Brasil.
+3. **O ganho em jurisprudência eu não levaria em conta.** É real no LeNER-Br, mas vem de uma forma
+   (OJ) que o acervo não tem.
+
+**Condições:**
+
+- **Conferir no Kaggle que a saída com encoder é idêntica à local** (determinismo entre máquinas).
+  Se não for, o encoder sai, porque solução não reproduzível é desclassificada.
+- **Também ensinar ao regex os complementos de lei** (`caput`, `parágrafo único`, `p.u`, alíneas,
+  `§§`, `e seguintes`), com evidência do `train`/`dev` (o `dev` já tem `caput` e `§§`). O regex
+  continua sendo a camada principal, e o encoder fica como rede para o que ninguém previu. Atenção:
+  essas formas também foram **vistas agora no `test`**. Isso precisa ficar registrado, e o `test`
+  deixa de medir essa correção de forma limpa.
+
+**Se a equipe preferir não assumir o risco operacional** (dependência de torch, publicar pesos,
+conferência entre máquinas a menos de 5 dias do prazo), o caminho B também é defensável: só o
+reforço do regex de lei. Ele captura a maior parte desse ganho de forma determinística. O que se
+perde é a rede para formas que ninguém previu.
+
+## 11. Publicar os pesos mesmo no no-go? O que as regras dizem
+
+**O que o desafio exige:**
+
+- "Fine-tuning é permitido, desde que os pesos resultantes sejam **publicados e referenciados**"
+  (`specs/scope.md`, regras da aba Rules).
+- O pacote reproduzível pede a "referência dos **modelos** (link + revisão)" e o comando que
+  reproduz **as saídas submetidas**.
+- O FAQ explica o motivo: "a organização precisa conseguir **executar sua solução** de ponta a
+  ponta".
+
+Ou seja, a obrigação está amarrada a **reproduzir a solução submetida**. Um modelo que a solução
+não carrega não precisa ser publicado pelo desafio.
+
+**O que a nossa regra diz:** a R46 (`specs/DEFINE.md`) é mais rígida, é uma regra **nossa**: "os
+pesos de todo modelo treinado ou ajustado pela equipe [...] DEVEM estar publicados". Ela foi
+escrita a partir da regra do desafio, mas ampliou o alcance.
+
+**O que pesa contra publicar sem necessidade:**
+
+- **Regras do Kaggle sobre compartilhamento** (Foundational 5d e 6): nada de compartilhar código
+  ou dados fora da equipe em privado, e código público só no fórum do Kaggle. Pesos não são código,
+  mas o modelo treinou com 14 documentos da amostra (dados da competição). Quando o desafio
+  **exige** publicar, isso está coberto. Sem a exigência, é risco sem benefício.
+- **Licença do LeNER-Br** ainda não confirmada pelos autores.
+- Ajuda outras equipes sem nos dar nada em troca.
+
+**Minha opinião:**
+
+- **Se GO:** publicar é obrigatório. No HF, público, com revisão fixa, antes de 30/09, com card
+  (licença MIT do modelo-base, fontes de treino, a nota sobre a revisão dos pesos-base).
+- **Se no-go:** **não publicar agora.** Corrigir a R46 para "todo modelo **usado na execução que
+  gera as saídas submetidas**", que é o que o desafio pede, e alinhar o `tarefas_equipe.md` (o item
+  "3. Decisão" já diz isso). Guardar os pesos em privado (`runs/encoder/`). Depois do encerramento,
+  se a equipe quiser (artigo no BRACIS, benchmark), publicar com a licença do LeNER-Br confirmada.
+- **Nos dois casos,** o dataset sintético continua publicado: ele é usado na calibração da solução
+  só-regex, então a exigência vale para ele.
