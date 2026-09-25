@@ -5,8 +5,10 @@ LeNER-Br marca como citação e o desafio trata como distrator.
 
 Com `--lei`, mede também a régua de lei (proposta em `docs/relatorio-uso-encoder.md`, fixada em
 25/09 antes de o `test` de lei ser aberto): entidade `LEGISLACAO` que começa com "art."/"artigo" e
-tem dígito (`lener.rotulo_legislacao == "citacao"`, a mesma convenção do dataset de treino). O `test` só se mede com as regras
-congeladas: ele não guia correção (protocolo em `tarefas_equipe.md`, Fase 4).
+tem dígito (`lener.rotulo_legislacao == "citacao"`, a mesma convenção do dataset de treino).
+
+O `test` só se mede com as regras congeladas: ele não guia correção (protocolo em
+`tarefas_equipe.md`, Fase 4).
 
 Uso:
     python -m verificador.treino.regua --lener lener-br/leNER-Br --splits train dev
