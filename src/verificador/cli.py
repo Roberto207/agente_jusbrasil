@@ -243,8 +243,15 @@ def cmd_rodar(
         raise SystemExit(f"json_to_submission.py não encontrado em {pasta_dados}")
 
     cfg = carregar().com_flags(usar_encoder=usar_encoder, usar_llm=usar_llm)
-    if cfg.usar_encoder or cfg.usar_llm:
-        raise SystemExit("usar_encoder/usar_llm ainda não estão implementados nesta versão (Fases 4 e 5)")
+    if cfg.usar_llm:
+        raise SystemExit("usar_llm ainda não está implementado nesta versão (Fase 5)")
+    encoder = None
+    if cfg.usar_encoder:
+        if not cfg.encoder_link:
+            raise SystemExit("usar_encoder exige encoder_link (verificador.toml ou VERIFICADOR_ENCODER_LINK)")
+        from verificador.extracao.encoder import Encoder
+
+        encoder = Encoder(cfg.encoder_link, cfg.encoder_revisao)
     destino_run = pasta_run(saida, run_id)
     pasta_jsons = destino_run / "jsons"
     pasta_jsons.mkdir(parents=True, exist_ok=True)
@@ -258,7 +265,7 @@ def cmd_rodar(
         documento_id = txt.stem
         with txt.open(encoding="utf-8", newline="") as fh:  # sem tradução de \r\n: offsets exatos (R2)
             texto = fh.read()
-        citacoes = processar_documento(texto, indice, tempos)
+        citacoes = processar_documento(texto, indice, tempos, encoder)
         try:
             escrever_json(documento_id, citacoes, pasta_jsons, texto)
         except ErroDeSaida as erro:

@@ -98,6 +98,10 @@ def carregar() -> Configuracao:
             cfg,
             extrair_referencia_vaga=_como_bool(os.environ["VERIFICADOR_EXTRAIR_REFERENCIA_VAGA"]),
         )
+    if "VERIFICADOR_ENCODER_LINK" in os.environ:
+        cfg = replace(cfg, encoder_link=os.environ["VERIFICADOR_ENCODER_LINK"])
+    if "VERIFICADOR_ENCODER_REVISAO" in os.environ:
+        cfg = replace(cfg, encoder_revisao=os.environ["VERIFICADOR_ENCODER_REVISAO"])
     if "VERIFICADOR_SEMENTE" in os.environ:
         cfg = replace(cfg, semente=int(os.environ["VERIFICADOR_SEMENTE"]))
     if "VERIFICADOR_DTYPE" in os.environ:

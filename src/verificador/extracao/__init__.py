@@ -12,6 +12,7 @@ from __future__ import annotations
 from verificador.configuracao import carregar
 from verificador.contratos import Candidata, TextoPreparado
 from verificador.extracao.campos import ler_campos
+from verificador.extracao.encoder import candidatas_do_encoder
 from verificador.extracao.padroes import COM_NUMERO, LEI_ARTIGO, REFERENCIA_VAGA, SEM_NUMERO, SUMULA
 from verificador.extracao.sobreposicao import resolver
 from verificador.texto import inicio_corpo_normalizado, voltar_ao_original
@@ -50,7 +51,7 @@ def _candidata(
 
 
 def extrair(t: TextoPreparado, encoder=None) -> list[Candidata]:
-    del encoder  # Fase 4: união com NER; hoje só regex.
+    """Candidatas do regex e, com `encoder`, as que só ele acha (ADR-011: união, nunca troca)."""
     cfg = carregar()
     formas = _FORMAS + (_FORMA_REFERENCIA_VAGA,) if cfg.extrair_referencia_vaga else _FORMAS
     corpo = inicio_corpo_normalizado(t)
@@ -68,7 +69,11 @@ def extrair(t: TextoPreparado, encoder=None) -> list[Candidata]:
             )
             if cand is not None:
                 cruas.append(cand)
-    return resolver(cruas)
+    regex = resolver(cruas)
+    if encoder is None:
+        return regex
+    extras = candidatas_do_encoder(t, encoder.spans(t.original), regex)
+    return sorted(regex + extras, key=lambda c: (c.inicio, c.fim))
 
 
 __all__ = ["extrair", "ler_campos"]

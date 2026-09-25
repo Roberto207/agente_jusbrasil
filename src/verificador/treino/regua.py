@@ -27,14 +27,19 @@ def _iou(a: tuple[int, int], b: tuple[int, int]) -> float:
     return inter / uniao if uniao > 0 else 0.0
 
 
-def medir(pasta: Path, split: str) -> tuple[Counter[str], list[tuple[str, str, bool]]]:
-    """Contagens da régua e as perdas `(documento, trecho, é_número_próprio)`."""
+def medir(pasta: Path, split: str, encoder=None) -> tuple[Counter[str], list[tuple[str, str, bool]]]:
+    """Contagens da régua e as perdas `(documento, trecho, é_número_próprio)`.
+
+    Com `encoder`, mede a união (ADR-011) e conta à parte o que só o encoder achou (`so_encoder`).
+    """
     c: Counter[str] = Counter()
     perdas: list[tuple[str, str, bool]] = []
     for nome in lener.documentos(pasta, splits=(split,)):
         raw, ents = lener.documento(pasta, nome)
         titulo = lener.titulo(pasta, nome)
-        spans = [(x.inicio, x.fim) for x in extrair(preparar(raw))]
+        cands = extrair(preparar(raw), encoder)
+        spans = [(x.inicio, x.fim) for x in cands]
+        do_encoder = [(x.inicio, x.fim) for x in cands if "encoder" in x.origem]
         for e in ents:
             if not lener.no_escopo(raw, e):
                 continue
@@ -43,6 +48,7 @@ def medir(pasta: Path, split: str) -> tuple[Counter[str], list[tuple[str, str, b
             toca = any(s[0] < e.fim and s[1] > e.inicio for s in spans)
             c["escopo"] += 1
             c["iou"] += iou
+            c["so_encoder"] += any(_iou((e.inicio, e.fim), s) >= IOU_MINIMO for s in do_encoder)
             c["sobreposicao"] += toca
             if not proprio:
                 c["escopo_sem_proprio"] += 1
@@ -62,15 +68,23 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--lener", type=Path, default=Path("lener-br/leNER-Br"))
     p.add_argument("--splits", nargs="+", default=["train", "dev"], choices=lener.SPLITS)
     p.add_argument("--perdas", action="store_true", help="lista as citações perdidas")
+    p.add_argument("--encoder", help="pasta ou repo do encoder ajustado: mede a união regex + encoder")
+    p.add_argument("--revisao", help="revisão do encoder (repo do HF)")
     args = p.parse_args(argv)
+    encoder = None
+    if args.encoder:
+        from verificador.extracao.encoder import Encoder
 
-    print("| Divisão | No escopo | IoU ≥ 0,5 | Qualquer sobreposição | Sem nº próprio | IoU ≥ 0,5 sem nº próprio |")
-    print("|---|---|---|---|---|---|")
+        encoder = Encoder(args.encoder, args.revisao)
+
+    print("| Divisão | No escopo | IoU ≥ 0,5 | Qualquer sobreposição | Sem nº próprio | IoU ≥ 0,5 sem nº próprio | Só pelo encoder |")
+    print("|---|---|---|---|---|---|---|")
     for split in args.splits:
-        c, perdas = medir(args.lener, split)
+        c, perdas = medir(args.lener, split, encoder)
         print(
             f"| `{split}` | {c['escopo']} | {_pct(c['iou'], c['escopo'])} | {_pct(c['sobreposicao'], c['escopo'])} "
-            f"| {c['escopo_sem_proprio']} | {_pct(c['iou_sem_proprio'], c['escopo_sem_proprio'])} |"
+            f"| {c['escopo_sem_proprio']} | {_pct(c['iou_sem_proprio'], c['escopo_sem_proprio'])} "
+            f"| {c['so_encoder'] if encoder else '—'} |"
         )
         if args.perdas:
             for nome, trecho, proprio in perdas:

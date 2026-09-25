@@ -1,7 +1,7 @@
 """O pipeline de um documento: texto → extração → campos → decisão (DESIGN, "Pipeline de execução").
 
-Sem GPU, sem rede e sem modelo: só regras e consulta ao índice (ADR-001). O encoder e o LLM entram
-nos pontos marcados, atrás de `usar_encoder`/`usar_llm`, quando existirem.
+Sem GPU e sem rede: regras e consulta ao índice (ADR-001). O encoder entra na extração, atrás de
+`usar_encoder`, em CPU (ADR-011); o LLM, atrás de `usar_llm`, ainda não existe.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ def _campos_vazios() -> Campos:
 
 
 def processar_documento(
-    texto: str, indice: Indice, tempos: dict[str, float] | None = None
+    texto: str, indice: Indice, tempos: dict[str, float] | None = None, encoder=None
 ) -> list[CitacaoVerificada]:
     """Citações verificadas de um documento, na ordem do texto. `tempos` acumula segundos por etapa."""
     tempos = tempos if tempos is not None else defaultdict(float)
@@ -33,7 +33,7 @@ def processar_documento(
     tempos["texto"] = tempos.get("texto", 0.0) + perf_counter() - t0
 
     t0 = perf_counter()
-    candidatas = extrair(preparado, None)  # encoder: Fase 4, se ganhar da linha de base
+    candidatas = extrair(preparado, encoder)  # encoder: só com `usar_encoder` (ADR-011)
     tempos["extracao"] = tempos.get("extracao", 0.0) + perf_counter() - t0
 
     verificadas: list[CitacaoVerificada] = []

@@ -358,3 +358,23 @@ def test_controle_concentrado_no_fim_da_frase_e_milhar() -> None:
     """O ponto final não impede a citação; o ponto de milhar impede cortar o número ao meio."""
     assert [c.trecho for c in extrair(preparar("Ver a ADPF 101. Depois, nada."))] == ["ADPF 101"]
     assert all(c.trecho != "ADPF 101" for c in extrair(preparar("Ver a ADPF 101.234 de ontem.")))
+
+
+@pytest.mark.parametrize(
+    ("lei", "chave"),
+    [
+        ("CF", "CF-1988"),
+        ("CF/88", "CF-1988"),
+        ("Lei 9.504/1997", "LEI-9504-1997"),
+        ("LC 64/1990", "LC-64-1990"),
+        ("Lei Complementar 64/1990", "LC-64-1990"),
+    ],
+)
+def test_lei_sem_n_e_constituicao_abreviada(lei: str, chave: str) -> None:
+    """Todo alias de `leis.json` precisa ser extraível: senão `ler_campos` o resolveria, mas o span
+    nunca chegaria até ele (foi o caso de `art. 5º da CF`)."""
+    texto = f"Nos termos do art. 12 da {lei}, nego."
+    cands = [c for c in extrair(preparar(texto)) if c.forma == "lei_artigo"]
+    assert [c.trecho for c in cands] == [f"art. 12 da {lei}"]
+    campos = ler_campos(cands[0])
+    assert campos is not None and campos.lei_chave == chave

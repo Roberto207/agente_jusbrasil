@@ -800,6 +800,26 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
         na execução se carrega o nosso modelo, com revisão própria.
         Pesos: `treino_encoder_resuts1.zip` (Output do Kaggle, fora do git), JSONs em
         `runs/kaggle_enc001/`.
+  - [x] **2c. Integração** (`extracao/encoder.py`, `tests/test_encoder_portas.py`).
+        *2026-09-25* — atrás do `usar_encoder` (padrão `false`; submissão inalterada). Liga com
+        `VERIFICADOR_USAR_ENCODER=1 VERIFICADOR_ENCODER_LINK=<pasta ou repo>` (+ `_REVISAO`). Inferência
+        em CPU com a mesma `treinar.prever` do Kaggle. Portas: fora do cabeçalho; nada do regex
+        sobreposto; dígito + âncora (súmula/enunciado/verbete/OJ, classe, ou artigo **com lei
+        nomeada**; "enunciado administrativo" fora); `ler_campos` lê. A régua ganhou `--encoder`
+        (coluna "só pelo encoder").
+        - **Amostra e sintéticos com o encoder ligado:** 192/192, nenhum espúrio, precisão 1,0, zero
+          mudança de classe (critérios 2 e 3 do go/no-go nesses conjuntos).
+        - **`dev`, jurisprudência (a régua do protocolo):** regex 19/35 → união **19/35**, **0** só pelo
+          encoder. Antes de endurecer as portas era 20/35, e a única a mais era `ENUNCIADO
+          ADMINISTRATIVO 2 DO C. STJ`, que não é súmula. `train`: 318 → 328 (otimista: é treino).
+        - **`dev`, artigos de lei (fora da régua, mas conta no desafio):** regex **59/127** → união
+          **99/127**; 39 dos 41 extras avaliáveis certos (os 2 restantes são citação com borda
+          diferente). O encoder cobre formas que o regex não conhece: `Lei Federal 9.717/98` (ano com
+          2 dígitos), `Lei no 9.717, de 1998`, `Emenda Constitucional nº 41`, `Carta da República`,
+          `texto constitucional`, `do CP`, regimentos internos.
+        - **Achado de passagem (corrigido):** o regex não extraía `art. 5º da CF`, `Lei 9.504/1997`
+          (sem `nº`) nem `LC 64/1990`, embora `leis.json` já os resolvesse. 3 dos 13 dispositivos do
+          acervo são da CF. Amostra e sintético inalterados; teste cobre todo alias de `leis.json`.
 - [ ] **3. Decisão em 27/09, 22h (go/no-go).** Critérios na seção do protocolo. Se não passar, fica
       `usar_encoder=false` (ADR-011 já prevê) e os pesos não são publicados.
 - [ ] *Opcional — camada 3 do sintético:* o LLM escreve a **própria citação** a partir de um registro do

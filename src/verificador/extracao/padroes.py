@@ -171,8 +171,10 @@ def _compilar_lei() -> re.Pattern[str]:
         r"|c[oó]digo\s+penal\s+militar"
         r"|c[oó]digo\s+eleitoral"
         r"|c[oó]digo\s+civil"
-        rf"|lei\s+complementar\s+n[{_GRAU}o.]?\s*\d+(?:\.\d+)*\s*/\s*\d{{4}}"
-        rf"|lei\s+n[{_GRAU}o.]?\s*\d+(?:\.\d+)*\s*/\s*\d{{4}}"
+        rf"|(?:lei\s+complementar|LC)\s+(?:n[{_GRAU}o.]?\s*)?\d+(?:\.\d+)*\s*/\s*\d{{4}}"
+        rf"|lei\s+(?:n[{_GRAU}o.]?\s*)?\d+(?:\.\d+)*\s*/\s*\d{{4}}"
+        # CF: 3 dos 13 dispositivos do acervo são da Constituição, e `leis.json` já tinha o alias.
+        r"|CF(?:\s*/\s*(?:19)?88)?\b"
         r"|CLT|CPC|CDC|CPP|CPM|CC\b"
         r")"
     )
