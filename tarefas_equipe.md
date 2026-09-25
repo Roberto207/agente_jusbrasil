@@ -388,19 +388,22 @@ Um dia dedicado. Sem ele, cada frente fica "pronta sozinha" e nunca fecha.
 tag `sub-001`, notebook no Kaggle, envio da 1ª submissão e comparação local × leaderboard (ações humanas / autorização).
 
 
-- [ ] **Tag `sub-001`** no commit da versão só-regras (nunca `main` em execução oficial — `docs/guia_kaggle.md`).
+- [x] **Tag `sub-001`** no commit da versão só-regras (nunca `main` em execução oficial — `docs/guia_kaggle.md`).
       *2026-09-21:* `sub-001` (f04ee55) é a versão só-regras **sem** confiança nem causas 2/3 e já está no remoto; a submissão
       real sai da **`sub-002`** (calibrador recalibrado com sintético; notebook `notebooks/kaggle/02_sub-002.ipynb`).
-- [ ] Trocar `VERSAO = "main"` do notebook para a tag e rodar no Kaggle, gerando `submission.csv` no ambiente
+- [x] Trocar `VERSAO = "main"` do notebook para a tag e rodar no Kaggle, gerando `submission.csv` no ambiente
       fixado.
-- [ ] **Primeira submissão real** (gasta uma do teto diário — decisão humana; `ação_humana_pendente.md`).
+      *Feito desde a `sub-002`:* os notebooks `02` a `06` clonam a tag (`docs/resultado_submissoes.md`).
+- [x] **Primeira submissão real** (gasta uma do teto diário — decisão humana; `ação_humana_pendente.md`).
       Comparar o score do leaderboard com o local: **diferença indica erro de pipeline** e deve ser investigada
       *antes* de nova submissão (prática da equipe, ex-R29).
+      *2026-09-21:* `sub-002` enviada; leaderboard 1,08604 = nota local, e `submission.csv` idêntico byte a byte.
 - [x] **Análise de erro** no conjunto de *ajuste*: classificar cada erro por causa (span mal delimitado, campo
       lido errado, tabela incompleta, regex ausente, cabeçalho). Priorizar por ganho de score.
 - [x] Salvar esse relatório como **linha de base** de tudo que vem depois (encoder, LLM e confiança precisam
       *ganhar* dela no controle para entrar).
-- [ ] Ciclo de correção: um ajuste por vez, sempre comparando `--run` novo × linha de base.
+- [x] Ciclo de correção: um ajuste por vez, sempre comparando `--run` novo × linha de base.
+      *Em uso desde a `sub-002` (`sub-003` a `sub-005`, reforço do regex); continua valendo.*
 
 ### 3.1 Próximos passos propostos após a linha de base (registrados em 2026-09-19, **não implementados**)
 
@@ -611,11 +614,13 @@ dependem de quanto da semana se quer apostar.
 
 Decisão do Roberto: ficam anotados, sem execução, até a decisão sobre o encoder (Fase 4).
 
-- [ ] **Perda residual do sintético diversificado:** `Invoca-se, ainda, o disposto em ROT n° 7000804-…`
+- [x] **Perda residual do sintético diversificado:** `Invoca-se, ainda, o disposto em ROT n° 7000804-…`
       (inventada, n1 e n2), a única citação perdida em 992/994. Provável relação com o achado de 24/09
       de que `ROT`, `IRR` e `RRAG` só são extraídas no formato com hífen (`RRAG-…`); com espaço
       (`ROT n° …`, `IRR 243-51…`) não saem. São 26 acórdãos do TST no acervo. Só entra se amostra e
       controle não piorarem.
+      *2026-09-24:* resolvida no reforço do regex (atividade 1 da Fase 4): o sintético diversificado agora
+      tem 1,1000, sem perda.
 - [x] **Suavização da calibração** (`taxa = (acertos + α·m)/(n + α)`). Já estava feita depois da
       `sub-004`: `avaliacao/calibrar.py` com `ALFA = 7` e `PRIOR = 0.97`, R26 conferido por caminho.
       É a única diferença de saída entre `sub-004` e `sub-005` (confiança 1,0000 → 0,9993; spans,
@@ -739,7 +744,7 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
       - **Não corrigido de propósito:** número próprio; `Enunciado Administrativo` (não é súmula);
         `RT 691/310` (doutrina); autos de TJ; `S. 331` (o OCR lê `5.331`); OCR ilegível
         (`sumuiar`, `AgR-Al`); plural que o LeNER-Br partiu em duas entidades.
-- [ ] **2. Encoder como rede de segurança (25–27/09).** BERTimbau-base (Legal-BERTimbau-base como
+- [x] **2. Encoder como rede de segurança (25–27/09).** BERTimbau-base (Legal-BERTimbau-base como
       comparação), marcação BIO.
       Treino: sintético base + diversificado (HF, revisão `0209a85…`) + amostra `ajuste` + LeNER-Br
       `train`, só entidades `JURISPRUDENCIA`/`LEGISLACAO` do escopo. Uma candidata do encoder **só entra** se: (a) o regex não
@@ -768,7 +773,7 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
           notebook precisa reforçá-la.
         - O `dataset.jsonl` contém texto da amostra (dados da competição): fica em `runs/`, **não se
           publica**. Publica-se os pesos e o código.
-  - [ ] **2b. Notebook de treino no Kaggle** (T4): ver "Próximos passos do encoder" abaixo.
+  - [x] **2b. Notebook de treino no Kaggle** (T4): ver "Próximos passos do encoder" abaixo.
         *2026-09-24* — pronto, **não executado**: `notebooks/kaggle/07_treino_encoder_enc-001.ipynb`,
         clona a tag `enc-001`. Lógica em `verificador.treino.treinar` (loop próprio em torch, sem
         `Trainer`, para não depender da versão do `transformers` da imagem). O notebook refaz o dataset
@@ -822,6 +827,8 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
           acervo são da CF. Amostra e sintético inalterados; teste cobre todo alias de `leis.json`.
 - [ ] **3. Decisão em 27/09, 22h (go/no-go).** Critérios na seção do protocolo. Se não passar, fica
       `usar_encoder=false` (ADR-011 já prevê) e os pesos não são publicados.
+      *2026-09-25:* decisão **em equipe**. Números, custos e pontos em aberto em
+      `docs/relatorio-uso-encoder.md` (inclui a proposta de uma régua de lei no go/no-go).
 - [ ] *Opcional — camada 3 do sintético:* o LLM escreve a **própria citação** a partir de um registro do
       acervo; o gabarito é localizado pelos dígitos, e a citação é descartada se algum dígito mudar. Mede
       o ponto cego atual e dá treino variado ao encoder. Reaproveita o notebook 005.
@@ -889,9 +896,9 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
 
 #### Próximos passos do encoder (registrado em 2026-09-24, depois do dataset)
 
-1. **Reforço do regex (atividade 1), em paralelo.** Continua pré-requisito do go/no-go: o critério 1
+1. ✅ *(feito em 24/09)* **Reforço do regex (atividade 1), em paralelo.** Continua pré-requisito do go/no-go: o critério 1
    compara com o regex *reforçado*. Guiado só por `train`/`dev` do LeNER-Br.
-2. **Notebook de treino no Kaggle (T4)**, `notebooks/kaggle/07_treino_encoder.ipynb`:
+2. ✅ *(feito em 24/09, `enc-001`)* **Notebook de treino no Kaggle (T4)**, `notebooks/kaggle/07_treino_encoder.ipynb`:
    - clona o repo; baixa o sintético na revisão `0209a85…`; clona o LeNER-Br no commit
      `4999cb7f63191f1d6904206f312eeca8f5b45c5a`; usa a amostra dos dados da competição;
    - roda `python -m verificador.treino.dataset` e **confere o `sha256_dataset`** contra o do
@@ -902,7 +909,7 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
    - mesmos hiperparâmetros para os dois modelos (semente 0, lr 5e-5, ~5 épocas, lote 16, fp16);
    - mede, por modelo: recall/precisão de `JUR` no `dev` do LeNER-Br (régua do escopo) e nos
      controles do sintético e da amostra. Escolhe pelo `dev` + controles; empate → BERTimbau.
-3. **Integração** em `extracao/` atrás do `usar_encoder`: inferência em CPU por janelas
+3. ✅ *(feito em 25/09)* **Integração** em `extracao/` atrás do `usar_encoder`: inferência em CPU por janelas
    (`dono_por_token` + `decodificar`), regras (a), (b) e (c), e descarte no cabeçalho. Exige `torch`
    (CPU) e `transformers` no ambiente, nas versões da imagem do Kaggle (ADR-014).
 4. **Go/no-go em 27/09, 22h**, com o relatório: régua do `test` (74 e "sem número próprio", 64),
@@ -928,14 +935,20 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
       *2026-09-24* — licenças conferidas; RoBERTaLexPT e os modelos já ajustados no LeNER-Br ficam fora.
       Depois do levantamento de tokenizador e corpus de pré-treino, **escolhido BERTimbau-base**, com
       Legal-BERTimbau-base como comparação no mesmo treino (ver "Modelos preferidos" acima).
-- [ ] **Treinar o NER** (marcação BIO) em `treino/`, com o sintético (+ opcionalmente LeNER-Br), tolerando ruído
+- [x] **Treinar o NER** (marcação BIO) em `treino/`, com o sintético (+ opcionalmente LeNER-Br), tolerando ruído
       de OCR no corpo original (não na cópia normalizada).
+      *2026-09-24:* `enc-001` no Kaggle (ver 2b acima).
 - [ ] **Publicar os pesos** no Hugging Face com revisão fixa (R45, R46).
-- [ ] **Integrar** em `extrair()` como **união** com o regex (ADR-011), com o **filtro das 4 formas** (o encoder
+- [x] **Integrar** em `extrair()` como **união** com o regex (ADR-011), com o **filtro das 4 formas** (o encoder
       não pode trazer "jurisprudência pacífica desta Corte" de volta — R33) e a resolução de sobreposição (R3).
+      *2026-09-25:* feito, atrás do `usar_encoder` (ver 2c acima).
 - [ ] **Medir contra a linha de base** no controle. Entra na submissão **somente se ganhar**; senão fica
       desligado (`usar_encoder=false`) e os pesos são publicados mesmo assim se já foram usados em treino/medição.
-- [ ] Conferir que encoder + (futuro) LLM cabem numa T4 de 16 GB (margem sobre os 24 GB do ambiente — R44).
+      *2026-09-25, parcial:* medido no controle da amostra e dos sintéticos (sem ganho e sem perda: já
+      estavam em 1,1) e no `dev` do LeNER-Br. Falta a decisão, em equipe: `docs/relatorio-uso-encoder.md`.
+- [x] Conferir que encoder + (futuro) LLM cabem numa T4 de 16 GB (margem sobre os 24 GB do ambiente — R44).
+      *2026-09-25:* a inferência do encoder é em CPU (0 GB de VRAM, ~1 GB de RAM de pico na amostra); o LLM
+      (Qwen2.5-7B em fp16, ~15 GB) fica sozinho na GPU. Treino: pico de 5,05 GB de VRAM.
 
 ## Fase 5 — Leitor LLM de campos difíceis e confiança (27–29/09) · **opcional**
 
