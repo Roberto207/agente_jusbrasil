@@ -1,7 +1,11 @@
 """Régua do go/no-go: recall do extrator nas citações do escopo do LeNER-Br.
 
 A régua é fixa (`lener.no_escopo`); ao lado, a mesma conta sem o número do próprio processo, que o
-LeNER-Br marca como citação e o desafio trata como distrator. O `test` só se mede com as regras
+LeNER-Br marca como citação e o desafio trata como distrator.
+
+Com `--lei`, mede também a régua de lei (proposta em `docs/relatorio-uso-encoder.md`, fixada em
+25/09 antes de o `test` de lei ser aberto): entidade `LEGISLACAO` que começa com "art."/"artigo" e
+tem dígito (`lener.rotulo_legislacao == "citacao"`, a mesma convenção do dataset de treino). O `test` só se mede com as regras
 congeladas: ele não guia correção (protocolo em `tarefas_equipe.md`, Fase 4).
 
 Uso:
@@ -59,6 +63,23 @@ def medir(pasta: Path, split: str, encoder=None) -> tuple[Counter[str], list[tup
     return c, perdas
 
 
+def medir_lei(pasta: Path, split: str, encoder=None) -> Counter[str]:
+    """Régua de lei: artigos com dígito anotados como `LEGISLACAO`, achados por IoU ≥ 0,5."""
+    c: Counter[str] = Counter()
+    for nome in lener.documentos(pasta, splits=(split,)):
+        raw, ents = lener.documento(pasta, nome, "LEGISLACAO")
+        cands = extrair(preparar(raw), encoder)
+        spans = [(x.inicio, x.fim) for x in cands]
+        do_encoder = [(x.inicio, x.fim) for x in cands if "encoder" in x.origem]
+        for e in ents:
+            if lener.rotulo_legislacao(raw, e) != "citacao":
+                continue
+            c["escopo"] += 1
+            c["iou"] += any(_iou((e.inicio, e.fim), s) >= IOU_MINIMO for s in spans)
+            c["so_encoder"] += any(_iou((e.inicio, e.fim), s) >= IOU_MINIMO for s in do_encoder)
+    return c
+
+
 def _pct(a: int, b: int) -> str:
     return f"{a} ({a / b:.1%})" if b else "0"
 
@@ -70,6 +91,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--perdas", action="store_true", help="lista as citações perdidas")
     p.add_argument("--encoder", help="pasta ou repo do encoder ajustado: mede a união regex + encoder")
     p.add_argument("--revisao", help="revisão do encoder (repo do HF)")
+    p.add_argument("--lei", action="store_true", help="mede também a régua de lei")
     args = p.parse_args(argv)
     encoder = None
     if args.encoder:
@@ -89,6 +111,12 @@ def main(argv: list[str] | None = None) -> None:
         if args.perdas:
             for nome, trecho, proprio in perdas:
                 print(f"   {'P' if proprio else ' '} {nome}: {' '.join(trecho.split())}")
+    if args.lei:
+        print("\n| Divisão (lei) | Artigos anotados | IoU ≥ 0,5 | Só pelo encoder |")
+        print("|---|---|---|---|")
+        for split in args.splits:
+            c = medir_lei(args.lener, split, encoder)
+            print(f"| `{split}` | {c['escopo']} | {_pct(c['iou'], c['escopo'])} | {c['so_encoder'] if encoder else '—'} |")
 
 
 if __name__ == "__main__":
