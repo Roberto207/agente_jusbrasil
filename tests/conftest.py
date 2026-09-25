@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import csv
+import os
 from pathlib import Path
 
 import pytest
+
+# A suíte testa o pipeline só com regex: o `verificador.toml` liga o encoder (25/09), mas carregá-lo
+# baixaria o modelo em cada teste de pipeline e exigiria torch. Os testes do encoder usam um encoder
+# falso (`test_encoder_portas.py`). Para rodar a suíte com o encoder de verdade:
+# `VERIFICADOR_USAR_ENCODER=1 pytest`.
+os.environ.setdefault("VERIFICADOR_USAR_ENCODER", "0")
 
 RAIZ = Path(__file__).resolve().parents[1]
 DADOS = RAIZ / "desafio-jusbrasil-bracis-2026"

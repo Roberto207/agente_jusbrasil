@@ -825,7 +825,7 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
         - **Achado de passagem (corrigido):** o regex não extraía `art. 5º da CF`, `Lei 9.504/1997`
           (sem `nº`) nem `LC 64/1990`, embora `leis.json` já os resolvesse. 3 dos 13 dispositivos do
           acervo são da CF. Amostra e sintético inalterados; teste cobre todo alias de `leis.json`.
-- [ ] **3. Decisão em 27/09, 22h (go/no-go).** Critérios na seção do protocolo. Se não passar, fica
+- [x] **3. Decisão em 27/09, 22h (go/no-go).** Critérios na seção do protocolo. Se não passar, fica
       `usar_encoder=false` (ADR-011 já prevê) e os pesos não são publicados.
       *2026-09-25:* decisão **em equipe**. Números, custos e pontos em aberto em
       `docs/relatorio-uso-encoder.md` (inclui a proposta de uma régua de lei no go/no-go).
@@ -835,6 +835,16 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
       115 → 173/202 (30 de leis do acervo, 11 artigos exatos do acervo: complementos `caput`,
       `parágrafo único`, alíneas); amostra 192/192, zero espúrios, τ = 0, R49 idêntico. **Decisão
       final ainda não tomada** — análise, opinião e publicação dos pesos no relatório, seções 9 a 11.
+      *2026-09-25, decisão da equipe: **GO** (implementar o encoder).* Feito:
+      `verificador.toml` com `usar_encoder = true`, `encoder_link = "Roberto2799/jusbrasil-encoder-citacoes"`,
+      `encoder_revisao = "d91d0914…"` (os pesos do go/no-go, conferidos byte a byte com o HF);
+      `torch`/`transformers` no `requirements.txt`; suíte de testes continua só-regex (`conftest`);
+      execução local carregando do HF pela revisão fixa → `submission.csv` idêntico ao do go/no-go
+      (sha256 `4c6e3538…`, o mesmo da `sub-005` na amostra); notebook `08_sub-006.ipynb` com R49 e
+      conferência de hash. **Pendências humanas:** (1) tornar o repositório de pesos **público** e
+      enviar o card (`README.md` pronto) — ação bloqueada para o agente; (2) rodar o `08` no Kaggle e
+      conferir o hash (determinismo entre máquinas); (3) e-mail aos autores do LeNER-Br. Condição 2 da
+      recomendação (reforço do regex de lei) ainda não iniciada.
 - [ ] *Opcional — camada 3 do sintético:* o LLM escreve a **própria citação** a partir de um registro do
       acervo; o gabarito é localizado pelos dígitos, e a citação é descartada se algum dígito mudar. Mede
       o ponto cego atual e dá treino variado ao encoder. Reaproveita o notebook 005.

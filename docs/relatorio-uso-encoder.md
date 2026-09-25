@@ -1,6 +1,8 @@
 # Relatório — usar ou não o encoder na submissão
 
-**Data:** 25/09/2026 (seções 9 a 11 acrescentadas no mesmo dia, depois do go/no-go formal) · **Para:** decisão em equipe · **Prazo final do desafio:** 30/09, 23h59 (BRT)
+**Data:** 25/09/2026 (seções 9 a 11 acrescentadas no mesmo dia, depois do go/no-go formal) · **Para:** decisão em equipe
+
+> **Decisão da equipe (25/09): GO — o encoder entra na submissão.** Implementação em `tarefas_equipe.md`, Fase 4, item 3. · **Prazo final do desafio:** 30/09, 23h59 (BRT)
 
 Este documento junta o que medimos sobre o encoder para a equipe decidir se ele entra na
 submissão. Os detalhes técnicos estão em `tarefas_equipe.md` (Fase 4). Aqui a ideia é explicar

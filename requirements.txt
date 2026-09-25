@@ -2,3 +2,6 @@
 pandas>=2.2
 numpy>=1.26
 pytest>=8.0
+# Encoder (usar_encoder = true). A imagem do Kaggle (v170) já traz os dois.
+torch>=2.1
+transformers>=4.46
