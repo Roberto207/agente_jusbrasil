@@ -15,7 +15,7 @@ Equipe: **Guerreiros da T7**.
 | `sub-002` | `93d5b38` (recall causas 2/3 + confiança) | **21/09/2026** | 1,0860444451608189 | **1,08604** | **20º** |
 | `sub-003` | `ceed22f` (merge do PR #4, execução `auditoria_head`) | não registrado | 1,09272 | — | — |
 | `sub-004` | `e679784` (famílias de classe: outro estágio do mesmo caso deixa de ser número emprestado) | não registrado | 1,10000 | — | — |
-| `sub-005` | `70ff324` (confiança suavizada, `ALFA = 7`) | **sim** (data a confirmar) | 1,099999951 | *a preencher* | *a preencher* |
+| `sub-005` | `70ff324` (confiança suavizada, `ALFA = 7`) | **sim** (data a confirmar) | 1,099999951 | **1,100** | **13º** |
 
 ### `sub-005` — a última enviada
 
@@ -26,10 +26,13 @@ Equipe: **Guerreiros da T7**.
 - **`submission.csv`:** sha256 `4c6e3538b46fc0be…`. A versão atual do projeto (`main`, 25/09, com o
   reforço do regex) gera **o mesmo arquivo** na amostra: as mudanças de depois cobrem formatos que a
   amostra não tem.
-- **Pendência:** o commit `70ff324` está no GitHub (`origin/main`), mas a **tag `sub-005` só existe
-  localmente**. Para a reprodução, a organização coleta "o repositório e o commit que produziram as
-  saídas", então a tag precisa ir para o GitHub (`git push origin sub-005`).
-- **Leaderboard:** nota e posição ainda não registradas aqui.
+- **Tag:** `sub-005` enviada ao GitHub em 25/09 (o commit `70ff324` já estava em `origin/main`). A
+  organização coleta "o repositório e o commit que produziram as saídas".
+- **Leaderboard: 1,100, 13º lugar.** A nota local prevista (1,099999951) arredonda para o mesmo
+  1,100: a simulação local continua exata. Todos os 12 acima também têm 1,100; o desempate é pela
+  ordem de envio, e eles chegaram antes. **Na fase de treino não há mais o que ganhar:** estamos no
+  teto da amostra. A disputa real é o conjunto final (cego), e é para ele que servem o reforço do
+  regex e a decisão do encoder.
 
 ### A simulação local é exata
 
