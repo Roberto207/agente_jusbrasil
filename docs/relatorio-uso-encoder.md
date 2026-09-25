@@ -134,9 +134,12 @@ GPU, então os dois não disputam o mesmo recurso.
 
 1. **Os pesos precisam ser publicados de qualquer jeito.** Nossa regra R46 diz que todo modelo
    treinado pela equipe tem que estar publicado até 30/09, e o encoder já foi usado em medição.
-   `tarefas_equipe.md` já dizia isso ("os pesos são publicados mesmo assim"). *Correção:* na
-   conversa de 25/09 foi dito que, sem o encoder, não seria preciso publicar. Isso estava errado.
-   Se a equipe discordar da regra R46 para este caso, precisa decidir explicitamente.
+   *Correção:* na conversa de 25/09 foi dito que, sem o encoder, não seria preciso publicar. Pela
+   R46 isso estava errado. Mas o próprio `tarefas_equipe.md` se contradiz: a Fase 4 diz "os pesos
+   são publicados mesmo assim se já foram usados em treino/medição", e o item "3. Decisão" diz
+   "se não passar, os pesos não são publicados". A regra do **desafio** só exige publicar o que a
+   solução usa; a R46 é uma regra **nossa**, mais rígida. **A equipe precisa escolher uma das
+   duas** e corrigir o outro trecho.
 2. **Licença do LeNER-Br.** O encoder treinou com o LeNER-Br. O repositório dele diz MIT, mas o
    card no Hugging Face diz "unknown". Registramos que mandaríamos um e-mail aos autores antes de
    publicar pesos treinados com ele. Isso vale com ou sem o encoder na submissão, se publicarmos.
