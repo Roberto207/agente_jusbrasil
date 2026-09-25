@@ -248,3 +248,14 @@ def test_sintetico_toda_real_nunca_cai_em_numero_ausente(run_sintetico) -> None:
 
 def test_campos_nao_lidos_e_um_caminho_incompleta() -> None:
     assert CLASSE_DO_CAMINHO[CAMPOS_NAO_LIDOS] == "incompleta"
+
+
+def test_manifesto_nao_grava_credencial_do_kaggle(monkeypatch) -> None:
+    """O Output do notebook e o pacote reproduzível levam o manifesto: token de sessão não pode ir junto."""
+    monkeypatch.setenv("KAGGLE_USER_SECRETS_TOKEN", "eyJ-segredo")
+    monkeypatch.setenv("KAGGLE_DATA_PROXY_TOKEN", "eyJ-outro")
+    monkeypatch.setenv("KAGGLE_KERNEL_RUN_TYPE", "Batch")
+    info = cli.info_kaggle()
+    assert info["KAGGLE_USER_SECRETS_TOKEN"] == info["KAGGLE_DATA_PROXY_TOKEN"] == "<oculto>"
+    assert info["KAGGLE_KERNEL_RUN_TYPE"] == "Batch"
+    assert "eyJ" not in str(cli.coletar_ambiente())

@@ -845,6 +845,16 @@ Detalhe das licenças: `docs/gerais/conformidade_dados_externos.md`, achado 4.
       enviar o card (`README.md` pronto) — ação bloqueada para o agente; (2) rodar o `08` no Kaggle e
       conferir o hash (determinismo entre máquinas); (3) e-mail aos autores do LeNER-Br. Condição 2 da
       recomendação (reforço do regex de lei) ainda não iniciada.
+      *2026-09-25, pendências (1) e (2) resolvidas:* repositório de pesos **público** (acesso anônimo
+      conferido, revisão `d91d0914` baixa sem token; card na revisão `f6fd3889`). Notebook `08` rodado no
+      Kaggle (imagem `kaggle-gpu-images/python:v170`, Python 3.12.13): `submission.csv`, 26 JSONs e
+      rastro **idênticos byte a byte à execução local** (sha256 `4c6e3538…`), R49 ok no Kaggle, score
+      1,1. Ressalva: na amostra o encoder não acrescenta citação (192/192 vêm do regex), então o hash
+      prova o pipeline com o encoder carregado e filtrado, não a igualdade das previsões dele onde
+      ele de fato acrescenta. Achado: o manifesto gravava tokens de sessão do Kaggle
+      (`KAGGLE_USER_SECRETS_TOKEN`, `KAGGLE_DATA_PROXY_TOKEN`) — corrigido em `main` (valores
+      ocultos, com teste) e o manifesto passou a gravar as versões de torch/transformers; entra na
+      próxima tag. Falta: e-mail ao LeNER-Br.
 - [ ] *Opcional — camada 3 do sintético:* o LLM escreve a **própria citação** a partir de um registro do
       acervo; o gabarito é localizado pelos dígitos, e a citação é descartada se algum dígito mudar. Mede
       o ponto cego atual e dá treino variado ao encoder. Reaproveita o notebook 005.

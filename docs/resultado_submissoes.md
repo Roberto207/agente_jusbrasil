@@ -16,6 +16,7 @@ Equipe: **Guerreiros da T7**.
 | `sub-003` | `ceed22f` (merge do PR #4, execução `auditoria_head`) | não registrado | 1,09272 | — | — |
 | `sub-004` | `e679784` (famílias de classe: outro estágio do mesmo caso deixa de ser número emprestado) | não registrado | 1,10000 | — | — |
 | `sub-005` | `70ff324` (confiança suavizada, `ALFA = 7`) | **sim** (data a confirmar) | 1,099999951 | **1,100** | **13º** |
+| `sub-006` | `015b523` (reforço do regex + encoder ligado) | não (conferida no Kaggle em 25/09) | 1,099999951 | — | — |
 
 ### `sub-005` — a última enviada
 
@@ -33,6 +34,14 @@ Equipe: **Guerreiros da T7**.
   ordem de envio, e eles chegaram antes. **Na fase de treino não há mais o que ganhar:** estamos no
   teto da amostra. A disputa real é o conjunto final (cego), e é para ele que servem o reforço do
   regex e a decisão do encoder.
+
+### `sub-006` — regex reforçado + encoder, conferida no Kaggle (25/09)
+
+- **Não enviada:** na amostra, o `submission.csv` é o mesmo da `sub-005` (sha256 `4c6e3538…`) e daria
+  1,100 de novo. O ganho dela (reforço do regex, encoder) é para o conjunto final.
+- **Determinismo entre máquinas:** o notebook `08_sub-006` no Kaggle gerou `submission.csv`, JSONs e
+  rastro **idênticos byte a byte** aos da execução local, e duas execuções no Kaggle deram o mesmo
+  arquivo. Era a condição da equipe para o encoder entrar.
 
 ### A simulação local é exata
 

@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 import platform
+import re
 import sqlite3
 import subprocess
 import sys
@@ -91,8 +92,33 @@ def info_gpu() -> dict[str, Any]:
     return {"disponivel": True, "nvidia_smi": proc.stdout.strip()}
 
 
+_CREDENCIAL = re.compile(r"TOKEN|SECRET|KEY|PASS|CREDENTIAL|AUTH", re.IGNORECASE)
+
+
 def info_kaggle() -> dict[str, str]:
-    return {chave: valor for chave, valor in sorted(os.environ.items()) if chave.startswith("KAGGLE")}
+    """Variáveis `KAGGLE*` do ambiente, com o valor de credenciais oculto.
+
+    A sessão do Kaggle expõe tokens (`KAGGLE_USER_SECRETS_TOKEN` dá acesso aos secrets anexados
+    enquanto a sessão vive); o manifesto vai para o Output do notebook e para o pacote reproduzível.
+    """
+    return {
+        chave: ("<oculto>" if _CREDENCIAL.search(chave) else valor)
+        for chave, valor in sorted(os.environ.items())
+        if chave.startswith("KAGGLE")
+    }
+
+
+def info_bibliotecas() -> dict[str, str | None]:
+    """Versões instaladas do que decide a saída: o `requirements.txt` final fixa exatamente estas."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    saida: dict[str, str | None] = {}
+    for pacote in ("torch", "transformers", "tokenizers", "safetensors", "numpy", "pandas"):
+        try:
+            saida[pacote] = version(pacote)
+        except PackageNotFoundError:
+            saida[pacote] = None
+    return saida
 
 
 def coletar_ambiente(config: Configuracao | None = None) -> dict[str, Any]:
@@ -108,6 +134,7 @@ def coletar_ambiente(config: Configuracao | None = None) -> dict[str, Any]:
         "git": info_git(raiz),
         "gpu": info_gpu(),
         "kaggle": info_kaggle(),
+        "bibliotecas": info_bibliotecas(),
         "hash_requirements": hash_arquivo(requirements),
         "config": asdict(cfg),
         "hash_configuracao": cfg.hash(),
