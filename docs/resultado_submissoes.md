@@ -1,6 +1,6 @@
 # Resultado das submissões — notas, conjuntos de dados e como lê-los
 
-**Atualizado em:** 2026-09-21 · **Prazo final:** 30/09/2026, 23h59 (BRT)
+**Atualizado em:** 2026-09-25 · **Prazo final:** 30/09/2026, 23h59 (BRT)
 Complementa `resultado_primeira_rodada.md` (explica a métrica e a generalização) e `tarefas_equipe.md` (plano de trabalho).
 
 ---
@@ -13,6 +13,23 @@ Equipe: **Guerreiros da T7**.
 |---|---|---|---|---|---|
 | `sub-001` | `f04ee55` (só-regras, sem confiança) | não | 0,98850 | — | — |
 | `sub-002` | `93d5b38` (recall causas 2/3 + confiança) | **21/09/2026** | 1,0860444451608189 | **1,08604** | **20º** |
+| `sub-003` | `ceed22f` (merge do PR #4, execução `auditoria_head`) | não registrado | 1,09272 | — | — |
+| `sub-004` | `e679784` (famílias de classe: outro estágio do mesmo caso deixa de ser número emprestado) | não registrado | 1,10000 | — | — |
+| `sub-005` | `70ff324` (confiança suavizada, `ALFA = 7`) | **sim** (data a confirmar) | 1,099999951 | *a preencher* | *a preencher* |
+
+### `sub-005` — a última enviada
+
+- **O que mudou em relação à `sub-004`:** só a confiança, de 1,0000 para 0,9993 (suavização da
+  calibração: `ALFA = 7`, `PRIOR = 0,97`). Spans, classes e ids são idênticos na amostra.
+- **Nota local:** 1,099999951 nos dois níveis. É o teto (1,1) menos o custo mínimo da confiança não
+  ser 1,0 no bônus de calibração: macro-F1 1,0, τ = 0.
+- **`submission.csv`:** sha256 `4c6e3538b46fc0be…`. A versão atual do projeto (`main`, 25/09, com o
+  reforço do regex) gera **o mesmo arquivo** na amostra: as mudanças de depois cobrem formatos que a
+  amostra não tem.
+- **Pendência:** o commit `70ff324` está no GitHub (`origin/main`), mas a **tag `sub-005` só existe
+  localmente**. Para a reprodução, a organização coleta "o repositório e o commit que produziram as
+  saídas", então a tag precisa ir para o GitHub (`git push origin sub-005`).
+- **Leaderboard:** nota e posição ainda não registradas aqui.
 
 ### A simulação local é exata
 
