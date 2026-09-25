@@ -1,0 +1,152 @@
+# Auditoria de código — relatório para decisão
+
+**Data:** 2026-09-24 · **HEAD auditado:** `1e744a7` · **Spec:** `specs/auditoria_codigo_multiagente.md`
+**Status:** relatório. **Nada foi alterado no código.** Marque `[x]` no que aprova; o resto fica como está.
+
+## Como foi feito
+
+- **Etapa 0 (dossiê, sem LLM):** `coverage` em duas passadas: (a) produção — `rodar`/`avaliar` na amostra
+  (26 docs) e no sintético (200 docs), mais `ambiente`, `indexar`, `gerar-sintetico`, `calibrar`, `comparar`,
+  `submeter`; (b) `pytest` (194 passed). `vulture` em `src/`. Mapa de chamadores em src/tests/notebooks.
+  `coverage`/`vulture` instalados só no scratchpad — nada no `requirements.txt`.
+- **Etapa 1:** três lentes em paralelo — A (morto/vestigial), B (enxugamento), C (overfitting). A lente D
+  (bugs) ficou de fora: o `/code-review high` já está na Fase 6 (`tarefas_equipe.md:801`).
+- **Etapa 2:** verificador adversarial tentou refutar cada achado e aplicou os de código numa **cópia**.
+- **Não coberto:** o sintético diversificado (só no HF, não está no disco).
+
+**Cobertura de `src/`:** 2.320 instruções — 2.098 produção executa · 86 só teste · 136 nunca (quase tudo
+guarda de invariante ou generalização; ver "Mantidos").
+
+### Checagem mecânica (cópia com A1–A8, B1, B3, B4, B7, B10, B11, B16, B18 + testes B2, B8, B9)
+
+| Artefato | Resultado |
+|---|---|
+| `submission.csv`, `rastro.jsonl`, `jsons/` — amostra e sintético | idênticos byte a byte |
+| índice (1.014 registros, dump completo) | idêntico |
+| `avaliar` (score 1,100000 amostra · 1,098949 sintético) | idêntico |
+| `gerar-sintetico --pares 100 --semente 0` | `diff -r` vazio contra `sintetico/` |
+| `calibrar` → `taxa_acerto.json` | idêntico |
+| manifesto (config, hashes, `hash_configuracao`) | idêntico (só `git` difere: cópia fora do repo) |
+| `pytest` (testes adaptados) | 194 passed, incl. `test_r41_*`/`test_r43_*` |
+| R49 (duas execuções) | mesmo sha256 `4c6e3538…` |
+| Linhas | `src/` 4.549 → **4.395 (−154)** · `tests/` 2.506 → **2.431 (−75)** |
+
+---
+
+## 1. Remoção de código morto — validado, saída idêntica
+
+| ✔ | ID | Local | O que é | Linhas |
+|---|---|---|---|---|
+| [ ] | A1 | `cli.py:157-163` + `import sqlite3` (`:12`) | `contar_documentos` sem chamador (src, tests, notebooks, docs, Dockerfile) | −10 |
+| [ ] | A2 | `extracao/sobreposicao.py:54-55` | `if _chave(cand) > _chave(outra)` inalcançável por construção (lista já ordenada desc.) | −3 |
+| [ ] | A3 | `extracao/sobreposicao.py:40-41` | `if not candidatas: return []` redundante | −2 |
+| [ ] | A4 | `extracao/campos.py:221-222` | `artigo.endswith(".")` — o grupo `(\d+(?:\.\d+)?)` nunca termina em ponto | −2 |
+| [ ] | A5 | `extracao/campos.py:127-128` | `if not numero` no ramo Tema — `\d+` nunca dá vazio (verificado em todos os code points) | −2 |
+| [ ] | A6 | `base/numero_proprio.py:224-225` | ramo `"dispositivo"`; o único chamador já desvia antes. **Ressalva:** documentado como despachante público (`mudancas_caio_fase_1_a.md:175`) — opcional | −2 |
+| [ ] | A7 | `avaliacao/calibrar.py:199-200` | ramo `amostra/sintetico → None` sem chamador. Some junto com B10 | −2 |
+| [ ] | A8 | `sintetico/citacoes.py:21` | campo `Fabricada.forma` escrito e nunca lido | −1 |
+
+## 2. Enxugamento — validado, saída idêntica
+
+| ✔ | ID | Local | Proposta | Linhas | Ressalva |
+|---|---|---|---|---|---|
+| [ ] | B1 | `extracao/campos.py` (7 blocos de 13 linhas) + `pipeline._campos_vazios` | constante `CAMPOS_VAZIOS` + `replace(...)`; fica em `campos.py`, sem tocar `contratos.py` | −76 | — |
+| [ ] | B3 | `_sem_acento` 4× (`atributos.py:50`, `numero_proprio.py:35`, `campos.py:47`, `cabecalho.py:25`) + `tabelas._so_ascii` | uma `sem_acento` NFD em `tabelas/__init__.py` | −18 | **Lado do documento idêntico por construção; lado da base verificado só na base atual.** NFKD×NFD divergem em 4.952 code points (º, ª, ﬁ, NBSP…). Se a base da fase 2 mudar (Kaggle citou 1.016 registros), refazer o dump do índice. Alternativa sem risco: deduplicar só em pares (NFKD base / NFD documento) |
+| [ ] | B4 | `campos._classes_no_texto` = `atributos._siglas_no_texto` | uma `classes_no_texto` em `tabelas` (manter alias usado por `test_extracao.py:272`) | −18 | — |
+| [ ] | B7 | sha256 3× (`cli.hash_arquivo`, `determinismo.hash_csv`, `confianca.hash_tabela`) + caminho da taxa 2× | um `hash_arquivo` em `determinismo.py`; `confianca` usa `calibrar.destino_padrao` | −15 | — |
+| [ ] | B10 | `cli._conjuntos_disponiveis/_documentos_do_conjunto` × `calibrar._docs_do_conjunto` | função única em `avaliacao/divisao.py` | −10 (líquido) | ajustar `tests/test_pipeline.py:157` (importa a função antiga) |
+| [ ] | B11 | `normalizar_relator` em `atributos.py:55` e `campos.py:52` | uma só (depende de B3) | −9 | mesma ressalva de B3 |
+| [ ] | B16 | `campos._numero_com_ocr` devolve flag de OCR sempre sobrescrita em `ler_campos` (`:294-296`) | devolver só o número | −4 | ajustar `tests/test_campos.py:175` |
+| [ ] | B18 | `extracao/__init__._FORMAS` — 4ª coluna sempre = 2ª | tirar a coluna; `Candidata.padrao` continua recebendo `forma` | −3 | decidir junto com A14 (gancho do encoder) — **sugiro depois de 27/09** |
+| [ ] | B2 | `tests/test_esqueleto.py` repete conftest e roda de novo a amostra | **mover** as asserções únicas (índice ==1014, cabeçalho do CSV, `relatorio.md`) para a fixture `run_amostra` | −25 (tests) | não apagar: único teste de `cmd_indexar` |
+| [ ] | B8 | `tests/test_integracao_ab.py:55-68` `_milhar`/`_cnj` | importar de `sintetico/citacoes` | −13 (tests) | o oráculo do teste passa a depender do formatador de produção |
+| [ ] | B9 | fixture `indice` 4× nos testes | uma só, escopo `session`, no `conftest.py` | −10 (tests) | — |
+
+### Marginais (não aplicados na cópia; ganho pequeno)
+
+| ✔ | ID | O que é | Linhas | Ressalva |
+|---|---|---|---|---|
+| [ ] | B5 | imports locais repetidos nas `cmd_*` → topo do `cli.py` | −18 | deixar `pandas` lazy (+0,32 s em todo comando se subir) |
+| [ ] | B6 | `main()` com 46 linhas de `if/elif` → `set_defaults(func=...)` | −18 | `main()` sem teste; mexe na interface que os notebooks chamam |
+| [ ] | B12 | overlay de env 5× em `configuracao.carregar` → laço | −8 | maioria é gancho dormente |
+| [ ] | B13 | gravar JSON 4× | −6 | os 4 **não** são iguais (`sort_keys`, `ensure_ascii`) — helper precisa dos parâmetros |
+| [ ] | B14 | IoU 3× | −6 | unificar só `sobreposicao`/`comparar`; manter `tests/helpers.iou_offsets` como oráculo |
+| [ ] | B15 | filtro de docs repetido em `relatorio.py:22/29` | −5 | — |
+| [ ] | B17 | `TABELA_DOCUMENTOS`=`indice.TABELA`, `"desafio1_bracis.db"` e `kaggle_metric` repetidos; `gerador` importa `caminho_db` da CLI | −3 | corrige inversão de camada |
+
+## 3. Textos vestigiais (0 linhas, só texto)
+
+| ✔ | ID | Local | Correção |
+|---|---|---|---|
+| [ ] | A9 | `cli.py:1`, `:571`, `:574` | docstring cita só 5 comandos; help de `rodar` diz "JSON vazio por documento"; help de `indexar` desatualizado |
+| [ ] | A10 | `extracao/campos.py:22-31` | dois parágrafos repetem o mesmo comentário sobre `_RELATOR` (−4) |
+| [ ] | A11 | `extracao/campos.py:274` | diz "Fase 4" para o LLM — **está errado**, é a Fase 5 |
+| [ ] | A12 | `tabelas/__init__.py:1` | "provisórias da frente B" |
+| [ ] | A13 | `pipeline.py:3-4,36`, `extracao/__init__.py:52`, `cli.py:247` | "quando existirem" / "Fases 4 e 5" — **só depois de 27/09**, conforme o go/no-go |
+
+## 4. Dormente — decisão humana amarrada ao go/no-go (27/09) — não mexer agora
+
+| ID | O que é | Se o encoder/LLM cair |
+|---|---|---|
+| A14 | `contratos.py:31` `Candidata.padrao` (= `forma` sempre). **Refutado como morto:** `DESIGN.md:255` o define como "nome do padrão ou `encoder`" — gancho do ADR-011; muda `rastro.jsonl`; regra 1 da convivência | simplificar junto com B18 |
+| A15 | `usar_encoder`/`usar_llm`, `dtype`, `encoder_*`/`llm_*`, `com_flags`, `--sem-encoder`/`--sem-llm` (hoje não fazem nada: padrão já é `False`, `True` aborta), parâmetro `encoder` de `extrair`, `OrigemCandidata="encoder"` | ~−25; muda `hash_configuracao`/manifesto |
+| A16 | `decisao/llm.py` inteiro (`ler_campos_llm` sem chamador; `numero_do_llm_valido` só em teste) + `FonteCampos="llm"` | ~−60 se a Fase 5 não acontecer |
+| A17 | forma referência vaga (`extrair_referencia_vaga=false`) — depende do ADR-005 (`tarefas_equipe.md:573-581`), não do encoder | ~−40 se abandonada |
+| A18 | `configuracao.semente` — ninguém lê `cfg.semente` | −3, junto com A15 |
+
+## 5. Fora do código
+
+| ✔ | ID | O que é | Proposta |
+|---|---|---|---|
+| [ ] | N1 | notebooks `00`, `02`, `03`, `04` — mesmo template do `06`, diferem só em `VERSAO`/título | remover (ficam no git/tags). Reapontar `README.md:48-52`, `guia_kaggle.md:75,92`, `resultado_submissoes.md:72`, `tarefas_equipe.md:393`. Obs.: o `06` não está em nenhuma tag (cada notebook é commitado depois da própria tag) |
+| [ ] | N2 | notebook `05` com `VERSAO = "main"` e texto dizendo que usa `cmd_gerar_sintetico` (não usa) | fixar tag + corrigir texto (ADR-010) |
+| [ ] | F1 | `submission_feita_kaggle.csv` na raiz (sub-001, sem referência) | `git rm` (recuperável em `a85b329`) |
+| [ ] | F2 | `.claude/agent-memory/criar-estudo/` versionado — memória de estudo do Obsidian, sem relação com o projeto | `git rm --cached` + `.gitignore` |
+| [ ] | D1 | links quebrados: `docs/guia_kaggle.md` (16×), `docs/ia_no_pipeline.md` (5×), `docs/analise_erros_baseline.md` (4×) — os arquivos foram para `docs/gerais/`; `tarefas_equipe.md:581` aponta linha velha | corrigir caminhos |
+| [ ] | D2 | `BUILD_PROMPT.md`, `resultado_primeira_rodada.md`, `analise_erros_baseline.md` superados. **Refutado em parte:** ainda são citados (`resultado_submissoes.md:4,41`, `limites_de_decisao.md:39`, `tarefas_equipe.md:4,8`, `README.md:5` — que ainda diz "≈ 0,99") | **arquivar/marcar histórico**, não apagar |
+
+## 6. Overfitting (lente C) — não é limpeza; vira spec própria ou teste novo
+
+Nenhum de severidade alta. Nenhum muda o código agora.
+
+| ✔ | ID | Sev. | O que é | Ação sugerida |
+|---|---|---|---|---|
+| [ ] | C3 | média | caminho `numero_desempatado` (`caminhos.py:70-75`) validado por **1** citação (gen_n2_010); o sintético nunca gera caso desempatável; célula n=1 na `taxa_acerto` | molde sintético com desempate |
+| [ ] | C4 | média | relaxação por família de classe (`familias_classe.json`) nasceu de 1 caso (gen_n2_005 ARR×AIRR); o sintético que a exercita foi escrito para ela; o lado "emprestado da mesma família" não é medido | spec própria + molde "emprestada da mesma família" |
+| [ ] | C5 | média | ruído OCR do sintético inverte `tabelas.ocr()` → cobertura 8/8 **circular**; amostra sustenta 5/8 letras com 1 doc cada; B→8, Z→2 invisíveis | ruído com confusões fora da tabela, medidas à parte |
+| [ ] | C1 | baixa | `leis.json:5-6` "constituição fedcral" e `padroes.py:123` `fed[ce]ral` — OCR de uma letra copiado de 1 citação | generalizar e↔c ou aceitar e registrar |
+| [ ] | C2 | baixa | abreviações de classe só da amostra: `arespel`, `eds`, `\bed\b`, `recl\.?`, `\brp\b`, `rec\.?\s*esp` (1–4 docs, 0 sintético, 0 base) | manter; gerador sintético passar a produzi-las |
+| [ ] | C6 | baixa | `_HIFEN_PONTO`, `_HIFENS_DUPLOS`, `_ORDINAL` (até "quarto"), `Súm.` sem exemplo no sintético | manter; incluir em `ruido.py`/`moldes.py` |
+| [ ] | C7 | baixa | teste R43 (`test_frente_c.py:274-288`) só varre `.py` e só igualdade exata — não pega tabelas JSON nem C1/C2 | estender R43 a `tabelas/*.json` |
+| [ ] | C8 | baixa | R41 ok; o teste só renomeia sem permutar | teste opcional de permutação de nomes |
+| [ ] | C9 | baixa | `ALFA=7`, `PRIOR=0.97` à mão (documentados); 12/12 células `usou_constante`; parte sintética do controle é circular (C5) | manter |
+| [ ] | C10 | baixa | limites de regex (`_ENCHE{0,25}`, `{0,7}`, `{0,15}`; cabeçalho 3/120/40) sem origem documentada | manter; teste de propriedade nos limites |
+| — | C11 | info | apelidos de lei "lei nº N/AAAA" nunca alcançados (`_LEI_COM_BARRA` resolve antes) | redundância, não overfitting |
+
+**Casamentos por tabela (informativo — entrada sem casamento é generalização, não corte):** classes 84 pares
+(34 amostra / 44 sintético / 31 em nenhum, 21 destas casam na base) · leis 55 (23/22/31) · tst 19 (5/11/7) ·
+ufs 27 (17/23/2) · ocr 8 (5/8 circular) · vocabulario_ocr 31 (1/17/14) · referencia_vaga 5 (flag off) ·
+familias_classe 5 (1/4/1).
+
+## 7. Mantidos — não são achados
+
+- **Falsos positivos do vulture:** 8 métodos de `sintetico/citacoes.py` (despacho por `getattr`, `:251`);
+  `indice.py:42 text_factory` (atributo do sqlite).
+- **Generalização (G1):** `pipeline.py:21-22,46-48`, fallback de `confianca.py`, `sobreposicao.py:51-60`,
+  `relatorio.py:50,59-65`, `decidir.py:37` — não rodam na amostra, mas o conjunto cego pode exercitar.
+- **Invariantes (G2):** `decidir.py:53-54` (R14), `validar.py`, `normalizacao.py:215-229` — guardas de
+  R14/R38 que derrubam a submissão inteira se violadas.
+- **`gerar_divisao` (G3):** só-teste, mas é a proveniência do `divisao.json` (ADR-009).
+- **`sintetico/verdade.consistentes`:** cópia intencional — oráculo independente.
+
+## Totais
+
+| Grupo | Linhas |
+|---|---|
+| Seções 1 + 2 (validados) | `src/` −154 · `tests/` −75 |
+| Marginais | até ~−64 |
+| Dormentes (só se encoder/LLM/ref. vaga caírem) | até ~−130 |
+
+**Próximo passo após a aprovação:** branch `limpeza-auditoria`, um commit por categoria, e a checagem
+mecânica de novo (CSV idêntico nos conjuntos + `pytest` + R49), depois `/code-review high` (ou ultra) no
+branch.
