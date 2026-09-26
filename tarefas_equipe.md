@@ -14,7 +14,7 @@ tarefas que cada integrante pode pegar. Complementa, sem substituir:
 | `specs/DESIGN.md` | *como* — arquitetura, contratos, tabela de caminhos de decisão |
 | `docs/decisions/ADR-*` | *por quê* — decisões duras já tomadas (não reabrir sem motivo) |
 | `ação_humana_pendente.md` | o que só um humano faz (contas, tokens, e-mail, submissão) |
-| `docs/guia_kaggle.md` | como rodar no Kaggle |
+| `docs/gerais/guia_kaggle.md` | como rodar no Kaggle |
 
 Marque `[x]` ao concluir. Onde houver `Responsável: ____`, preencher na reunião de divisão.
 
@@ -384,11 +384,11 @@ Um dia dedicado. Sem ele, cada frente fica "pronta sozinha" e nunca fecha.
 
 ## Fase 3 — Linha de base e análise de erro (25/09)
 
-**Status: 🟡 parcial.** Linha de base e análise de erro feitas: `docs/analise_erros_baseline.md`. **Pendente:** commit,
+**Status: 🟡 parcial.** Linha de base e análise de erro feitas: `docs/gerais/analise_erros_baseline.md`. **Pendente:** commit,
 tag `sub-001`, notebook no Kaggle, envio da 1ª submissão e comparação local × leaderboard (ações humanas / autorização).
 
 
-- [x] **Tag `sub-001`** no commit da versão só-regras (nunca `main` em execução oficial — `docs/guia_kaggle.md`).
+- [x] **Tag `sub-001`** no commit da versão só-regras (nunca `main` em execução oficial — `docs/gerais/guia_kaggle.md`).
       *2026-09-21:* `sub-001` (f04ee55) é a versão só-regras **sem** confiança nem causas 2/3 e já está no remoto; a submissão
       real sai da **`sub-002`** (calibrador recalibrado com sintético; notebook `notebooks/kaggle/02_sub-002.ipynb`).
 - [x] Trocar `VERSAO = "main"` do notebook para a tag e rodar no Kaggle, gerando `submission.csv` no ambiente
@@ -408,7 +408,7 @@ tag `sub-001`, notebook no Kaggle, envio da 1ª submissão e comparação local 
 ### 3.1 Próximos passos propostos após a linha de base (registrados em 2026-09-19, **não implementados**)
 
 Resultado da linha de base e explicação das métricas em `resultado_primeira_rodada.md`; detalhe dos erros em
-`docs/analise_erros_baseline.md`.
+`docs/gerais/analise_erros_baseline.md`.
 
 **(a) Antecipar a confiança calibrada (ADR-008) da Fase 5 para agora, antes da 1ª submissão.**
 
@@ -456,9 +456,10 @@ Todas são de **extração** (frente B): o que é achado é classificado sem err
       tinha o mesmo defeito e foi corrigido junto. Decisão em `ADR-015`, detalhe e números em
       `specs/forma_d_ancorada.md`. Sintético: recall 922/994 → **988/994**, score 1,0394 → **1,0957**, com 10
       moldes de estresse novos no gerador. Amostra intacta em 192/192.
-- [ ] **Fase 4 / encoder — decisão informada:** pelo limiar do ADR-015 o resultado é o **desfecho A** (só regex).
+- [x] **Fase 4 / encoder — decisão informada:** pelo limiar do ADR-015 o resultado é o **desfecho A** (só regex).
       As âncoras cobrem 9 dos 10 moldes que nunca viram, mantendo precisão 1,0, sem GPU nem publicação de pesos.
       O encoder fica disponível como ADR-011 se aparecer evidência de ligação fora deste repertório.
+      *2026-09-25:* superado — go/no-go formal feito e decisão da equipe: **GO** (Fase 4, item 3).
 
 > Ressalva: os moldes do gerador sintético foram escritos por quem implementou a análise; a frequência real dessas
 > formas no conjunto final é desconhecida (ADR-012). A causa 3 é a mais segura; a causa 1 é a mais incerta.
@@ -924,7 +925,7 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
 
 1. ✅ *(feito em 24/09)* **Reforço do regex (atividade 1), em paralelo.** Continua pré-requisito do go/no-go: o critério 1
    compara com o regex *reforçado*. Guiado só por `train`/`dev` do LeNER-Br.
-2. ✅ *(feito em 24/09, `enc-001`)* **Notebook de treino no Kaggle (T4)**, `notebooks/kaggle/07_treino_encoder.ipynb`:
+2. ✅ *(feito em 24/09, `enc-001`)* **Notebook de treino no Kaggle (T4)**, `notebooks/kaggle/07_treino_encoder_enc-001.ipynb`:
    - clona o repo; baixa o sintético na revisão `0209a85…`; clona o LeNER-Br no commit
      `4999cb7f63191f1d6904206f312eeca8f5b45c5a`; usa a amostra dos dados da competição;
    - roda `python -m verificador.treino.dataset` e **confere o `sha256_dataset`** contra o do
@@ -964,19 +965,30 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
 - [x] **Treinar o NER** (marcação BIO) em `treino/`, com o sintético (+ opcionalmente LeNER-Br), tolerando ruído
       de OCR no corpo original (não na cópia normalizada).
       *2026-09-24:* `enc-001` no Kaggle (ver 2b acima).
-- [ ] **Publicar os pesos** no Hugging Face com revisão fixa (R45, R46).
+- [x] **Publicar os pesos** no Hugging Face com revisão fixa (R45, R46).
+      *2026-09-25:* `Roberto2799/jusbrasil-encoder-citacoes`, público, revisão `d91d0914…` (card em `f6fd3889…`).
 - [x] **Integrar** em `extrair()` como **união** com o regex (ADR-011), com o **filtro das 4 formas** (o encoder
       não pode trazer "jurisprudência pacífica desta Corte" de volta — R33) e a resolução de sobreposição (R3).
       *2026-09-25:* feito, atrás do `usar_encoder` (ver 2c acima).
-- [ ] **Medir contra a linha de base** no controle. Entra na submissão **somente se ganhar**; senão fica
+- [x] **Medir contra a linha de base** no controle. Entra na submissão **somente se ganhar**; senão fica
       desligado (`usar_encoder=false`) e os pesos são publicados mesmo assim se já foram usados em treino/medição.
       *2026-09-25, parcial:* medido no controle da amostra e dos sintéticos (sem ganho e sem perda: já
       estavam em 1,1) e no `dev` do LeNER-Br. Falta a decisão, em equipe: `docs/relatorio-uso-encoder.md`.
+      *2026-09-25:* feito — go/no-go formal (4 critérios passam) e decisão GO da equipe.
 - [x] Conferir que encoder + (futuro) LLM cabem numa T4 de 16 GB (margem sobre os 24 GB do ambiente — R44).
       *2026-09-25:* a inferência do encoder é em CPU (0 GB de VRAM, ~1 GB de RAM de pico na amostra); o LLM
       (Qwen2.5-7B em fp16, ~15 GB) fica sozinho na GPU. Treino: pico de 5,05 GB de VRAM.
 
-## Fase 5 — Leitor LLM de campos difíceis e confiança (27–29/09) · **opcional**
+## Fase 5 — Leitor LLM de campos difíceis e confiança (27–29/09) · **Deixado de lado por enquanto**
+
+> **Deixada de lado (decisão da equipe, 25/09):** o leitor LLM não entra; `usar_llm = false`. Motivo
+> medido: a fila de difíceis está **vazia** — 0 citações com campos não lidos em amostra (192),
+> sintético base e diversificado (994 cada) e LeNER-Br `train`+`dev` (1.426). O leitor, como
+> desenhado, não teria o que ler, e custaria ~15 GB de GPU e risco de determinismo.
+>
+> **Exceção:** o item "Confiança calibrada" abaixo está nesta seção só pela montagem do documento; ele
+> não usa LLM, já está feito (`taxa_acerto.json`) e segue valendo. A spec de confiança variável
+> (`specs/confianca_variavel.md`) está pausada à parte, sem relação com a Fase 5.
 
 **ADR:** 013, 008 · **Responsável:** ____ (frente D)
 
@@ -991,9 +1003,13 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
 - [ ] Marcar `fonte="llm"` no rastro.
 - [ ] **Medir contra sem-LLM** no controle. Só liga se melhorar o score; senão `usar_llm=false`.
 - [ ] Verificar impacto em determinismo (R49) e em memória (R44).
-- [ ] **Confiança calibrada** (R26, opcional): gerar a tabela `taxa_acerto[caminho, correcao_ocr, fonte]` no
+- [x] **Confiança calibrada** (R26, opcional): gerar a tabela `taxa_acerto[caminho, correcao_ocr, fonte]` no
       controle; comparar o **Brier** com o de uma confiança constante; **se não for menor, não enviar
       confiança.**
+      *Feito desde a `sub-004`/`sub-005`:* `avaliacao/taxa_acerto.json`, hoje constante 0,999318 (zero erros no
+      controle). Tabela variável em `specs/confianca_variavel.md`: **pausada** por decisão da equipe (25/09),
+      guardada para se e quando o leaderboard público da fase final (40%) abrir antes de 30/09 — aí, testar
+      com duas submissões das mesmas citações (constante × tabela). Até lá, fica a constante.
 - [ ] Se for usar o skill `prompt-engineering` para o prompt do LLM, lembrar: testar contra casos adversariais
       antes de gravar a versão final.
 
@@ -1001,13 +1017,67 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
 
 ## Fase 6 — Congelamento (29–30/09) · todos
 
-- [ ] **Publicar artefatos finais** (pesos e dataset, se usados) no Hugging Face **antes de 30/09 23h59 BRT**;
+### Levantamento de 25/09 — o que falta até 30/09, 23h59 BRT
+
+**Obrigatório** (sem isso a solução pode ser declarada não reproduzível):
+
+- [ ] **`requirements.txt` com versões fixas (`==`).** Rodar o notebook com a próxima tag: desde 25/09 o
+      manifesto grava as versões de torch, transformers, tokenizers, safetensors, numpy e pandas do Kaggle.
+      Fixar exatamente essas. Hoje ainda estão com `>=`.
+- [ ] **`Dockerfile` fixado pelo hash da imagem.** O Kaggle expõe o hash real em `KAGGLE_DOCKER_IMAGE`:
+      `gcr.io/kaggle-gpu-images/python@sha256:37c64f7dd9c54116…` (a tag `v170` do manifesto é texto fixo,
+      nunca conferido). Opcional: baixar os pesos do encoder na imagem, para a execução não depender de rede.
+- [ ] **Tag final (`sub-NNN`) + notebook no Kaggle** com R49 e hash. A `sub-006` não tem a correção do
+      manifesto (tokens de sessão do Kaggle), nem os itens acima. Usar **T4 ×1**.
+- [ ] **`/code-review high`**, de preferência no branch de enxugamento.
+- [ ] **Pacote reproduzível:** o repositório é privado; combinar como entregar à organização (acesso ou
+      cópia) se a equipe for finalista.
+- [x] **README, ADRs e documentos atualizados** (25/09): README reescrito (encoder, comando exato, links e
+      revisões); ADR-011 e 013 com o resultado; notas em ADR-008, 010, 012, 014, DESIGN, DEFINE (R47/R48),
+      `ia_no_pipeline.md`, `guia_kaggle.md`, `sistema_explicado.md`, `conformidade_dados_externos.md`;
+      26 links quebrados corrigidos; 3 documentos superados marcados como históricos. Revisar o README na tag
+      final (hash, versões fixas).
+
+**Enxugamento** (`specs/auditoria_codigo_multiagente.md` + `docs/gerais/auditoria_codigo.md`, seção 0,
+**revalidada em 25/09**):
+
+- [ ] Aprovar os itens na seção 0 do relatório. Recomendado: A1–A8, **A19** (novo), B1, **B4** (agora
+      necessário: `encoder.py` importa função privada), B7, B10, B16, **remoção do LLM** (~−90 linhas; mexe
+      em `contratos.py`, avisar a equipe), textos A9–A13, notebooks `00`/`02`–`04`, `05` com tag fixa,
+      `submission_feita_kaggle.csv`, `.claude/agent-memory/`. Adiar B3/B11 (base da fase 2) e A17.
+- [ ] Aplicar num branch `limpeza-auditoria`, um commit por categoria, com a checagem mecânica: CSV idêntico
+      em amostra, controle, sintético e diversificado + `pytest` + R49. **Antes** da tag final.
+
+**Pendências menores:**
+
+- [ ] E-mail aos autores do LeNER-Br (pesos já publicados; ver `conformidade_dados_externos.md`).
+- [ ] Segurança: revogar e gerar de novo o token do HF e o `github_pat_…` do `.env` (apareceram numa sessão).
+- [ ] Kaggle: apagar o Output da versão do `08` que gravou tokens de sessão (já expirados; é higiene).
+- [ ] Commitar o que está pendente no working tree (documentos de 25/09) — quando a equipe pedir.
+
+**Decisões em aberto (da equipe):**
+
+- [ ] Reforço do regex de lei (`caput`, `parágrafo único`, alíneas): redundância determinística ao encoder.
+- [ ] Referência vaga: ligar ou não (estava marcada para a fase 2).
+- [ ] Spec de confiança variável: pausada até o leaderboard público da fase final (40%).
+
+**Quando o conjunto final sair:** conferir no `indexar` se a base tem 1.014 ou 1.016 registros (divergência
+de 22/09 entre a página e os arquivos); rodar o notebook da submissão sobre os `.txt` novos; submeter.
+
+**Ordem sugerida:** 26/09 enxugamento + checagem · 27/09 code-review, merge · 28/09 notebook com a tag
+candidata, fixar `requirements.txt` e `Dockerfile`, tag final e nova conferência · 29–30/09 folga e
+submissão final.
+
+- [x] **Publicar artefatos finais** (pesos e dataset, se usados) no Hugging Face **antes de 30/09 23h59 BRT**;
       conferir os links e as revisões fixas (R45, R46). Se nada foi treinado, registrar isso no README.
+      *2026-09-25:* os dois públicos — dataset `0209a853…`, pesos `d91d0914…`. Reconferir se a tag final mudar algum.
 - [ ] **README final**: como reproduzir, comando exato, versão do ambiente, links + revisões dos modelos.
+      *2026-09-25:* reescrito (ver levantamento acima); falta só revisar na tag final.
 - [ ] **`Dockerfile`**: tag fixa da imagem do Kaggle conferida contra a versão real vista no notebook (ADR-014);
       tentar `docker build` se houver espaço (imagem de vários GB); senão documentar como não testado.
 - [ ] **`requirements.txt`**: todas as versões fixas; licenças OSI conferidas (R21).
-- [ ] **Determinismo**: duas execuções → CSV idêntico (R49), no notebook do Kaggle.
+- [x] **Determinismo**: duas execuções → CSV idêntico (R49), no notebook do Kaggle.
+      *2026-09-25:* `sub-006` no Kaggle: duas execuções idênticas e iguais à local (sha256 `4c6e3538…`).
 - [ ] **Sem literais da amostra** e **sem dependência de nome de arquivo** (testes R41, R43 verdes).
 - [ ] **`code-review`** do repositório inteiro (`/code-review high`), corrigir o que for relevante.
 - [ ] **Escolher a submissão final** (decisão humana, até 30/09 23h59 BRT), com `submeter` criando a tag.
@@ -1053,12 +1123,15 @@ e já previsto.
 
 ## Checklist de "pronto para a submissão final"
 
-- [ ] `pytest` verde, incluindo R35, R36, R41, R43, R48, R49
-- [ ] Os 96 `real` da amostra resolvem para o `id_canonico` certo; τ = 0 na amostra e no controle
-- [ ] `submission.csv` aceito pelo `kaggle_metric.py` (sem R3, sem `ParticipantVisibleError`)
-- [ ] Duas execuções idênticas byte a byte
-- [ ] Modelos e dataset publicados, com link e revisão fixa, antes do prazo
+- [x] `pytest` verde, incluindo R35, R36, R41, R43, R48, R49 *(vale na `sub-006`, 25/09; reconferir na tag final)*
+- [x] Os 96 `real` da amostra resolvem para o `id_canonico` certo; τ = 0 na amostra e no controle *(vale na `sub-006`, 25/09; reconferir na tag final)*
+- [x] `submission.csv` aceito pelo `kaggle_metric.py` (sem R3, sem `ParticipantVisibleError`) *(vale na `sub-006`, 25/09; reconferir na tag final)*
+- [x] Duas execuções idênticas byte a byte *(vale na `sub-006`, 25/09; reconferir na tag final)*
+- [x] Modelos e dataset publicados, com link e revisão fixa, antes do prazo *(vale na `sub-006`, 25/09; reconferir na tag final)*
 - [ ] Sem chamada de rede na execução; licenças OSI conferidas
+      *Atenção (25/09):* com o encoder, a execução baixa os pesos do HF por link + revisão. O DESIGN permite
+      ("exceto baixar modelos por link + revisão, ou tê-los em cache na imagem"), mas o README final precisa
+      dizer isso aos avaliadores (internet ou cache prévio).
 - [ ] README, `Dockerfile` e `requirements.txt` com versões fixas
 - [ ] Árvore git limpa, tag `sub-NNN` criada, manifesto com commit + revisões + versão do ambiente
-- [ ] `code-review` feito
+- [ ] `code-review` feito - auditoria do código realizada.

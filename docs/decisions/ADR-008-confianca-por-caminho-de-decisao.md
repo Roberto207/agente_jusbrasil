@@ -35,3 +35,12 @@ Taxas medidas na amostra podem ser otimistas para o conjunto final.
 
 ### Mitigação
 Medir no conjunto de controle, não na parte da amostra usada para ajustar regras.
+
+## Revisão de 25/09 — como ficou
+
+A tabela existe (`avaliacao/taxa_acerto.json`), mas hoje **todas as células usam a constante 0,999318**:
+o controle tem 301 observações e nenhum erro, então dividir por caminho nunca bate a constante em Brier,
+e o `calibrar.py` herda a constante por construção (R26). Simulado com a métrica oficial, constante ×
+1,0 dá diferença desprezível (±0,0000004 por erro); o que pesaria seria confiança baixa **nas
+citações que erram**, e para isso falta uma base com erros de classificação. A tabela variável está
+**pausada** (`specs/confianca_variavel.md`) até o leaderboard público da fase final abrir.

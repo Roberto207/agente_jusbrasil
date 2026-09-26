@@ -17,7 +17,7 @@ podem mudar a saída.
 
 Treino e geração de dados rodam em qualquer ambiente. **Toda submissão** sai de um notebook do Kaggle
 com: ambiente fixado, código numa tag git, `requirements.txt` com versões fixas, float16, uma única GPU
-(guia em `docs/guia_kaggle.md`). O `Dockerfile` entregue parte da **mesma imagem pública do Kaggle**
+(guia em `docs/gerais/guia_kaggle.md`). O `Dockerfile` entregue parte da **mesma imagem pública do Kaggle**
 (`gcr.io/kaggle-gpu-images/python`, tag fixa) mais o mesmo `requirements.txt`. Cada submissão é gerada
 duas vezes; só vale se os CSVs forem idênticos.
 
@@ -39,3 +39,14 @@ Imagem do Kaggle é grande; hardware continua diferente.
 
 ### Mitigação
 LLM só com conferência (ADR-013); manifesto registra imagem, GPU e driver.
+
+## Revisão de 25/09 — como ficou
+
+- **Determinismo entre máquinas conferido:** a `sub-006` (regex + encoder) deu `submission.csv`, JSONs
+  e rastro idênticos byte a byte na máquina local e no Kaggle, e duas execuções no Kaggle também.
+- **A execução não usa GPU:** o encoder roda em CPU justamente para a saída não depender de hardware.
+  "float16, uma GPU" continua valendo só para o treino e para a geração de dados.
+- **Imagem:** o Kaggle expõe o hash real em `KAGGLE_DOCKER_IMAGE`
+  (`gcr.io/kaggle-gpu-images/python@sha256:37c64f7dd9c54116…` na `sub-006`). A tag `v170` gravada no
+  manifesto é texto fixo, não conferido. O `Dockerfile` final deve fixar o hash.
+- A execução da `sub-006` usou duas T4 por engano; para a próxima, **T4 ×1**.

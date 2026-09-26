@@ -3,14 +3,25 @@
 **Data:** 2026-09-17
 **Versão:** v2.1 — alinhado ao `DEFINE.md` v2.2. A v1 era só regras determinísticas; a v2 incorpora
 as regras completas da competição (ambiente de avaliação com GPU, pesos e dados públicos, pacote
-reproduzível) e a IA na leitura (`docs/ia_no_pipeline.md`); a v2.1 corrige o ambiente de execução —
+reproduzível) e a IA na leitura (`docs/gerais/ia_no_pipeline.md`); a v2.1 corrige o ambiente de execução —
 o notebook do Kaggle não aceita imagem Docker própria, então o ambiente único das submissões é o
 notebook com versão fixada, e o `Dockerfile` de entrega parte da imagem pública do Kaggle
-(ADR-014, `docs/guia_kaggle.md`).
+(ADR-014, `docs/gerais/guia_kaggle.md`).
 **Fase:** SDD 2c (arquitetural)
 **Contrato:** implementa `DEFINE.md`. Decisões duras em `docs/decisions/` (ADR-001 a ADR-014).
 
 ---
+
+
+> **Estado em 25/09 (o que mudou desde a v2.1).**
+> - **Encoder: implementado e ligado** (decisão da equipe em 25/09). BERTimbau-base ajustado, publicado em
+>   `Roberto2799/jusbrasil-encoder-citacoes` @ `d91d0914…`; roda **em CPU** (determinismo); só acrescenta
+>   onde o regex não achou nada (ADR-011, revisão de 25/09).
+> - **LLM na execução: não adotado** (ADR-013, revisão de 25/09) — a fila de difíceis está vazia. As
+>   passagens abaixo sobre `[3b] Campos por LLM`, fila e `usar_llm` ficam como registro do desenho
+>   original. O LLM só foi usado fora da execução, para gerar dados (ADR-012).
+> - **Código de treino** mora em `src/verificador/treino/` (não em `treino/` na raiz).
+> - **Execução:** não precisa de GPU; baixa os pesos do encoder do HF por link + revisão na primeira vez.
 
 ## Decisão arquitetural central
 
@@ -22,7 +33,7 @@ consistente → `real` com o `id`. **A decisão é sempre determinística; a IA 
 | Trabalho | Quem faz |
 |---|---|
 | Achar citações no texto | regex **∪** encoder NER treinado (ADR-011) |
-| Ler os campos de uma citação | regras; LLM opcional só para as difíceis, com conferência (ADR-013) |
+| Ler os campos de uma citação | regras (o LLM opcional do ADR-013 não foi adotado: fila de difíceis vazia) |
 | Decidir a classe e o id | consulta ao índice da base, sem IA (ADR-006, ADR-007) |
 | Gerar dados de treino e de controle | código + LLM, fora da execução (ADR-012) |
 
@@ -45,12 +56,12 @@ consistente → `real` com o `id`. **A decisão é sempre determinística; a IA 
 | **Desenvolvimento** | gerar dados sintéticos (código + LLM) | Kaggle GPU (LLM), qualquer CPU (código) | dataset público no Hugging Face (R46) |
 | | treinar o encoder NER | Kaggle GPU | pesos públicos no Hugging Face (R46) |
 | | regras, tabelas, índice, avaliação | qualquer CPU | código no repositório privado |
-| **Execução** | o comando que gera `submission.csv` | notebook do Kaggle, ambiente fixado, **uma** GPU T4 ≤ 16 GB, float16 (`docs/guia_kaggle.md`) | submissão + manifesto + relatório (ADR-014) |
+| **Execução** | o comando que gera `submission.csv` | notebook do Kaggle, ambiente fixado, **uma** GPU T4 ≤ 16 GB, float16 (`docs/gerais/guia_kaggle.md`) | submissão + manifesto + relatório (ADR-014) |
 
 Treino e geração não precisam ser refeitos pela organização: o que ela reproduz é a execução, a
 partir dos artefatos publicados (link + revisão). O notebook do Kaggle não aceita imagem Docker
 própria — a reprodução da execução é feita clonando o repositório numa tag fixa dentro do ambiente
-oficial do Kaggle (`docs/guia_kaggle.md`); o `Dockerfile` entregue à organização parte da mesma
+oficial do Kaggle (`docs/gerais/guia_kaggle.md`); o `Dockerfile` entregue à organização parte da mesma
 imagem pública do Kaggle, para que o pacote reproduzível funcione fora do Kaggle também
 (ADR-014).
 
@@ -59,8 +70,7 @@ imagem pública do Kaggle, para que o pacote reproduzível funcione fora do Kagg
 ```
 INÍCIO — uma vez por execução
 [A] Índice            desafio1_bracis.db → índice estruturado                    R12, R14 · ADR-002, ADR-004
-[M] Modelos           encoder NER (link + revisão) · LLM se ligado (link +       R21, R44, R45, R47 · ADR-011, ADR-013, ADR-014
-                      revisão, temperatura 0, seed) — float16, uma GPU
+[M] Modelos           encoder NER (link + revisão), em CPU · LLM não adotado     R21, R44, R45 · ADR-011, ADR-013, ADR-014
 
 PARA TODOS OS DOCUMENTOS
 [1] Texto             .txt original → cabeçalho delimitado + cópia normalizada   R2, R34, R35, R38 · ADR-003
@@ -70,7 +80,7 @@ PARA TODOS OS DOCUMENTOS
 [3] Campos            candidata → campos por regras                              R35, R36
                       └─ não leu? → fila de difíceis
 
-EM LOTE, SÓ PARA A FILA (se o LLM estiver ligado)
+(NÃO ADOTADO — fila vazia, ver ADR-013)
 [3b] Campos por LLM   trecho → JSON de campos → conferência dos dígitos          R47, R48 · ADR-013
 
 DE VOLTA PARA CADA CITAÇÃO
@@ -120,10 +130,11 @@ processuais** (sigla e nome por extenso → `classe_principal`: `Rec. Esp.`, `R.
 
 ### [M] Modelos
 
-- **Encoder NER** (ADR-011): candidatos RoBERTaLexPT, BERTimbau, Legal-BERTimbau — escolha por
-  medição e licença OSI (R21). Marcação BIO por token; posições voltam ao texto original pelo mapa.
-  ~0,5 GB de VRAM; também roda em CPU.
-- **LLM** (ADR-013, opcional): candidatos Qwen3 8B, Gemma 4 E4B (Apache 2.0). vLLM ou
+- **Encoder NER** (ADR-011): **BERTimbau-base** (MIT), escolhido por licença OSI (R21) e medição —
+  RoBERTaLexPT saiu pela licença, Legal-BERTimbau perdeu na comparação. Marcação BIO por token, janelas de
+  510 tokens; inferência **em CPU** (~1 GB de RAM, ~1–2 s por documento). Posições em offsets do texto
+  original (o encoder lê o corpo original, não o normalizado).
+- **LLM** (ADR-013) — **não adotado em 25/09** (fila de difíceis vazia); registro do desenho original: candidatos Qwen3 8B, Gemma 4 E4B (Apache 2.0). vLLM ou
   `transformers`, float16, temperatura 0, semente fixa. Qwen3 8B em float16 ocupa ~16–17 GB + cache;
   o conjunto encoder + LLM precisa caber numa T4 de 16 GB para garantir margem sobre os 24 GB
   (ADR-014) — se não couber, usar o modelo menor.
@@ -180,7 +191,7 @@ alínea ficam fora de `artigo` (R36).
 **Fila de difíceis**: vai para o LLM a candidata em que o leitor por regras não conseguiu extrair o
 que a forma exige (número nas formas a/b; lei + artigo na c; tribunal ou classe + ano + relator na d).
 
-### [3b] Campos por LLM (opcional)
+### [3b] Campos por LLM (opcional — não adotado, ver ADR-013)
 
 - Uma chamada em lote com todas as difíceis da execução (na amostra, estimativa de ~20 citações).
 - Prompt fixo e versionado; saída JSON com os campos da forma.
@@ -332,7 +343,7 @@ errado, real perdida por dúvida (ADR-006). O rastro fica fora do JSON do contra
 | LLM (opcional) | `vllm` ou `transformers` | Lote eficiente; vLLM só na T4 (não na P100) |
 | Avaliação | `pandas`, `numpy` | Exigidos pelo `kaggle_metric.py` |
 | Testes | `pytest` | — |
-| Execução (submissões) | notebook do Kaggle, ambiente fixado + `requirements.txt` (`docs/guia_kaggle.md`) | O Kaggle não aceita imagem própria; é o ambiente real das submissões |
+| Execução (submissões) | notebook do Kaggle, ambiente fixado + `requirements.txt` (`docs/gerais/guia_kaggle.md`) | O Kaggle não aceita imagem própria; é o ambiente real das submissões |
 | Ambiente (entrega) | `Dockerfile` a partir da imagem pública `gcr.io/kaggle-gpu-images/python` (tag fixa) + `requirements.txt` | Pacote reproduzível (R30) fora do Kaggle |
 | Artefatos | Hugging Face (pesos e dataset públicos) | Regra de pesos e dados públicos (R45, R46) |
 
@@ -346,7 +357,7 @@ cache na imagem); uma GPU ≤ 16 GB em float16 na execução; modo "só CPU e se
 ```
 agente_jusbrasil/                         # GitHub privado durante a competição (ADR-010)
 ├── scope.md · DEFINE.md · DESIGN.md · explicação_jus_brasil.md
-├── docs/ia_no_pipeline.md
+├── docs/gerais/ia_no_pipeline.md
 ├── docs/decisions/ADR-*.md
 ├── desafio-jusbrasil-bracis-2026/        # dados oficiais — fora do git
 ├── src/verificador/
@@ -361,7 +372,7 @@ agente_jusbrasil/                         # GitHub privado durante a competiçã
 │   └── saida/                            # frente C: JSON, chamada ao conversor, manifesto
 ├── avaliacao/                            # frente C: relatório, divisão da amostra, testes metamórficos
 ├── sintetico/                            # frente C: gerador (código + prompts do LLM), publicação
-├── treino/                               # frente B: treino do encoder, publicação dos pesos
+├── src/verificador/treino/               # frente B: dataset, BIO, treino e régua do encoder (25/09)
 ├── notebooks/kaggle/                     # notebooks finos que só clonam o repo e chamam a CLI
 ├── tests/
 ├── runs/                                 # saídas por execução — fora do git
@@ -370,14 +381,14 @@ agente_jusbrasil/                         # GitHub privado durante a competiçã
 ```
 
 Passo a passo de como o código chega ao notebook do Kaggle (clonar com token, fixar ambiente,
-instalar, rodar): `docs/guia_kaggle.md`.
+instalar, rodar): `docs/gerais/guia_kaggle.md`.
 
 Comandos:
 
 ```
 python -m verificador ambiente                                            # grava commit, GPU, driver, versões
 python -m verificador indexar  --dados desafio-jusbrasil-bracis-2026
-python -m verificador rodar    --entrada <pasta de .txt> --run <run_id> [--sem-llm] [--sem-encoder]
+python -m verificador rodar    --entrada <pasta de .txt> --run <run_id> [--sem-encoder]
 python -m verificador avaliar  --run <run_id>
 python -m verificador submeter --run <run_id>   # árvore limpa, roda duas vezes, compara, cria tag
 ```
@@ -396,7 +407,7 @@ python -m verificador submeter --run <run_id>   # árvore limpa, roda duas vezes
 1. `contratos.py`, `configuracao.py` e o esqueleto de `cli.py` (frente C) — o resto depende deles.
 2. **Esqueleto andante**: `rodar` gera JSON vazio para cada documento, converte com o script oficial,
    `avaliar` roda o `kaggle_metric.py`, `Dockerfile` mínimo a partir da imagem do Kaggle, primeiro
-   notebook em `notebooks/kaggle/` clonando o repositório (`docs/guia_kaggle.md`). Primeira
+   notebook em `notebooks/kaggle/` clonando o repositório (`docs/gerais/guia_kaggle.md`). Primeira
    submissão só para validar o formato de ponta a ponta, inclusive o caminho repo → notebook.
 3. Frentes A, B (regex) e C (gerador por código) em paralelo, integrando por pull request contra os
    contratos; D implementa a decisão sobre campos falsos.

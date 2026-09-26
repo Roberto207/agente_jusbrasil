@@ -10,6 +10,21 @@ numa versão fixa e roda os comandos do projeto. Nenhuma lógica fica escrita na
 a mais recente). A correspondência exata notebook ↔ tag `v170` se confirma na primeira execução
 olhando a versão impressa por `python -m verificador ambiente`.
 
+> **Atualização de 25/09.**
+> - **Notebooks atuais:** `08_sub-006.ipynb` gera a submissão (regex + encoder) e confere R49 e o hash;
+>   `07_treino_encoder_enc-001.ipynb` treina o encoder. Os exemplos abaixo com `sub-001` e o
+>   `00_esqueleto.ipynb` são do início do projeto: o fluxo é o mesmo, só a tag muda.
+> - **Imagem real:** o manifesto não confirma a tag `v170` (o texto é fixo no código). O que o Kaggle
+>   expõe é o hash, em `KAGGLE_DOCKER_IMAGE`: na execução da `sub-006`,
+>   `gcr.io/kaggle-gpu-images/python@sha256:37c64f7dd9c54116…`. É esse hash que o `Dockerfile` final
+>   deve fixar.
+> - **GPU:** a submissão **não precisa de GPU** (o encoder roda em CPU). Use **GPU T4 ×1** mesmo assim,
+>   para a sessão rodar na imagem de GPU, a mesma do `Dockerfile`. Não use T4 ×2 (ADR-014 pede uma GPU).
+> - **Secrets:** só o `GITHUB_TOKEN`. O `HF_TOKEN` não é mais necessário para a submissão: os pesos do
+>   encoder são públicos. Ele só serve para **publicar** algo no HF.
+> - **Manifesto:** desde 25/09 os tokens de sessão do Kaggle aparecem como `<oculto>`, e as versões de
+>   torch/transformers são gravadas.
+
 ---
 
 ## Configuração única (uma vez por integrante)
@@ -48,7 +63,7 @@ Na barra lateral direita do editor (*Settings* / *Input*):
 
 | Opção | Valor |
 |---|---|
-| Accelerator | **GPU T4 ×2** (usamos só uma GPU; a P100 não roda vLLM) — ou *None* para rodar só com CPU |
+| Accelerator | **GPU T4 ×1** (a submissão roda em CPU, mas a sessão com GPU usa a imagem do `Dockerfile`); para treino do encoder, T4 |
 | Internet | **On** |
 | Environment | fixar o ambiente (opção de manter a imagem original em vez de sempre usar a mais recente) |
 | Input | *Add Input → Competitions* → a competição do desafio. Os arquivos aparecem em `/kaggle/input/<nome-da-competição>/` |

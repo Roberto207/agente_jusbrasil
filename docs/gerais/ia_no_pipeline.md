@@ -6,6 +6,17 @@ saíram daqui estão nos ADR-001 (revisado), ADR-011, ADR-012, ADR-013 e ADR-014
 **Base:** regras completas do desafio (`scope.md`), dados da amostra e pesquisa listada em
 "Fontes".
 
+> **Como ficou (25/09).** Este documento é a análise de 17/09; o resultado de cada ponto:
+>
+> | Ponto | Plano de 17/09 | O que aconteceu |
+> |---|---|---|
+> | 3.1 Extração | encoder NER em união com o regex | **Feito e ligado** (BERTimbau-base, CPU). Em jurisprudência o ganho no LeNER-Br `test` foi frágil (58 → 64/74); em lei, 115 → 173/202. Ver `docs/relatorio-uso-encoder.md` |
+> | 3.2 Leitura de campos | LLM para a fila de difíceis | **Não adotado**: a fila está vazia em 3.606 citações medidas (ADR-013, revisão de 25/09) |
+> | 3.3 Resolução / RAG | não usar | Mantido: resolução só por consulta ao índice |
+> | 3.4 Geração de dados | código + LLM, fora da execução | **Feito**: camada 2 do sintético com Qwen2.5-7B-Instruct, publicada no HF (`0209a853…`) |
+> | 3.5 Confiança | tabela por caminho | **Feita**, hoje constante 0,999318 (zero erros no controle). Tabela variável pausada (`specs/confianca_variavel.md`) |
+> | 6. Ambientes | GPU na execução | A execução **não usa GPU**: o encoder roda em CPU. GPU só no treino (Kaggle, T4, ~3 min por modelo) e na geração de dados |
+
 ---
 
 ## 1. O princípio: IA na leitura, consulta na decisão

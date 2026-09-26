@@ -5,6 +5,18 @@ nosso sistema. É para ser lido por gente: sem jargão desnecessário, com exemp
 técnicas e os requisitos formais estão em `DESIGN.md`, `DEFINE.md` e `docs/decisions/`; aqui o
 objetivo é entender a ideia.
 
+> **Como está hoje (25/09).** Este texto foi escrito em 18/09, antes de o sistema ficar pronto. Três
+> coisas mudaram:
+> - **O localizador de citações existe e está ligado:** é o BERTimbau (um modelo aberto, de licença
+>   MIT), ajustado pela equipe. Ele não substitui as regras: só acrescenta citações que elas não
+>   acharam, e roda em computador comum, sem GPU. O RoBERTaLexPT ficou de fora pela licença.
+> - **O leitor de casos difíceis não entrou:** medimos antes e não havia nenhum caso difícil para ele
+>   ler. Então o sistema usa **um** modelo, não dois.
+> - **Resultado:** nota máxima (1,1) na amostra oficial, com a mesma resposta, byte a byte, na nossa
+>   máquina e no Kaggle.
+>
+> O resto do texto continua valendo como explicação da ideia.
+
 ---
 
 ## Para que serve
@@ -100,6 +112,8 @@ Junto com a ficha, o sistema usa algumas tabelas mantidas pela equipe:
   `g` no lugar de `9`.
 
 ## Passo 2 — Carregar os modelos (uma vez por rodada)
+
+*(Plano de 18/09. Hoje só o primeiro modelo existe — ver a nota no início.)*
 
 O sistema usa dois modelos de inteligência artificial, ambos abertos e publicados:
 
@@ -379,7 +393,7 @@ atualizar sozinho) e somar, por cima, a lista exata das dependências do projeto
 organização um pacote que funcione fora do Kaggle também, existe um arquivo de container — mas ele
 parte do mesmo ambiente público do Kaggle, para não haver diferença entre os dois.
 
-O passo a passo completo, com telas e comandos, está em `docs/guia_kaggle.md`.
+O passo a passo completo, com telas e comandos, está em `docs/gerais/guia_kaggle.md`.
 
 ## Regras da competição que moldam o projeto
 
@@ -457,6 +471,6 @@ com a base sendo atualizada continuamente conforme novas decisões são publicad
 - **Repositório:** o lugar (no GitHub) onde o código do projeto fica guardado e organizado por
   versões; neste projeto, é privado, visível só para a equipe.
 
-Para detalhes técnicos: `DESIGN.md` (arquitetura), `DEFINE.md` (requisitos), `docs/ia_no_pipeline.md`
-(uso de IA), `docs/guia_kaggle.md` (passo a passo do repositório ao notebook) e `docs/decisions/`
+Para detalhes técnicos: `DESIGN.md` (arquitetura), `DEFINE.md` (requisitos), `docs/gerais/ia_no_pipeline.md`
+(uso de IA), `docs/gerais/guia_kaggle.md` (passo a passo do repositório ao notebook) e `docs/decisions/`
 (decisões registradas, uma por ADR).

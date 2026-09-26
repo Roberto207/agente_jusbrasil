@@ -41,3 +41,10 @@ Publicar pesos e dados cedo ajuda outras equipes.
 
 ### Mitigação
 Publicar perto do fim, mas dentro do prazo, com folga para conferir os links.
+
+## Revisão de 25/09 — como ficou
+
+- Pesos do encoder públicos: `Roberto2799/jusbrasil-encoder-citacoes` @ `d91d09142fdc…` (card em
+  `docs/modelos/`). Dataset sintético público: `Roberto2799/jusbrasil-sintetico-diversificado` @ `0209a853…`.
+- Tags de submissão até `sub-006`; tag do treino do encoder: `enc-001`.
+- O código continua privado no GitHub; entregar à organização se a equipe for finalista.

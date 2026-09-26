@@ -7,7 +7,7 @@ amostra, `kaggle_metric.py`, `json_to_submission.py`); v2.1 incorpora a crítica
 R7×R40 resolvidos, critérios de processo e de design disfarçado retirados, critérios de
 qualidade reescritos como testes verificáveis. v2.2 incorpora as regras completas da competição
 (ambiente de avaliação, pesos e dados públicos com revisão fixa, pacote reproduzível, licenças OSI)
-e o papel da IA (`docs/ia_no_pipeline.md`): R21, R30 e R31 emendados; R44–R49 novos. A v1 saiu
+e o papel da IA (`docs/gerais/ia_no_pipeline.md`): R21, R30 e R31 emendados; R44–R49 novos. A v1 saiu
 direto de `scope.md`, sem fase Brainstorm (a demanda é um regulamento externo já fechado).
 **Fase:** SDD 2b (convergente)
 **Contrato:** implementa `scope.md`. Arquitetura em `DESIGN.md`; decisões duras em
@@ -159,6 +159,7 @@ renumerado.
   sistema DEVE aceitá-lo somente se a sequência de dígitos puder ser obtida do trecho normalizado da
   citação; caso contrário, a citação DEVE ser tratada como sem número lido.
   > **Novo na v2.2.** Impede que o LLM "corrija" OCR inventando dígitos. Ver ADR-013.
+  > **25/09:** sem efeito na execução — o LLM leitor não foi adotado (ADR-013). Vale se ele voltar.
 
 ## Formato de saída
 
@@ -233,13 +234,15 @@ renumerado.
   > e o comando exato.
   > **Emenda v2.2.1 (revisão de escopo).** O notebook do Kaggle não aceita imagem Docker própria —
   > o ambiente real das submissões é o notebook com ambiente fixado (ADR-014,
-  > `docs/guia_kaggle.md`); o `Dockerfile` é o formato de entrega equivalente para fora do Kaggle.
+  > `docs/gerais/guia_kaggle.md`); o `Dockerfile` é o formato de entrega equivalente para fora do Kaggle.
 - **R31** (Event-driven): QUANDO uma submissão for gerada para envio ENTÃO o sistema DEVE recusar
   árvore git com mudanças não commitadas, DEVE registrar no manifesto o commit, as revisões dos
   modelos e a versão do ambiente de execução (tag da imagem do notebook Kaggle ou digest da imagem
   Docker), e DEVE criar uma tag git para ela.
 - **R47** (Event-driven): QUANDO a execução usar um modelo generativo ENTÃO a decodificação DEVE ser
   determinística (temperatura 0, semente fixa registrada no manifesto).
+  > **25/09:** a execução não usa modelo generativo (LLM não adotado); o encoder não é generativo e
+  > roda em CPU. Continua valendo para a geração de dados fora da execução (camada 2 do sintético).
 - **R49** (Ubiquitous): Duas execuções do mesmo comando, no mesmo ambiente e sobre a mesma entrada,
   DEVEM produzir `submission.csv` byte a byte idênticos.
   > **Novo na v2.2.** Regra do pacote reproduzível ("comando exato que reproduz as saídas

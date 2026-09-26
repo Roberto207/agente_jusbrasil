@@ -4,7 +4,7 @@
 **Data:** 2026-09-17
 **Revisão:** 2026-09-17 — a versão anterior deixava o LLM "só se a análise de erro justificar".
 Revisto porque a análise de erro só enxerga a amostra (poucos moldes) e porque o ambiente de
-avaliação tem GPU de 24 GB. Detalhes em `docs/ia_no_pipeline.md`.
+avaliação tem GPU de 24 GB. Detalhes em `docs/gerais/ia_no_pipeline.md`.
 
 ## Contexto
 

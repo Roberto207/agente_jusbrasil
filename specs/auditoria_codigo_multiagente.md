@@ -1,7 +1,8 @@
 # Spec — auditoria multi-agente: código morto, enxugamento e overfitting
 
 **Data:** 2026-09-24 · **ADR:** 009 (anti-overfitting), 005/011/013 (ganchos dormentes), 010/014 (reprodutibilidade)
-**Status:** proposta, sem implementação
+**Status:** Etapas 0–3 feitas em 24/09 (`docs/gerais/auditoria_codigo.md`), **revalidadas em 25/09** no
+código atual (seção 0 do relatório). Nenhuma remoção aplicada: aguarda aprovação da equipe.
 
 ## Objetivo
 

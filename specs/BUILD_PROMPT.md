@@ -1,5 +1,8 @@
 # BUILD_PROMPT — Esqueleto andante do verificador de citações
 
+> **Documento histórico (25/09).** Prompt do esqueleto andante de 18/09, já implementado. O estado
+> atual do sistema está em `README.md`, `tarefas_equipe.md` e `docs/resultado_submissoes.md`.
+
 **Uso:** este arquivo é autocontido — pode ser dado a um agente ou a uma pessoa sem mais contexto
 que os documentos que ele referencia. É o prompt de início da Fase 4 (Build) da skill `sdd`, para a
 primeira etapa da "Ordem de implementação" do `DESIGN.md` (itens 1 e 2).
@@ -22,7 +25,7 @@ Documentos a ler, nesta ordem, antes de escrever qualquer linha de código:
    glossário e as seções "Formato de saída" e "Reprodutibilidade".
 3. `DESIGN.md` (v2.1) — a arquitetura completa; as seções "Contratos entre módulos", "Estrutura do
    repositório" e "Ordem de implementação" são o insumo direto deste prompt.
-4. `docs/guia_kaggle.md` — como o notebook do Kaggle busca o código do repositório.
+4. `docs/gerais/guia_kaggle.md` — como o notebook do Kaggle busca o código do repositório.
 5. A pasta `desafio-jusbrasil-bracis-2026/` (fora do git, já presente na raiz do projeto): contém
    `txt/` (26 documentos), `desafio1_bracis.db`, `goldenset_offsets.csv`, `json_to_submission.py`,
    `kaggle_metric.py`, `sample_submission.csv`. **Leia `json_to_submission.py` e
@@ -143,13 +146,13 @@ ENTRYPOINT ["python", "-m", "verificador"]
 
 Escolher e fixar `<TAG-FIXA-A-DEFINIR>` (não usar `latest`) — checar as tags disponíveis em
 [Kaggle/docker-python](https://github.com/Kaggle/docker-python) e registrar a escolhida também em
-`docs/guia_kaggle.md` (ela deve ser a mesma versão fixada no notebook, ver ADR-014). Se a imagem for
+`docs/gerais/guia_kaggle.md` (ela deve ser a mesma versão fixada no notebook, ver ADR-014). Se a imagem for
 grande demais para testar localmente, documentar isso no README e seguir — o `Dockerfile` é para a
 entrega, não para o dia a dia da equipe.
 
 ## `notebooks/kaggle/00_esqueleto.ipynb`
 
-Seguir exatamente as 5 células descritas em `docs/guia_kaggle.md` (clonar com token dos Secrets numa
+Seguir exatamente as 5 células descritas em `docs/gerais/guia_kaggle.md` (clonar com token dos Secrets numa
 tag fixa → instalar `requirements.txt` → `verificador ambiente` → `verificador indexar` +
 `verificador rodar` + `verificador avaliar` apontando para o input da competição → mostrar onde
 ficaram as saídas em `/kaggle/working/`). Não é preciso já existir uma tag `sub-001` real — usar o

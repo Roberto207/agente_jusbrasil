@@ -1,7 +1,11 @@
 # Resultado da primeira rodada — versão só-regras
 
+> **Documento histórico (25/09).** Retrato da primeira versão só-regras (18–19/09). Desde então: `sub-002`
+> a `sub-006`, nota 1,1 na amostra, reforço do regex e encoder ligado. Estado atual em
+> `docs/resultado_submissoes.md` e `tarefas_equipe.md`.
+
 **Data:** 2026-09-18/19 · **Código:** `main`, ainda sem commit · **Ainda não submetida ao Kaggle.**
-Detalhe técnico dos erros: `docs/analise_erros_baseline.md`. Próximos passos: `tarefas_equipe.md`, seção 3.1.
+Detalhe técnico dos erros: `docs/gerais/analise_erros_baseline.md`. Próximos passos: `tarefas_equipe.md`, seção 3.1.
 
 ---
 

@@ -34,6 +34,30 @@ Equipe: **Guerreiros da T7**.
   ordem de envio, e eles chegaram antes. **Na fase de treino não há mais o que ganhar:** estamos no
   teto da amostra. A disputa real é o conjunto final (cego), e é para ele que servem o reforço do
   regex e a decisão do encoder.
+- **1,100 ou 1,09999?** São o mesmo número. A nota exata, pela métrica oficial, é **1,099999951**;
+  onde o Kaggle arredonda, aparece 1,100, e onde ele corta em cinco casas, aparece 1,09999. O
+  `submission.csv` gerado pela `sub-006` no Kaggle (25/09) é **o mesmo arquivo** da `sub-005`
+  (sha256 `4c6e3538…`), por isso dá a mesma nota.
+- **Por que não 1,1 exato:** a métrica dá um bônus de calibração `b = 0,1 × (1 − Brier)`. Desde a
+  `sub-005`, toda citação sai com confiança **0,999318** (no CSV, 0,9993), não 1,0. Ela vem de
+  `avaliacao/taxa_acerto.json`: como o controle não teve nenhum erro, o calibrador (suavização
+  `ALFA = 7`, `PRIOR = 0,97`) usa o mesmo valor constante para todos os caminhos. Com todas as
+  respostas certas, Brier = (1 − 0,999318)² ≈ 0,00000047, e a nota fica em 1,09999995. A `sub-004`,
+  com confiança 1,0, dava 1,1 exato.
+- **0,999318 ou 1,0 faz diferença?** Quase nenhuma, nos dois sentidos. Simulado com a métrica
+  oficial na amostra, trocando a classe de citações de propósito (média de 5 sorteios):
+
+  | Erros | Confiança 1,0 | Confiança 0,999318 | Diferença |
+  |---|---|---|---|
+  | 0 | 1,100000 | 1,100000 | −0,00000005 |
+  | 1 | 1,096599 | 1,096600 | +0,0000004 |
+  | 5 | 1,076979 | 1,076981 | +0,0000023 |
+  | 10 | 1,045923 | 1,045929 | +0,0000054 |
+
+  Quem derruba a nota é o **erro em si** (cerca de 0,0035 por citação, pela queda do F1), não a
+  confiança. A confiança só pesaria se fosse **baixa exatamente nas citações arriscadas**: com 0,5
+  só nas erradas, 1 erro recuperaria 0,00025 e 10 erros, 0,0028. Isso exigiria o calibrador saber
+  quais caminhos de decisão erram mais, e hoje ele não sabe (zero erros no controle).
 
 ### `sub-006` — regex reforçado + encoder, conferida no Kaggle (25/09)
 

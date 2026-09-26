@@ -1,7 +1,65 @@
 # Auditoria de código — relatório para decisão
 
 **Data:** 2026-09-24 · **HEAD auditado:** `1e744a7` · **Spec:** `specs/auditoria_codigo_multiagente.md`
+**Revalidado em:** 2026-09-25, contra `10e3801` (depois do reforço do regex, do encoder ligado e da Fase 5
+deixada de lado) — ver a seção **0**, que manda sobre o status dos itens abaixo.
 **Status:** relatório. **Nada foi alterado no código.** Marque `[x]` no que aprova; o resto fica como está.
+
+## 0. Revalidação de 25/09 — o que mudou
+
+**Como:** (1) cada achado relocalizado no código atual; (2) arquivos que mudaram desde `1e744a7`
+separados dos intocados; (3) `vulture` de novo em `src/`; (4) `coverage` de produção no código atual —
+`rodar`/`avaliar` na amostra **com o encoder ligado** e no sintético base, mais `ambiente`, `indexar`,
+`comparar`. `vulture`/`coverage` só no venv de trabalho (`runs/`), nada no `requirements.txt`.
+
+**O que não foi refeito:** a checagem mecânica (aplicar as remoções numa cópia e comparar CSVs). Ela
+valeu para `1e744a7`; no código atual ela é refeita **depois da aprovação**, no branch de limpeza, como a
+spec manda (Etapa 3). Os itens de arquivos intocados devem continuar idênticos; os de arquivos que
+mudaram precisam dela obrigatoriamente.
+
+### Status atual por item
+
+| ID | Onde está hoje | Status | Observação |
+|---|---|---|---|
+| A1 | `cli.py:184` + `import sqlite3` (`:13`) | **válido** | `vulture` confirma; arquivo mudou → reconferir na checagem mecânica |
+| A2, A3 | `sobreposicao.py:54`, `:40` | **válido** | arquivo intocado |
+| A4 | `campos.py:233` | **válido** | arquivo mudou (lei/súmula), trecho não |
+| A5 | `campos.py:134` | **válido** | idem |
+| A6 | `numero_proprio.py:224` | **válido** (opcional) | intocado; ressalva do despachante público mantida |
+| A7 | `calibrar.py:199` | **válido** | intocado; some junto com B10 |
+| A8 | `sintetico/citacoes.py:21` | **válido** | `.forma` de `Fabricada` segue sem leitura |
+| B1 | `campos.py` (7 blocos) + `pipeline._campos_vazios` | **válido** | o ramo de súmula ganhou OJ; o bloco `Campos(...)` é o mesmo |
+| B3, B11 | 4× `_sem_acento`, 2× `normalizar_relator` | **válido, mas adiar** | risco NFKD×NFD com a base da fase 2 (1.016 × 1.014 registros) — não fazer antes da submissão final |
+| B4 | `campos.py:90` × `atributos.py:136` | **válido e mais necessário** | agora `extracao/encoder.py:26` importa a função **privada** `_classes_no_texto` de outro módulo; torná-la pública resolve as duas coisas |
+| B7 | sha256 em `cli`, `determinismo`, `confianca` (+ `treino/` usa inline) | **válido** | `treino/` fica de fora (código de treino, não de execução) |
+| B10 | `cli.py:342,359` × `calibrar.py:193` | **válido** | |
+| B16 | `campos.py:76`, `:307` | **válido** | |
+| B18, A14 | `extracao/__init__._FORMAS`, `Candidata.padrao` | **manter (mudou)** | o encoder agora grava `padrao="encoder"`: o gancho virou uso real |
+| A15 | flags e config do **encoder** | **manter (mudou)** | encoder ligado; `--sem-encoder` passou a ter uso real |
+| A15/A16/A18 | tudo do **LLM**: `decisao/llm.py` (56), exportações em `decisao/__init__`, `usar_llm`/`llm_link`/`llm_revisao` + overlay de env em `configuracao.py`, `--sem-llm` e a trava em `cli.py:273`, `FonteCampos="llm"` em `contratos.py:11`, teste R48 em `test_decisao.py`, `configuracao.semente`/`dtype` (ninguém lê) | **morto (mudou)** | Fase 5 deixada de lado (25/09). ~−90 linhas. `contratos.py` pede aviso à equipe (regra 1); muda `hash_configuracao` e o manifesto (tag nova de qualquer jeito). R48 no `DEFINE.md` vira "não aplicável" |
+| A17 | referência vaga | **dormente** | decisão continua marcada para a fase 2 |
+| A9–A12 | textos | **válido** | A11 (`campos.py:286`, "Fase 4" para o LLM) some com a remoção do LLM |
+| A13 | textos "quando existirem" | **parcial** | `pipeline.py` já corrigido em 25/09; falta `cli.py` (help/docstring) |
+| **A19 (novo)** | `extracao/encoder.py:98` `self._torch` | **morto** | atributo gravado e nunca lido (`vulture`); −1 linha |
+| N1, N2, F1, F2 | notebooks e arquivos soltos | **válido** | N1 agora inclui `00` e `02`–`04`; `06`/`07`/`08` ficam (`07` reproduz os pesos, `08` é o da submissão atual) |
+| D1 | links quebrados | **corrigido em 25/09** | `docs/guia_kaggle.md`, `docs/ia_no_pipeline.md`, `docs/analise_erros_baseline.md` → `docs/gerais/…` |
+| D2 | docs superados | **marcado histórico em 25/09** | `BUILD_PROMPT.md`, `resultado_primeira_rodada.md`, `analise_erros_baseline.md` ganharam aviso no topo |
+| C1–C11 | overfitting | sem mudança | C4 (famílias): a família RE/ARE (25/09) veio do acervo (8 acórdãos), não de um caso da amostra |
+
+**Código novo desde a auditoria (não entra no corte):** `treino/` (~900 linhas) reproduz os pesos
+publicados — faz parte do pacote reproduzível; `extracao/encoder.py` — linhas 68–82 não rodam na amostra
+(o encoder não acrescenta nada lá), mas rodam no LeNER-Br: é **generalização**, não código morto.
+
+**Cobertura de produção agora:** `extracao/` e `decisao/` entre 71% e 100%; o que não roda na amostra é
+guarda de invariante ou generalização, como em 24/09. (`sintetico/`, `calibrar`, `determinismo` aparecem
+com 0% só porque esta passada não rodou `gerar-sintetico`/`calibrar`/`submeter`.)
+
+### O que eu recomendo aprovar para o branch de limpeza (antes da tag final)
+
+Baixo risco, saída idêntica esperada: **A1–A8, A19, B1, B4, B7, B10, B16, remoção do LLM (A16 e
+correlatos), textos A9–A13, N1, N2, F1, F2.** Adiar: **B3/B11** (base da fase 2), **A17** (decisão da
+fase 2), marginais B5/B6 (mexem na CLI que os notebooks chamam). Depois: checagem mecânica nos quatro
+conjuntos + `pytest` + R49, e `/code-review high` no branch.
 
 ## Como foi feito
 

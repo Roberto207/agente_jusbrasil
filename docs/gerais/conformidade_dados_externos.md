@@ -76,7 +76,9 @@ prosseguir. Enquanto for só sonda de recall interna, o risco é baixo e a regra
 cobre o uso.
 
 **Fronteira cruzada em 2026-09-24 (decisão do Roberto):** o LeNER-Br `train` entra no treino do
-encoder, e os pesos serão publicados se o go/no-go passar. Fundamento: a regra do desafio permite
+encoder, e os pesos serão publicados se o go/no-go passar. *(25/09: passou; a equipe decidiu GO e
+os pesos estão públicos em `Roberto2799/jusbrasil-encoder-citacoes` @ `d91d0914…`, com card que cita o
+LeNER-Br e aponta link + commit.)* Fundamento: a regra do desafio permite
 "qualquer dataset público" no treino, e o `LICENSE` na raiz do repositório declara MIT. O corpus não é
 redistribuído (os pesos não o contêm, e o card só aponta link + commit `4999cb7…`). **Pendente:**
 e-mail aos autores pedindo confirmação de que o MIT cobre o corpus. Se houver objeção, retreinar
@@ -148,8 +150,12 @@ Escolha e motivos em `tarefas_equipe.md`, Fase 4, "Modelos preferidos".
   (público, MIT), com a camada 1 em `base/` e a camada 2 na raiz. Revisão fixa
   `0209a853e6e59b263b138200963b579105baca24`. Conferido por hash: os 409 arquivos são idênticos aos
   gerados no Kaggle, e a camada 1 é byte a byte igual ao `sintetico/` local.
-- [ ] Se algum uso do LeNER-Br sair do escopo "sonda interna", confirmar a licença com os autores
-  antes de prosseguir.
+- [ ] **Confirmar a licença do LeNER-Br com os autores** (`pedrohluzaraujo@gmail.com`). O uso já saiu
+  do escopo "sonda interna": o LeNER-Br `train` treinou o encoder, e os pesos foram publicados em 25/09
+  (decisão GO). Fundamento enquanto a resposta não vem: "qualquer dataset público" + `LICENSE` MIT na
+  raiz do repositório. Se houver objeção, retreinar sem o LeNER-Br e publicar nova revisão.
+- [x] Publicar os pesos do encoder (MIT, herda o aviso do BERTimbau): público em 25/09, revisão
+  `d91d09142fdc2601cad04b8df1d509d87c5a1552`, card em `docs/modelos/card-jusbrasil-encoder-citacoes.md`.
 
 Nada disso bloqueia o desenvolvimento/medição local continuarem — bloqueia é a validade da
 submissão final, com prazo 30/09 23h59 BRT.

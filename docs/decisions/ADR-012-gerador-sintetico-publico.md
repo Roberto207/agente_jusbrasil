@@ -36,3 +36,10 @@ Reproduz os vieses de quem escreve os moldes e os prompts.
 
 ### Mitigação
 Moldes e prompts escritos por quem não escreveu os padrões de extração.
+
+## Revisão de 25/09 — como ficou
+
+Camada 2 gerada com **Qwen2.5-7B-Instruct** (Apache 2.0) — o Gemma saiu pela licença (não OSI) —,
+decodificação gulosa, o trecho da citação vai ao modelo como marcador e volta byte a byte. As duas
+camadas estão publicadas em `Roberto2799/jusbrasil-sintetico-diversificado` @ `0209a853…` (camada 1 em
+`base/`). O sintético entrou no treino do encoder (ADR-011) e hoje é resolvido 100% pelo sistema.

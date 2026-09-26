@@ -1,5 +1,9 @@
 # Análise de erro — linha de base só-regras
 
+> **Documento histórico (25/09).** Linha de base de 18/09. As causas listadas aqui foram corrigidas nas
+> submissões seguintes (a amostra está em 192/192 desde a `sub-004`). Estado atual em
+> `docs/resultado_submissoes.md`.
+
 **Data:** 2026-09-18 · **Versão:** `main` sem commit (A + B + C + D + integração) · **Sem encoder, sem LLM, sem confiança.**
 Gerado por `rodar` + `avaliar` sobre a amostra oficial e sobre `gerar-sintetico --pares 100 --semente 0`.
 
