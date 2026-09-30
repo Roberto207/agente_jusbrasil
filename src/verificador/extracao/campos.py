@@ -38,9 +38,6 @@ _UF_APOS_NUMERO = re.compile(
 # ADR-015: mesmo princípio do padrão de extração — marcador (que repete, porque `Rel. Min.` são dois)
 # mais preenchimento curto, em vez de enumerar `relatoria de|rel. min.|sob relatoria de`. Sem isso,
 # `relatada pelo Ministro X` é extraída mas não tem o relator lido, e cai em `campos_nao_lidos`.
-# O preenchimento é preguiçoso e a captura começa em maiúscula de verdade (`(?-i:…)`, porque o
-# IGNORECASE valeria para a classe toda): guloso, ele comia o início do nome — `Dias Toffoli` virava
-# `s toffoli`.
 # Marcador e preenchimento preguiçosos, e a captura começa em maiúscula de verdade (`(?-i:…)`, porque
 # o IGNORECASE valeria para a classe toda). Gulosos, comiam o nome: `Dias Toffoli` virava `s toffoli`,
 # e um relator chamado `Relator Exemplo` perdia o primeiro nome, porque `Relator` também é marcador.
@@ -221,8 +218,7 @@ def _campos_sem_numero(trecho: str) -> Campos | None:
 
 def _campos_referencia_vaga() -> Campos:
     """Sempre vazio: por definição, uma referência vaga não tem identificador nenhum para ler
-    (ADR-005). Explícito (em vez de cair no `return None` genérico) para não entrar por engano
-    na fila de difíceis/LLM quando `usar_llm=True` estiver ligado (Fase 4)."""
+    (ADR-005). Explícito, em vez de cair no `return None` genérico dos campos não lidos."""
     return CAMPOS_VAZIOS
 
 

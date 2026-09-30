@@ -1,4 +1,4 @@
-"""CLI do esqueleto andante: ambiente, indexar, rodar, avaliar, submeter."""
+"""CLI do verificador: ambiente, indexar, rodar, avaliar, submeter, gerar-sintetico, comparar, calibrar."""
 
 from __future__ import annotations
 
@@ -551,10 +551,10 @@ def construir_parser() -> argparse.ArgumentParser:
     p_amb.add_argument("--saida", type=Path, default=_saida_padrao())
     p_amb.add_argument("--run", dest="run_id", default="ambiente")
 
-    p_idx = sub.add_parser("indexar", help="abre a base canônica em modo leitura")
+    p_idx = sub.add_parser("indexar", help="constrói o índice da base (modo leitura) e mostra o diagnóstico")
     p_idx.add_argument("--dados", type=Path, required=True)
 
-    p_run = sub.add_parser("rodar", help="JSON vazio por documento + submission.csv oficial")
+    p_run = sub.add_parser("rodar", help="verifica as citações dos .txt: JSON por documento, submission.csv, rastro e manifesto")
     p_run.add_argument("--entrada", type=Path, required=True)
     p_run.add_argument("--run", dest="run_id", required=True)
     p_run.add_argument("--saida", type=Path, default=_saida_padrao())

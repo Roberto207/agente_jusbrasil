@@ -1,4 +1,4 @@
-"""Tabelas versionadas (provisórias da frente B; a frente A pode refiná-las)."""
+"""Tabelas versionadas (JSON) usadas pela extração e pelo índice; o hash entra no manifesto."""
 
 from __future__ import annotations
 

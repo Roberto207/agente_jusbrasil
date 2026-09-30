@@ -1,7 +1,7 @@
 """O pipeline de um documento: texto → extração → campos → decisão (DESIGN, "Pipeline de execução").
 
-Sem GPU e sem rede: regras e consulta ao índice (ADR-001). O encoder entra na extração, atrás de
-`usar_encoder`, em CPU (ADR-011); o LLM, atrás de `usar_llm`, ainda não existe.
+Sem GPU: regras e consulta ao índice (ADR-001). O encoder entra só na extração, atrás de
+`usar_encoder`, em CPU (ADR-011). A classificação nunca passa por modelo.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ def processar_documento(
         tempos["campos"] = tempos.get("campos", 0.0) + perf_counter() - t0
 
         t0 = perf_counter()
-        if campos is None:  # fila de difíceis sem LLM: nunca `real` (ADR-006)
+        if campos is None:  # campos não lidos: nunca `real` (ADR-006)
             campos = CAMPOS_VAZIOS
             resolucao = Resolucao("incompleta", None, CAMPOS_NAO_LIDOS, (), None)
         else:

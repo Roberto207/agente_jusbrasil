@@ -25,7 +25,7 @@ LEI_AMBIGUA = "lei_ambigua"
 # consulta o índice — classe fixada por analogia à página Data, não confirmada contra o gabarito
 # distribuído (ver docs/gerais/conformidade_dados_externos.md e o aviso em tarefas_equipe.md).
 REFERENCIA_VAGA = "referencia_vaga"
-# Citação detectada cujos campos as regras não leram (e não há LLM): nunca vira `real` (ADR-006).
+# Citação detectada cujos campos as regras não leram: nunca vira `real` (ADR-006).
 CAMPOS_NAO_LIDOS = "campos_nao_lidos"
 
 CLASSE_DO_CAMINHO: dict[str, str] = {
