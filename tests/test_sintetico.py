@@ -9,7 +9,6 @@ import pytest
 
 from tests.test_frente_c import _run_do_gabarito
 from verificador import cli
-from verificador.base import construir_indice
 from verificador.sintetico import gerar
 from verificador.sintetico import ruido
 from verificador.sintetico.formato import escrever_dataset
@@ -19,11 +18,6 @@ CONSTRUCOES = {
     "mesmo_caso_outro_estagio", "ambigua",
     "sumula_inventada", "lei_inventada", "lei_desconhecida", "sem_numero", "tema",
 }
-
-
-@pytest.fixture(scope="module")
-def indice(pasta_dados):
-    return construir_indice(pasta_dados / "desafio1_bracis.db")
 
 
 @pytest.fixture(scope="module")

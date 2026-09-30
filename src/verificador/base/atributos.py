@@ -15,7 +15,7 @@ import re
 import unicodedata
 
 from verificador.base.numero_proprio import JANELA_CABECALHO
-from verificador.tabelas import classes, resolver_uf, tst_sigla
+from verificador.tabelas import classes_no_texto, resolver_uf, tst_sigla
 
 # UF colada ao número: `Nº 1.741.784 - PR`, `7000075-58.2022.7.00.0000/PR`.
 _UF_SIGLA = re.compile(r"[-/]\s*([A-Z]{2})\b")
@@ -133,29 +133,6 @@ def extrair_ano(texto: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
-def _siglas_no_texto(texto: str) -> list[str]:
-    """Classes processuais do trecho, na ordem em que aparecem.
-
-    Usa a tabela de classes da frente B. Casamentos sobrepostos são resolvidos
-    pelo mais longo (`agravo em recurso especial` vence `recurso especial`).
-    """
-    achadas: list[tuple[int, int, str]] = []
-    for padrao, sigla in classes():
-        for m in re.finditer(rf"(?<![A-Za-z])(?:{padrao})(?![A-Za-z])", texto, re.I):
-            achadas.append((m.start(), m.end(), sigla))
-    if not achadas:
-        return []
-    achadas.sort(key=lambda item: (item[0], -(item[1] - item[0])))
-    siglas: list[str] = []
-    fim_livre = -1
-    for ini, fim, sigla in achadas:
-        if ini < fim_livre:
-            continue
-        siglas.append(sigla)
-        fim_livre = fim
-    return siglas
-
-
 def extrair_classes(tribunal: str | None, texto: str) -> tuple[str | None, tuple[str, ...]]:
     """`(classe_principal, cadeia_recursos)` do registro.
 
@@ -182,7 +159,7 @@ def extrair_classes(tribunal: str | None, texto: str) -> tuple[str | None, tuple
     m = _ATE_O_NUMERO.search(cabecalho)
     trecho = cabecalho[: m.start()] if m else cabecalho
 
-    siglas = _siglas_no_texto(trecho)
+    siglas = classes_no_texto(trecho)
     if not siglas:
         return None, ()
     return siglas[-1], tuple(siglas[:-1])

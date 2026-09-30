@@ -31,7 +31,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from verificador.avaliacao import divisao
 from verificador.avaliacao.rastro import carregar_rastro
 from verificador.avaliacao.solution import montar_solution
 from verificador.decisao.caminhos import CLASSE_DO_CAMINHO
@@ -190,12 +189,3 @@ def destino_padrao() -> Path:
     return Path(str(resources.files("verificador.avaliacao"))) / NOME_TABELA
 
 
-def _docs_do_conjunto(nome: str, gabarito: Path) -> set[str] | None:
-    if nome == "controle":
-        return set(divisao.documentos("controle"))
-    if nome == "sintetico_controle":
-        dados = json.loads((gabarito.parent / "divisao.json").read_text(encoding="utf-8"))
-        return set(dados["controle"])
-    if nome in ("amostra", "sintetico"):
-        return None
-    raise SystemExit(f"conjunto de calibração desconhecido: {nome}")

@@ -13,16 +13,10 @@ import sqlite3
 
 import pytest
 
-from verificador.base import construir_indice
 from verificador.base.numero_proprio import numero_proprio, so_digitos
 from verificador.contratos import Candidata
 from verificador.extracao.campos import ler_campos
 from verificador.tabelas import classes, familias_classe, ocr, resolver_lei, resolver_uf, tst_sigla, tst_tokens, ufs
-
-
-@pytest.fixture(scope="module")
-def indice(pasta_dados):
-    return construir_indice(pasta_dados / "desafio1_bracis.db")
 
 
 @pytest.fixture(scope="module")

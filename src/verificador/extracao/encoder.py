@@ -23,7 +23,8 @@ import re
 from collections.abc import Sequence
 
 from verificador.contratos import Candidata, TextoPreparado
-from verificador.extracao.campos import _classes_no_texto, ler_campos
+from verificador.extracao.campos import ler_campos
+from verificador.tabelas import classes_no_texto
 from verificador.texto.normalizacao import normalizar
 
 _ANCORA_SUMULA = re.compile(
@@ -42,7 +43,7 @@ def _forma(trecho: str, rotulo: str) -> str | None:
         return "lei_artigo" if _ANCORA_ARTIGO.search(trecho) and _LEI_NOMEADA.search(trecho) else None
     if _ANCORA_SUMULA.search(trecho):
         return None if _ADMINISTRATIVO.search(trecho) else "sumula"
-    return "com_numero" if _classes_no_texto(normalizar(trecho)[0]) else None
+    return "com_numero" if classes_no_texto(normalizar(trecho)[0]) else None
 
 
 def _aparar(texto: str, inicio: int, fim: int) -> tuple[int, int]:

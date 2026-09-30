@@ -120,6 +120,29 @@ def classes() -> list[tuple[str, str]]:
     return pares
 
 
+def classes_no_texto(texto: str) -> list[str]:
+    """Classes processuais do trecho, na ordem em que aparecem.
+
+    Usada tanto na leitura das citações (extração) quanto na dos registros (índice). Casamentos
+    sobrepostos são resolvidos pelo mais longo (`agravo em recurso especial` vence `recurso especial`).
+    """
+    achadas: list[tuple[int, int, str]] = []
+    for padrao, sigla in classes():
+        for m in re.finditer(rf"(?<![A-Za-z])(?:{padrao})(?![A-Za-z])", texto, re.IGNORECASE):
+            achadas.append((m.start(), m.end(), sigla))
+    if not achadas:
+        return []
+    achadas.sort(key=lambda item: (item[0], -(item[1] - item[0])))
+    usadas: list[str] = []
+    fim_livre = -1
+    for ini, fim, sigla in achadas:
+        if ini < fim_livre:
+            continue
+        usadas.append(sigla)
+        fim_livre = fim
+    return usadas
+
+
 @lru_cache(maxsize=1)
 def familias_classe() -> tuple[frozenset[str], ...]:
     """Estágios recursais do mesmo tipo de processo.

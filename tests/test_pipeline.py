@@ -11,15 +11,9 @@ import pytest
 from tests.helpers import iou_offsets
 from verificador import cli
 from verificador.avaliacao.rastro import carregar_rastro
-from verificador.base import construir_indice
 from verificador.decisao import CLASSE_DO_CAMINHO
 from verificador.decisao.candidatos import normalizar_sumula
 from verificador.decisao.caminhos import CAMPOS_NAO_LIDOS, NUMERO_AUSENTE
-
-
-@pytest.fixture(scope="module")
-def indice(pasta_dados):
-    return construir_indice(pasta_dados / "desafio1_bracis.db")
 
 
 @pytest.fixture(scope="module")
@@ -39,6 +33,16 @@ def run_sintetico(pasta_dados, tmp_path_factory):
         run_id="sint", saida=raiz / "runs", gabarito=raiz / "dados" / "goldenset_offsets.csv", dados=pasta_dados
     )
     return raiz
+
+
+def test_saida_da_amostra_no_formato_oficial(run_amostra) -> None:
+    with (run_amostra / "submission.csv").open(encoding="utf-8", newline="") as fh:
+        linhas = list(csv.reader(fh))
+    assert linhas[0] == ["documento_id", "citacoes"]
+    assert len(linhas) - 1 == 26
+    assert all(documento_id for documento_id, _ in linhas[1:])
+    assert len(list((run_amostra / "jsons").glob("*.json"))) == 26
+    assert "score_final" in (run_amostra / "relatorio.md").read_text(encoding="utf-8")
 
 
 def _relatorio(run: Path) -> dict:
@@ -154,16 +158,17 @@ def test_calibrar_no_controle_passa_r26(run_amostra, run_sintetico, pasta_dados)
     resultado_submissoes.md §4). R26 por caminho (ver `montar_tabela`) garante
     `brier_controle <= brier_constante` por construção — sem número mágico aqui: cada célula só
     fica com a própria taxa se bater a constante nos seus próprios dados; senão herda a constante."""
-    from verificador.avaliacao.calibrar import _docs_do_conjunto, montar_tabela, observacoes_do_run
+    from verificador.avaliacao.calibrar import montar_tabela, observacoes_do_run
+    from verificador.avaliacao.divisao import documentos_do_conjunto
     from verificador.cli import importar_modulo
 
     metrica = importar_modulo("kaggle_metric_oficial", pasta_dados / "kaggle_metric.py")
     gabarito_amostra = pasta_dados / "goldenset_offsets.csv"
     gabarito_sint = run_sintetico / "dados" / "goldenset_offsets.csv"
 
-    obs = observacoes_do_run(run_amostra, gabarito_amostra, _docs_do_conjunto("controle", gabarito_amostra), metrica)
+    obs = observacoes_do_run(run_amostra, gabarito_amostra, documentos_do_conjunto("controle", gabarito_amostra), metrica)
     obs += observacoes_do_run(
-        run_sintetico / "runs" / "sint", gabarito_sint, _docs_do_conjunto("sintetico_controle", gabarito_sint), metrica
+        run_sintetico / "runs" / "sint", gabarito_sint, documentos_do_conjunto("sintetico_controle", gabarito_sint), metrica
     )
     tabela = montar_tabela(obs)
     assert tabela["n_controle"] >= 80

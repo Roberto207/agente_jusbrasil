@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import importlib.util
 import json
 import os
@@ -17,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from verificador.avaliacao.determinismo import hash_arquivo
 from verificador.avaliacao.solution import montar_solution
 from verificador.configuracao import Configuracao, carregar
 from verificador.saida import escrever_json
@@ -31,14 +31,6 @@ def raiz_repositorio() -> Path:
 
 def pasta_run(saida: Path, run_id: str) -> Path:
     return saida / run_id
-
-
-def hash_arquivo(caminho: Path) -> str | None:
-    if not caminho.is_file():
-        return None
-    digest = hashlib.sha256()
-    digest.update(caminho.read_bytes())
-    return digest.hexdigest()
 
 
 def _git(args: list[str], cwd: Path) -> str | None:
@@ -329,35 +321,6 @@ def cmd_rodar(
     return submission
 
 
-def _conjuntos_disponiveis(gabarito: Path) -> tuple[str, ...]:
-    """A divisão ajuste/controle vale só para a amostra oficial; outro gabarito é um conjunto único.
-
-    Decide pelos documentos do gabarito, não pelo nome do arquivo (o sintético usa o mesmo nome).
-    Um `divisao.json` ao lado do gabarito sintético acrescenta o treino e o controle dele (ADR-009).
-    """
-    from verificador.avaliacao import divisao
-
-    with gabarito.open(encoding="utf-8-sig", newline="") as fh:
-        ids = {linha["documento_id"] for linha in csv.DictReader(fh)}
-    if ids == set(divisao.documentos("amostra")):
-        return ("amostra", "ajuste", "controle")
-    if (gabarito.parent / "divisao.json").is_file():
-        return ("sintetico", "sintetico_treino", "sintetico_controle")
-    return ("sintetico",)
-
-
-def _documentos_do_conjunto(nome: str, gabarito: Path) -> set[str] | None:
-    """Documentos de um conjunto; `None` = o gabarito inteiro."""
-    from verificador.avaliacao import divisao
-
-    if nome == "sintetico":
-        return None
-    if nome in ("sintetico_treino", "sintetico_controle"):
-        dados = json.loads((gabarito.parent / "divisao.json").read_text(encoding="utf-8"))
-        return set(dados[nome.removeprefix("sintetico_")])
-    return set(divisao.documentos(nome))
-
-
 def cmd_avaliar(
     *,
     run_id: str,
@@ -368,7 +331,7 @@ def cmd_avaliar(
 ) -> dict[str, Any]:
     import pandas as pd
 
-    from verificador.avaliacao import rastro as rastro_mod, relatorio
+    from verificador.avaliacao import divisao, rastro as rastro_mod, relatorio
 
     destino_run = pasta_run(saida, run_id)
     submission_path = destino_run / "submission.csv"
@@ -392,7 +355,7 @@ def cmd_avaliar(
     if not gabarito.is_file():
         raise SystemExit(f"gabarito ausente: {gabarito}")
 
-    disponiveis = _conjuntos_disponiveis(gabarito)
+    disponiveis = divisao.conjuntos_disponiveis(gabarito)
     if conjunto != "todos" and conjunto not in disponiveis:
         raise SystemExit(f"conjunto {conjunto!r} não existe para este gabarito; use {list(disponiveis)}")
     escolhidos = disponiveis if conjunto == "todos" else (conjunto,)
@@ -404,7 +367,7 @@ def cmd_avaliar(
 
     resultados: dict[str, dict[str, Any]] = {}
     for nome in escolhidos:
-        docs = _documentos_do_conjunto(nome, gabarito)
+        docs = divisao.documentos_do_conjunto(nome, gabarito)
         try:
             resultado = relatorio.avaliar_conjunto(metrica, solution, submission, docs)
             analise = relatorio.analisar(metrica, solution, submission, docs)
@@ -447,7 +410,7 @@ def cmd_submeter(*, run_id: str, saida: Path, criar_tag: bool = False) -> str:
     """Confere R31 e R49 e (com `criar_tag`) cria a tag `sub-NNN`. Devolve o nome da tag."""
     import shutil
 
-    from verificador.avaliacao.determinismo import csv_identicos, hash_csv, proximo_tag
+    from verificador.avaliacao.determinismo import csv_identicos, proximo_tag
 
     destino_run = pasta_run(saida, run_id)
     submission = destino_run / "submission.csv"
@@ -494,12 +457,12 @@ def cmd_submeter(*, run_id: str, saida: Path, criar_tag: bool = False) -> str:
 
     tags = (_git(["tag", "-l", "sub-*"], raiz) or "").splitlines()
     tag = proximo_tag(tags)
-    print(f"R49 ok: duas execuções idênticas (sha256 {hash_csv(submission)[:16]})")
+    print(f"R49 ok: duas execuções idênticas (sha256 {hash_arquivo(submission)[:16]})")
     if not criar_tag:
         print(f"faria: git tag -a {tag}  (commit {git['commit'][:12]}) — passe --criar-tag para criar")
         return tag
     criar_tag_git(raiz, tag, f"submissão da execução {run_id} (commit {git['commit'][:12]})")
-    manifesto["submissao"] = {"tag": tag, "commit": git["commit"], "sha256_csv": hash_csv(submission)}
+    manifesto["submissao"] = {"tag": tag, "commit": git["commit"], "sha256_csv": hash_arquivo(submission)}
     gravar_json(manifesto_path, manifesto)
     print(f"tag criada: {tag}")
     return tag
@@ -544,8 +507,8 @@ def cmd_calibrar(
         gravar_tabela,
         montar_tabela,
         observacoes_do_run,
-        _docs_do_conjunto,
     )
+    from verificador.avaliacao.divisao import documentos_do_conjunto
     from verificador.decisao.confianca import carregar as recarregar
 
     pasta_dados = resolver_dados(dados, None)
@@ -555,7 +518,7 @@ def cmd_calibrar(
     observacoes = observacoes_do_run(
         pasta_run(saida, run_id),
         gabarito_amostra,
-        _docs_do_conjunto("controle", gabarito_amostra),
+        documentos_do_conjunto("controle", gabarito_amostra),
         metrica,
     )
     if run_sintetico:
@@ -565,7 +528,7 @@ def cmd_calibrar(
         observacoes += observacoes_do_run(
             pasta_run(saida, run_sintetico),
             gab_s,
-            _docs_do_conjunto("sintetico_controle", gab_s),
+            documentos_do_conjunto("sintetico_controle", gab_s),
             metrica,
         )
 

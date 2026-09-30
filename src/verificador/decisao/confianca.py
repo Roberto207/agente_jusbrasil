@@ -10,33 +10,23 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from functools import lru_cache
-from importlib import resources
-from pathlib import Path
 
-from verificador.avaliacao.calibrar import NOME_TABELA, _chave
+from verificador.avaliacao.calibrar import _chave, destino_padrao
+from verificador.avaliacao.determinismo import hash_arquivo
 from verificador.contratos import Campos, Resolucao
 from verificador.decisao.caminhos import CLASSE_DO_CAMINHO
 
 
-def _caminho_tabela() -> Path:
-    return Path(str(resources.files("verificador.avaliacao"))) / NOME_TABELA
-
-
 @lru_cache(maxsize=1)
 def carregar() -> dict | None:
-    caminho = _caminho_tabela()
+    caminho = destino_padrao()
     if not caminho.is_file():
         return None
     return json.loads(caminho.read_text(encoding="utf-8"))
 
 
 def hash_tabela() -> str | None:
-    import hashlib
-
-    caminho = _caminho_tabela()
-    if not caminho.is_file():
-        return None
-    return hashlib.sha256(caminho.read_bytes()).hexdigest()
+    return hash_arquivo(destino_padrao())
 
 
 def consultar(caminho: str, correcao_ocr: bool, fonte: str) -> float | None:

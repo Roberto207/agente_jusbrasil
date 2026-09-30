@@ -48,6 +48,31 @@ def carregar_divisao() -> dict[str, object]:
     return json.loads(caminho.read_text(encoding="utf-8"))
 
 
+def conjuntos_disponiveis(gabarito: Path) -> tuple[str, ...]:
+    """A divisão ajuste/controle vale só para a amostra oficial; outro gabarito é um conjunto único.
+
+    Decide pelos documentos do gabarito, não pelo nome do arquivo (o sintético usa o mesmo nome).
+    Um `divisao.json` ao lado do gabarito sintético acrescenta o treino e o controle dele (ADR-009).
+    """
+    with gabarito.open(encoding="utf-8-sig", newline="") as fh:
+        ids = {linha["documento_id"] for linha in csv.DictReader(fh)}
+    if ids == set(documentos("amostra")):
+        return ("amostra", "ajuste", "controle")
+    if (gabarito.parent / "divisao.json").is_file():
+        return ("sintetico", "sintetico_treino", "sintetico_controle")
+    return ("sintetico",)
+
+
+def documentos_do_conjunto(nome: str, gabarito: Path) -> set[str] | None:
+    """Documentos de um conjunto da amostra ou do sintético; `None` = o gabarito inteiro."""
+    if nome == "sintetico":
+        return None
+    if nome in ("sintetico_treino", "sintetico_controle"):
+        dados = json.loads((gabarito.parent / "divisao.json").read_text(encoding="utf-8"))
+        return set(dados[nome.removeprefix("sintetico_")])
+    return set(documentos(nome))
+
+
 def documentos(conjunto: str) -> frozenset[str]:
     """Documentos de `ajuste`, `controle` ou `amostra` (a união dos dois)."""
     if conjunto not in CONJUNTOS:

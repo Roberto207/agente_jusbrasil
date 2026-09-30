@@ -26,6 +26,13 @@ def pasta_dados() -> Path:
 
 
 @pytest.fixture(scope="session")
+def indice(pasta_dados: Path):
+    from verificador.base import construir_indice
+
+    return construir_indice(pasta_dados / "desafio1_bracis.db")
+
+
+@pytest.fixture(scope="session")
 def textos(pasta_dados: Path) -> dict[str, str]:
     pasta = pasta_dados / "txt"
     if not pasta.is_dir():

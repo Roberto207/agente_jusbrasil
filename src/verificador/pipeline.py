@@ -10,16 +10,13 @@ from collections import defaultdict
 from time import perf_counter
 
 from verificador.base.indice import Indice
-from verificador.contratos import Campos, CitacaoVerificada, Resolucao
+from verificador.contratos import CitacaoVerificada, Resolucao
 from verificador.decisao import decidir
 from verificador.decisao.caminhos import CAMPOS_NAO_LIDOS
 from verificador.decisao.confianca import atribuir
 from verificador.extracao import extrair, ler_campos
+from verificador.extracao.campos import CAMPOS_VAZIOS
 from verificador.texto import preparar
-
-
-def _campos_vazios() -> Campos:
-    return Campos(None, None, (), None, None, None, None, None, None, False, "regras")
 
 
 def processar_documento(
@@ -44,7 +41,7 @@ def processar_documento(
 
         t0 = perf_counter()
         if campos is None:  # fila de difíceis sem LLM: nunca `real` (ADR-006)
-            campos = _campos_vazios()
+            campos = CAMPOS_VAZIOS
             resolucao = Resolucao("incompleta", None, CAMPOS_NAO_LIDOS, (), None)
         else:
             resolucao = decidir(campos, candidata.forma, indice)
