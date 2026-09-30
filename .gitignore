@@ -14,3 +14,4 @@ lener-br
 results/
 results(1)/
 sintetico_hf/
+.claude/agent-memory/

@@ -12,8 +12,9 @@ olhando a versão impressa por `python -m verificador ambiente`.
 
 > **Atualização de 25/09.**
 > - **Notebooks atuais:** `08_sub-006.ipynb` gera a submissão (regex + encoder) e confere R49 e o hash;
->   `07_treino_encoder_enc-001.ipynb` treina o encoder. Os exemplos abaixo com `sub-001` e o
->   `00_esqueleto.ipynb` são do início do projeto: o fluxo é o mesmo, só a tag muda.
+>   `07_treino_encoder_enc-001.ipynb` treina o encoder. Os exemplos abaixo com `sub-001` são do início do
+>   projeto: o fluxo é o mesmo, só a tag muda. Os notebooks `00`, `02`–`04` saíram do repositório em 30/09
+>   (mesmo molde do `06`; continuam no histórico do git e nas tags `sub-001` a `sub-004`).
 > - **Imagem real:** o manifesto não confirma a tag `v170` (o texto é fixo no código). O que o Kaggle
 >   expõe é o hash, em `KAGGLE_DOCKER_IMAGE`: na execução da `sub-006`,
 >   `gcr.io/kaggle-gpu-images/python@sha256:37c64f7dd9c54116…`. É esse hash que o `Dockerfile` final
@@ -87,7 +88,6 @@ from kaggle_secrets import UserSecretsClient
 
 REPO = "Roberto207/agente_jusbrasil"
 VERSAO = "sub-001"      # tag ou hash de commit; nunca "main" em execução oficial
-                        # (o notebook 00_esqueleto.ipynb ainda usa "main" até existir a primeira tag)
 DESTINO = "/kaggle/temp/agente_jusbrasil"
 
 token = UserSecretsClient().get_secret("GITHUB_TOKEN")
@@ -104,9 +104,9 @@ del token
 Cuidados:
 - **Clonar fora de `/kaggle/working/`.** Tudo em `/kaggle/working/` vira saída do notebook; se o clone
   ficasse lá com o token no `.git/config`, o token iria junto com as saídas.
-- **Nunca imprimir o token** nem deixá-lo numa variável exibida. O notebook `00_esqueleto.ipynb`
-  captura a saída do `git` e troca o token por `***` se o comando falhar — senão o traceback do
-  Kaggle mostra a URL com o secret. Se a pasta de destino já existir, ele atualiza em vez de clonar
+- **Nunca imprimir o token** nem deixá-lo numa variável exibida. Os notebooks de submissão (`06`, `08`)
+  capturam a saída do `git` e troca o token por `***` se o comando falhar — senão o traceback do
+  Kaggle mostra a URL com o secret. Se a pasta de destino já existir, eles atualizam em vez de clonar
   de novo.
 - **Fixar a versão** (tag ou hash). Para testes rápidos dá para usar um branch; para submissões,
   sempre uma tag.
