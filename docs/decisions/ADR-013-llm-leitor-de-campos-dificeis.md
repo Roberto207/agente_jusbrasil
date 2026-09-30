@@ -1,7 +1,9 @@
 # ADR-013: LLM opcional como leitor de campos difíceis
 
 **Status:** **Não adotado** (25/09) — era "Aceito, ligado só se a medição mostrar ganho"
-**Data:** 2026-09-17 · **Revisão:** 2026-09-25
+**Data:** 2026-09-17 · **Revisão:** 2026-09-25 · **30/09:** o código dormente (`decisao/llm.py`,
+`usar_llm`, `llm_link`/`llm_revisao`, `--sem-llm`, `FonteCampos="llm"`) foi removido na limpeza da
+auditoria (A16). Se o LLM voltar, recomeça do histórico do git.
 
 ## Contexto
 

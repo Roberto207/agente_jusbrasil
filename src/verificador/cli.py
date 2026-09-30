@@ -230,7 +230,6 @@ def cmd_rodar(
     saida: Path,
     dados: Path | None = None,
     usar_encoder: bool | None = None,
-    usar_llm: bool | None = None,
 ) -> Path:
     from collections import Counter
 
@@ -251,16 +250,14 @@ def cmd_rodar(
     if not script.is_file():
         raise SystemExit(f"json_to_submission.py não encontrado em {pasta_dados}")
 
-    cfg = carregar().com_flags(usar_encoder=usar_encoder, usar_llm=usar_llm)
-    if cfg.usar_llm:
-        raise SystemExit("usar_llm ainda não está implementado nesta versão (Fase 5)")
+    cfg = carregar().com_flags(usar_encoder=usar_encoder)
     encoder = None
     if cfg.usar_encoder:
         if not cfg.encoder_link:
             raise SystemExit("usar_encoder exige encoder_link (verificador.toml ou VERIFICADOR_ENCODER_LINK)")
         from verificador.extracao.encoder import Encoder
 
-        encoder = Encoder(cfg.encoder_link, cfg.encoder_revisao)
+        encoder = Encoder(cfg.encoder_link, cfg.encoder_revisao, semente=cfg.semente)
     destino_run = pasta_run(saida, run_id)
     pasta_jsons = destino_run / "jsons"
     pasta_jsons.mkdir(parents=True, exist_ok=True)
@@ -445,7 +442,6 @@ def cmd_submeter(*, run_id: str, saida: Path, criar_tag: bool = False) -> str:
                 saida=saida,
                 dados=Path(argumentos["dados"]) if argumentos.get("dados") else None,
                 usar_encoder=cfg.get("usar_encoder"),
-                usar_llm=cfg.get("usar_llm"),
             )
             for nome in repeticoes
         ]
@@ -564,7 +560,6 @@ def construir_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--saida", type=Path, default=_saida_padrao())
     p_run.add_argument("--dados", type=Path, default=None)
     p_run.add_argument("--sem-encoder", action="store_true")
-    p_run.add_argument("--sem-llm", action="store_true")
 
     p_av = sub.add_parser("avaliar", help="nota via kaggle_metric.py oficial")
     p_av.add_argument("--run", dest="run_id", required=True)
@@ -613,14 +608,12 @@ def main(argv: list[str] | None = None) -> None:
         cmd_indexar(args.dados.resolve())
     elif args.comando == "rodar":
         usar_encoder = False if args.sem_encoder else None
-        usar_llm = False if args.sem_llm else None
         cmd_rodar(
             entrada=args.entrada,
             run_id=args.run_id,
             saida=args.saida,
             dados=args.dados,
             usar_encoder=usar_encoder,
-            usar_llm=usar_llm,
         )
     elif args.comando == "avaliar":
         cmd_avaliar(

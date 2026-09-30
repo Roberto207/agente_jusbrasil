@@ -87,13 +87,13 @@ def candidatas_do_encoder(
 class Encoder:
     """Modelo ajustado carregado em CPU (R49: inferência determinística, sem GPU)."""
 
-    def __init__(self, link: str, revisao: str | None = None, *, threads: int = 4) -> None:
+    def __init__(self, link: str, revisao: str | None = None, *, semente: int = 0, threads: int = 4) -> None:
         import torch
         from transformers import AutoModelForTokenClassification, AutoTokenizer
 
         from verificador.treino.treinar import Config
 
-        torch.manual_seed(0)
+        torch.manual_seed(semente)
         torch.set_num_threads(threads)
         torch.use_deterministic_algorithms(True)
         self._dispositivo = torch.device("cpu")

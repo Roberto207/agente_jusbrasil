@@ -176,12 +176,11 @@ def test_calibrar_no_controle_passa_r26(run_amostra, run_sintetico, pasta_dados)
     assert tabela["brier_controle"] <= tabela["brier_constante"]
 
 
-def test_encoder_e_llm_ligados_falham_alto(pasta_dados, tmp_path, monkeypatch) -> None:
-    """LLM ainda não existe; encoder sem modelo configurado não pode rodar em silêncio só com regex."""
+def test_encoder_sem_modelo_falha_alto(pasta_dados, tmp_path, monkeypatch) -> None:
+    """Encoder ligado sem modelo configurado não pode rodar em silêncio só com regex."""
     monkeypatch.setenv("VERIFICADOR_ENCODER_LINK", "")  # o toml aponta para o HF; aqui, sem modelo
-    for chave, erro in (("usar_llm", "não está implementado"), ("usar_encoder", "exige encoder_link")):
-        with pytest.raises(SystemExit, match=erro):
-            cli.cmd_rodar(entrada=pasta_dados / "txt", run_id="x", saida=tmp_path, dados=pasta_dados, **{chave: True})
+    with pytest.raises(SystemExit, match="exige encoder_link"):
+        cli.cmd_rodar(entrada=pasta_dados / "txt", run_id="x", saida=tmp_path, dados=pasta_dados, usar_encoder=True)
 
 
 # -- sintético ------------------------------------------------------------------------------
