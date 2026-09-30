@@ -390,7 +390,7 @@ tag `sub-001`, notebook no Kaggle, envio da 1ª submissão e comparação local 
 
 - [x] **Tag `sub-001`** no commit da versão só-regras (nunca `main` em execução oficial — `docs/gerais/guia_kaggle.md`).
       *2026-09-21:* `sub-001` (f04ee55) é a versão só-regras **sem** confiança nem causas 2/3 e já está no remoto; a submissão
-      real sai da **`sub-002`** (calibrador recalibrado com sintético; notebook `notebooks/kaggle/02_sub-002.ipynb`).
+      real sai da **`sub-002`** (calibrador recalibrado com sintético; notebook `notebooks/kaggle/02_sub-002.ipynb`, hoje histórico).
 - [x] Trocar `VERSAO = "main"` do notebook para a tag e rodar no Kaggle, gerando `submission.csv` no ambiente
       fixado.
       *Feito desde a `sub-002`:* os notebooks `02` a `06` clonam a tag (`docs/resultado_submissoes.md`).
@@ -1041,12 +1041,15 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
 **Enxugamento** (`specs/auditoria_codigo_multiagente.md` + `docs/gerais/auditoria_codigo.md`, seção 0,
 **revalidada em 25/09**):
 
-- [ ] Aprovar os itens na seção 0 do relatório. Recomendado: A1–A8, **A19** (novo), B1, **B4** (agora
+- [x] Aprovar os itens na seção 0 do relatório. Recomendado: A1–A8, **A19** (novo), B1, **B4** (agora
       necessário: `encoder.py` importa função privada), B7, B10, B16, **remoção do LLM** (~−90 linhas; mexe
       em `contratos.py`, avisar a equipe), textos A9–A13, notebooks `00`/`02`–`04`, `05` com tag fixa,
       `submission_feita_kaggle.csv`, `.claude/agent-memory/`. Adiar B3/B11 (base da fase 2) e A17.
-- [ ] Aplicar num branch `limpeza-auditoria`, um commit por categoria, com a checagem mecânica: CSV idêntico
+- [x] Aplicar num branch `limpeza-auditoria`, um commit por categoria, com a checagem mecânica: CSV idêntico
       em amostra, controle, sintético e diversificado + `pytest` + R49. **Antes** da tag final.
+      *2026-09-30:* 5 commits (`b241284`..`d5f4758`), saída idêntica em tudo, inclusive a régua do LeNER-Br
+      com encoder; `src/` −215 linhas, `tests/` −75; 283 testes. Referência vaga mantida desligada; B3/B11
+      fora; B17 vai para a Fase 7. Falta: merge em `main` e `/code-review high` (pedido do usuário).
 
 **Pendências menores:**
 

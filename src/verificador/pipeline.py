@@ -1,7 +1,7 @@
 """O pipeline de um documento: texto → extração → campos → decisão (DESIGN, "Pipeline de execução").
 
-Sem GPU e sem rede: regras e consulta ao índice (ADR-001). O encoder entra na extração, atrás de
-`usar_encoder`, em CPU (ADR-011); o LLM, atrás de `usar_llm`, ainda não existe.
+Sem GPU: regras e consulta ao índice (ADR-001). O encoder entra só na extração, atrás de
+`usar_encoder`, em CPU (ADR-011). A classificação nunca passa por modelo.
 """
 
 from __future__ import annotations
@@ -10,16 +10,13 @@ from collections import defaultdict
 from time import perf_counter
 
 from verificador.base.indice import Indice
-from verificador.contratos import Campos, CitacaoVerificada, Resolucao
+from verificador.contratos import CitacaoVerificada, Resolucao
 from verificador.decisao import decidir
 from verificador.decisao.caminhos import CAMPOS_NAO_LIDOS
 from verificador.decisao.confianca import atribuir
 from verificador.extracao import extrair, ler_campos
+from verificador.extracao.campos import CAMPOS_VAZIOS
 from verificador.texto import preparar
-
-
-def _campos_vazios() -> Campos:
-    return Campos(None, None, (), None, None, None, None, None, None, False, "regras")
 
 
 def processar_documento(
@@ -43,8 +40,8 @@ def processar_documento(
         tempos["campos"] = tempos.get("campos", 0.0) + perf_counter() - t0
 
         t0 = perf_counter()
-        if campos is None:  # fila de difíceis sem LLM: nunca `real` (ADR-006)
-            campos = _campos_vazios()
+        if campos is None:  # campos não lidos: nunca `real` (ADR-006)
+            campos = CAMPOS_VAZIOS
             resolucao = Resolucao("incompleta", None, CAMPOS_NAO_LIDOS, (), None)
         else:
             resolucao = decidir(campos, candidata.forma, indice)

@@ -18,7 +18,6 @@ TRIBUNAIS = ("STF", "STJ", "STM", "TSE", "TST")
 class Fabricada:
     texto: str
     tipo: str  # jurisprudencia | lei
-    forma: str  # com_numero | sumula | lei_artigo | sem_numero
     classificacao: str
     id_canonico: str | None
     construcao: str  # como foi fabricada (para o relatório)
@@ -105,7 +104,7 @@ class Fabrica:
     def _fabricar_acordao(self, construcao: str, texto: str, attrs: dict, numero: str) -> Fabricada:
         candidatos = self.indice.por_numero(numero)
         classe, id_ = classificar(candidatos, consistentes(candidatos, **attrs))
-        return Fabricada(texto, "jurisprudencia", "com_numero", classe, id_, construcao)
+        return Fabricada(texto, "jurisprudencia", classe, id_, construcao)
 
     def _classes_fora_da_familia(self, registros: list) -> list[str]:
         """Classes que o R40 ainda trata como empréstimo (outra família, não outro estágio)."""
@@ -192,7 +191,7 @@ class Fabrica:
             )
         candidatos = self.indice.por_numero(r.numero)  # type: ignore[arg-type]
         classe, id_ = classificar(candidatos, consistentes(candidatos, tribunal=declarado))
-        return Fabricada(texto, "jurisprudencia", "sumula", classe, id_, "real_sumula")
+        return Fabricada(texto, "jurisprudencia", classe, id_, "real_sumula")
 
     def sumula_inventada(self, rng: random.Random) -> Fabricada:
         if rng.random() < 0.5:  # existente, mas de outro tribunal
@@ -207,7 +206,7 @@ class Fabrica:
             trib, numero = rng.choice(TRIBUNAIS), f"S{n}"
         candidatos = self.indice.por_numero(numero)  # type: ignore[arg-type]
         classe, id_ = classificar(candidatos, consistentes(candidatos, tribunal=trib))
-        return Fabricada(f"Súmula {n} do {trib}", "jurisprudencia", "sumula", classe, id_, "sumula_inventada")
+        return Fabricada(f"Súmula {n} do {trib}", "jurisprudencia", classe, id_, "sumula_inventada")
 
     def _texto_lei(self, rng: random.Random, artigo: int, chave: str) -> str:
         definido, nome = rng.choice(moldes.NOMES_DE_LEI[chave])
@@ -219,7 +218,7 @@ class Fabrica:
         r = rng.choice(self.dispositivos)
         candidatos = self.indice.por_lei_artigo(r.lei_chave, r.artigo)  # type: ignore[arg-type]
         classe, id_ = classificar(candidatos, candidatos)
-        return Fabricada(self._texto_lei(rng, int(r.artigo), r.lei_chave), "lei", "lei_artigo", classe, id_, "real_lei")  # type: ignore[arg-type]
+        return Fabricada(self._texto_lei(rng, int(r.artigo), r.lei_chave), "lei", classe, id_, "real_lei")  # type: ignore[arg-type]
 
     def lei_inventada(self, rng: random.Random) -> Fabricada:
         chave = rng.choice(sorted(moldes.NOMES_DE_LEI))
@@ -227,24 +226,24 @@ class Fabrica:
             artigo = rng.randint(1, 2100)
             if not self.indice.por_lei_artigo(chave, str(artigo)):
                 break
-        return Fabricada(self._texto_lei(rng, artigo, chave), "lei", "lei_artigo", "inventada", None, "lei_inventada")
+        return Fabricada(self._texto_lei(rng, artigo, chave), "lei", "inventada", None, "lei_inventada")
 
     def lei_desconhecida(self, rng: random.Random) -> Fabricada:
         numero, ano = rng.randint(1000, 99999), rng.randint(1950, 2024)
         texto = f"art. {rng.randint(1, 400)} da Lei nº {milhar(str(numero))}/{ano}"
-        return Fabricada(texto, "lei", "lei_artigo", "inventada", None, "lei_desconhecida")
+        return Fabricada(texto, "lei", "inventada", None, "lei_desconhecida")
 
     def sem_numero(self, rng: random.Random) -> Fabricada:
         texto = rng.choice(moldes.MOLDES_SEM_NUMERO).format(
             trib=rng.choice(TRIBUNAIS), ano=rng.randint(2009, 2025),
             rel=rng.choice(self.relatores), classe=rng.choice(["Rcl", "HC", "REsp", "RE"]),
         )
-        return Fabricada(texto, "jurisprudencia", "sem_numero", "incompleta", None, "sem_numero")
+        return Fabricada(texto, "jurisprudencia", "incompleta", None, "sem_numero")
 
     def tema(self, rng: random.Random) -> Fabricada:
         n = rng.randint(1, 1300)
         texto = f"Tema {milhar(str(n))} da repercussão geral"
-        return Fabricada(texto, "jurisprudencia", "com_numero", "inventada", None, "tema")
+        return Fabricada(texto, "jurisprudencia", "inventada", None, "tema")
 
     def sortear(self, rng: random.Random) -> Fabricada:
         nomes, pesos = zip(*self.PESOS)

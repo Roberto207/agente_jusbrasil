@@ -16,20 +16,12 @@ from __future__ import annotations
 
 import collections
 
-import pytest
-
-from verificador.base import construir_indice
 from verificador.extracao import extrair, ler_campos
 from verificador.texto import preparar
 from tests.helpers import iou_offsets
 
 PISO_TST = 0.95
 PISO_DEMAIS = 0.88
-
-
-@pytest.fixture(scope="module")
-def indice(pasta_dados):
-    return construir_indice(pasta_dados / "desafio1_bracis.db")
 
 
 def _consistentes(campos, candidatos):

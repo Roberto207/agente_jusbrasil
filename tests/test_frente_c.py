@@ -216,6 +216,14 @@ def test_submeter_confere_r49_e_so_cria_a_tag_se_pedido(repo_limpo) -> None:
     assert not list(saida.glob("r.r49*")), "as execuções de conferência não podem ficar no disco"
 
 
+def test_submeter_recusa_configuracao_diferente_da_execucao(repo_limpo, monkeypatch) -> None:
+    """R49 repete a execução com a configuração de agora: semente (ou encoder) diferente é recusada."""
+    _, saida = repo_limpo
+    monkeypatch.setenv("VERIFICADOR_SEMENTE", "7")
+    with pytest.raises(SystemExit, match="configuração atual"):
+        cli.cmd_submeter(run_id="r", saida=saida)
+
+
 def test_submeter_recusa_arvore_suja(repo_limpo) -> None:
     repo, saida = repo_limpo
     (repo / "a.txt").write_text("mudou", encoding="utf-8")

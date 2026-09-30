@@ -9,8 +9,25 @@ from dataclasses import replace
 
 from verificador.contratos import Campos, Candidata
 from verificador.extracao.padroes import MARCADOR_RELATOR, TRIBUNAL_EXTENSO, TST_NUMERO
-from verificador.tabelas import classes, ocr, resolver_lei, resolver_uf, tst_sigla
+from verificador.tabelas import classes_no_texto, ocr, resolver_lei, resolver_uf, tst_sigla
 from verificador.texto.normalizacao import normalizar
+
+# Campos que as regras não leram. Cada leitor preenche só o que achou (`replace`); na forma com
+# número, `ler_campos` acerta `correcao_ocr` sobre o trecho original (nas outras formas fica False).
+# `pipeline` usa a constante quando nada foi lido.
+CAMPOS_VAZIOS = Campos(
+    tribunal=None,
+    classe_principal=None,
+    cadeia_recursos=(),
+    numero=None,
+    uf=None,
+    ano=None,
+    relator=None,
+    lei_chave=None,
+    artigo=None,
+    correcao_ocr=False,
+    fonte="regras",
+)
 
 _DIGITO = re.compile(r"\d+")
 _ANO = re.compile(r"\b(19|20)\d{2}\b")
@@ -22,9 +39,6 @@ _UF_APOS_NUMERO = re.compile(
 # ADR-015: mesmo princípio do padrão de extração — marcador (que repete, porque `Rel. Min.` são dois)
 # mais preenchimento curto, em vez de enumerar `relatoria de|rel. min.|sob relatoria de`. Sem isso,
 # `relatada pelo Ministro X` é extraída mas não tem o relator lido, e cai em `campos_nao_lidos`.
-# O preenchimento é preguiçoso e a captura começa em maiúscula de verdade (`(?-i:…)`, porque o
-# IGNORECASE valeria para a classe toda): guloso, ele comia o início do nome — `Dias Toffoli` virava
-# `s toffoli`.
 # Marcador e preenchimento preguiçosos, e a captura começa em maiúscula de verdade (`(?-i:…)`, porque
 # o IGNORECASE valeria para a classe toda). Gulosos, comiam o nome: `Dias Toffoli` virava `s toffoli`,
 # e um relator chamado `Relator Exemplo` perdia o primeiro nome, porque `Relator` também é marcador.
@@ -73,7 +87,7 @@ def _tem_ocr_no_numero(texto: str) -> bool:
     return False
 
 
-def _numero_com_ocr(trecho: str, bruto: str) -> tuple[str | None, bool]:
+def _numero_com_ocr(trecho: str, bruto: str) -> str | None:
     tabela = ocr()
     saida: list[str] = []
     for ch in bruto:
@@ -81,28 +95,8 @@ def _numero_com_ocr(trecho: str, bruto: str) -> tuple[str | None, bool]:
             saida.append(tabela[ch])
         elif ch.isdigit():
             saida.append(ch)
-    numero = "".join(saida) or _digitos(bruto) or _digitos(trecho)
-    if not numero:
-        return None, False
-    return numero, _tem_ocr_no_numero(trecho) or _tem_ocr_no_numero(bruto)
-
-
-def _classes_no_texto(texto: str) -> list[str]:
-    achadas: list[tuple[int, int, str]] = []
-    for padrao, sigla in classes():
-        for m in re.finditer(rf"(?<![A-Za-z])(?:{padrao})(?![A-Za-z])", texto, re.IGNORECASE):
-            achadas.append((m.start(), m.end(), sigla))
-    if not achadas:
-        return []
-    achadas.sort(key=lambda item: (item[0], -(item[1] - item[0])))
-    usadas: list[str] = []
-    fim_livre = -1
-    for ini, fim, sigla in achadas:
-        if ini < fim_livre:
-            continue
-        usadas.append(sigla)
-        fim_livre = fim
-    return usadas
+    # A flag de correção de OCR não sai daqui: `ler_campos` a calcula sobre o trecho original.
+    return "".join(saida) or _digitos(bruto) or _digitos(trecho) or None
 
 
 _TRIBUNAL_POR_EXTENSO = tuple((sigla, re.compile(p, re.IGNORECASE)) for sigla, p in TRIBUNAL_EXTENSO.items())
@@ -130,42 +124,24 @@ def _campos_com_numero(trecho: str) -> Campos | None:
     tema = re.search(r"tem[aã]\s+(\d+(?:\.\d+)?)\s+da\s+repercuss", trecho, re.I)
     if tema:
         # Tema de repercussão geral: o gabarito o trata como citação (e a base não tem temas).
-        numero, ocr_ok = _numero_com_ocr(trecho, tema.group(1))
-        if not numero:
+        numero = _numero_com_ocr(trecho, tema.group(1))
+        if not numero:  # guarda: sem número lido, a citação vai para campos não lidos (ADR-006)
             return None
-        return Campos(
-            tribunal=None,
-            classe_principal=None,
-            cadeia_recursos=(),
-            numero=numero,
-            uf=None,
-            ano=None,
-            relator=None,
-            lei_chave=None,
-            artigo=None,
-            correcao_ocr=ocr_ok,
-            fonte="regras",
-        )
+        return replace(CAMPOS_VAZIOS, numero=numero)
 
     tst = TST_NUMERO.search(trecho)
     if tst:
         tokens = [t for t in tst.group("cadeia_tst").split("-") if t and t.upper() != "TST"]
         siglas = [sigla for t in tokens for sigla in tst_sigla(t)]
-        numero, ocr_ok = _numero_com_ocr(trecho, tst.group("numero_tst"))
+        numero = _numero_com_ocr(trecho, tst.group("numero_tst"))
         if not numero or not siglas:
             return None
-        return Campos(
+        return replace(
+            CAMPOS_VAZIOS,
             tribunal="TST",
             classe_principal=siglas[-1],
             cadeia_recursos=tuple(siglas[:-1]),
-            numero=numero,
-            uf=None,  # o número CNJ do TST codifica a região, não a UF
-            ano=None,
-            relator=None,
-            lei_chave=None,
-            artigo=None,
-            correcao_ocr=ocr_ok,
-            fonte="regras",
+            numero=numero,  # uf fica vazia: o número CNJ do TST codifica a região, não a UF
         )
 
     m_num = re.search(
@@ -175,27 +151,22 @@ def _campos_com_numero(trecho: str) -> Campos | None:
     )
     # A classe e a cadeia vêm antes do número. Depois dele mora a UF, e `/RO` ou `/RR` seriam lidos
     # como Recurso Ordinário e Recurso de Revista (mesma armadilha do ADR-002, em outro campo).
-    siglas = _classes_no_texto(trecho[: m_num.start()] if m_num else trecho)
+    siglas = classes_no_texto(trecho[: m_num.start()] if m_num else trecho)
     if not siglas:
         return None
     bruto = (m_num.group(1) or m_num.group(2) or "") if m_num else ""
-    numero, ocr_ok = _numero_com_ocr(trecho, bruto)
+    numero = _numero_com_ocr(trecho, bruto)
     if not numero:
         return None
     principal = siglas[-1]
     cadeia = tuple(siglas[:-1])
-    return Campos(
+    return replace(
+        CAMPOS_VAZIOS,
         tribunal=_tribunal(trecho),
         classe_principal=principal,
         cadeia_recursos=cadeia,
         numero=numero,
         uf=_uf_apos_numero(trecho, m_num.end()) if m_num else None,
-        ano=None,
-        relator=None,
-        lei_chave=None,
-        artigo=None,
-        correcao_ocr=ocr_ok,
-        fonte="regras",
     )
 
 
@@ -210,47 +181,20 @@ def _campos_sumula(trecho: str) -> Campos | None:
     else:
         vinc = bool(_SUMULA_VINC.search(trecho))
         numero, tribunal = (f"SV{m.group(1)}" if vinc else f"S{m.group(1)}"), _tribunal(trecho)
-    return Campos(
-        tribunal=tribunal,
-        classe_principal=None,
-        cadeia_recursos=(),
-        numero=numero,
-        uf=None,
-        ano=None,
-        relator=None,
-        lei_chave=None,
-        artigo=None,
-        correcao_ocr=False,
-        fonte="regras",
-    )
+    return replace(CAMPOS_VAZIOS, tribunal=tribunal, numero=numero)
 
 
 def _campos_lei(trecho: str) -> Campos | None:
     art = _ARTIGO.search(trecho)
     if not art:
         return None
-    artigo = art.group(1)
-    if artigo.endswith("."):
-        artigo = artigo[:-1]
-    artigo = artigo.lstrip("0") or "0"
+    artigo = art.group(1).lstrip("0") or "0"
     if "." in artigo:
         artigo = artigo.replace(".", "")
     lei_m = _LEI_IDENT.search(trecho)
     identificador = lei_m.group(1).strip() if lei_m else ""
     lei_chave = resolver_lei(identificador) if identificador else None
-    return Campos(
-        tribunal=None,
-        classe_principal=None,
-        cadeia_recursos=(),
-        numero=None,
-        uf=None,
-        ano=None,
-        relator=None,
-        lei_chave=lei_chave,
-        artigo=artigo,
-        correcao_ocr=False,
-        fonte="regras",
-    )
+    return replace(CAMPOS_VAZIOS, lei_chave=lei_chave, artigo=artigo)
 
 
 def _campos_sem_numero(trecho: str) -> Campos | None:
@@ -261,42 +205,24 @@ def _campos_sem_numero(trecho: str) -> Campos | None:
     relator = normalizar_relator(rel_m.group(1))
     if not relator:
         return None
-    siglas = _classes_no_texto(trecho)
+    siglas = classes_no_texto(trecho)
     tribunal = _tribunal(trecho)
     if not tribunal and not siglas:
         return None
-    return Campos(
+    return replace(
+        CAMPOS_VAZIOS,
         tribunal=tribunal,
         classe_principal=siglas[-1] if siglas else None,
         cadeia_recursos=tuple(siglas[:-1]) if len(siglas) > 1 else (),
-        numero=None,
-        uf=None,
         ano=int(ano_m.group(0)),
         relator=relator,
-        lei_chave=None,
-        artigo=None,
-        correcao_ocr=False,
-        fonte="regras",
     )
 
 
 def _campos_referencia_vaga() -> Campos:
     """Sempre vazio: por definição, uma referência vaga não tem identificador nenhum para ler
-    (ADR-005). Explícito (em vez de cair no `return None` genérico) para não entrar por engano
-    na fila de difíceis/LLM quando `usar_llm=True` estiver ligado (Fase 4)."""
-    return Campos(
-        tribunal=None,
-        classe_principal=None,
-        cadeia_recursos=(),
-        numero=None,
-        uf=None,
-        ano=None,
-        relator=None,
-        lei_chave=None,
-        artigo=None,
-        correcao_ocr=False,
-        fonte="regras",
-    )
+    (ADR-005). Explícito, em vez de cair no `return None` genérico dos campos não lidos."""
+    return CAMPOS_VAZIOS
 
 
 def ler_campos(c: Candidata) -> Campos | None:

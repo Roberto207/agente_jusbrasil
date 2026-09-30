@@ -174,8 +174,7 @@ def test_tabela_tst_e_a_mesma_dos_dois_lados() -> None:
 def test_numero_com_letra_nao_quebra() -> None:
     from verificador.extracao.campos import _numero_com_ocr
 
-    numero, corrigido = _numero_com_ocr("x", "21737l8")
-    assert numero == "2173718"
+    assert _numero_com_ocr("x", "21737l8") == "2173718"
 
 
 def test_uf_igual_a_sigla_de_classe_nao_vira_classe() -> None:

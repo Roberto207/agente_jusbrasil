@@ -160,6 +160,8 @@ renumerado.
   citação; caso contrário, a citação DEVE ser tratada como sem número lido.
   > **Novo na v2.2.** Impede que o LLM "corrija" OCR inventando dígitos. Ver ADR-013.
   > **25/09:** sem efeito na execução — o LLM leitor não foi adotado (ADR-013). Vale se ele voltar.
+  > **30/09: não aplicável.** O código do LLM (`decisao/llm.py`, `usar_llm`, `--sem-llm`) e o teste
+  > de R48 saíram na limpeza da auditoria (`docs/gerais/auditoria_codigo.md`, A16).
 
 ## Formato de saída
 

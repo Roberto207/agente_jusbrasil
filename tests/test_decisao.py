@@ -8,7 +8,7 @@ import pytest
 
 from verificador.base.indice import Indice
 from verificador.contratos import Campos, RegistroIndice
-from verificador.decisao import CAMINHOS_DECISAO, CLASSE_DO_CAMINHO, decidir, numero_do_llm_valido
+from verificador.decisao import CAMINHOS_DECISAO, CLASSE_DO_CAMINHO, decidir
 
 
 def reg(id_, numero=None, *, tribunal="STJ", classe="REsp", cadeia=(), uf="PR", natureza="acordao", lei=None, artigo=None):
@@ -177,21 +177,3 @@ def test_candidato_unico_ainda_veta_cadeia_da_mesma_classe(indice) -> None:
         indice,
     )
     assert r.classificacao == "inventada" and r.caminho == "numero_contradito"
-
-
-# -- R48 -------------------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "numero, trecho, esperado",
-    [
-        ("2173718", "AgInt no RESP 21737l8 - SP", True),  # `l` → 1, troca da tabela
-        ("2173719", "AgInt no RESP 21737l8 - SP", False),  # dígito que o trecho não tem
-        ("1741784", "REsp nº 1.741.784/PR", True),
-        ("1741785", "REsp nº 1.741.784/PR", False),
-        ("05", "Vistos nos autos", False),  # `nos` não vira número: sem dígito de verdade
-        ("", "REsp 123", False),
-    ],
-)
-def test_r48_so_aceita_digitos_que_saem_do_trecho(numero, trecho, esperado) -> None:
-    assert numero_do_llm_valido(numero, trecho) is esperado

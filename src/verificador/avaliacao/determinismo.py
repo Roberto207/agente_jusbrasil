@@ -7,7 +7,10 @@ import re
 from pathlib import Path
 
 
-def hash_csv(caminho: Path) -> str:
+def hash_arquivo(caminho: Path) -> str | None:
+    """sha256 do arquivo; `None` se ele não existir (o manifesto registra a ausência)."""
+    if not caminho.is_file():
+        return None
     return hashlib.sha256(caminho.read_bytes()).hexdigest()
 
 

@@ -271,13 +271,13 @@ def test_edv_reconhecido_mesmo_colado_no_conector() -> None:
     o alias precisa tolerar o prefixo. Sem isso o registro é indexado como `REsp` puro e volta a
     empatar com o `AgInt no REsp` de mesmo número (`gen_n2_010`).
     """
-    from verificador.extracao.campos import _classes_no_texto
+    from verificador.tabelas import classes_no_texto
 
     for cabecalho in (
         "AgInt nosEMBARGOS DE DIVERGÊNCIA EM RESP Nº 1597443 - PR",
         "AgInt nos EMBARGOS DE DIVERGÊNCIA EM RESP Nº 1597443 - PR",
     ):
-        assert "EDv" in _classes_no_texto(cabecalho), cabecalho
+        assert "EDv" in classes_no_texto(cabecalho), cabecalho
 
 
 # --- Variantes de superfície (reforço do regex, Fase 4, atividade 1) -------------------------------

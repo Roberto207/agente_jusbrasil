@@ -3,7 +3,5 @@
 usar_encoder = true
 encoder_link = "Roberto2799/jusbrasil-encoder-citacoes"
 encoder_revisao = "d91d09142fdc2601cad04b8df1d509d87c5a1552"
-usar_llm = false
 extrair_referencia_vaga = false
 semente = 0
-dtype = "float16"

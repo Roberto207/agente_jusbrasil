@@ -25,31 +25,17 @@ def _raiz_repositorio() -> Path:
 @dataclass(frozen=True)
 class Configuracao:
     usar_encoder: bool = False
-    usar_llm: bool = False
     extrair_referencia_vaga: bool = False
     semente: int = 0
-    dtype: str = "float16"
     encoder_link: str | None = None
     encoder_revisao: str | None = None
-    llm_link: str | None = None
-    llm_revisao: str | None = None
 
     def hash(self) -> str:
         payload = json.dumps(asdict(self), sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-    def com_flags(
-        self,
-        *,
-        usar_encoder: bool | None = None,
-        usar_llm: bool | None = None,
-    ) -> Configuracao:
-        atual = self
-        if usar_encoder is not None:
-            atual = replace(atual, usar_encoder=usar_encoder)
-        if usar_llm is not None:
-            atual = replace(atual, usar_llm=usar_llm)
-        return atual
+    def com_flags(self, *, usar_encoder: bool | None = None) -> Configuracao:
+        return self if usar_encoder is None else replace(self, usar_encoder=usar_encoder)
 
 
 _BOOLS = {"1", "true", "yes", "sim", "on"}
@@ -79,20 +65,14 @@ def carregar() -> Configuracao:
 
     cfg = Configuracao(
         usar_encoder=bool(dados.get("usar_encoder", False)),
-        usar_llm=bool(dados.get("usar_llm", False)),
         extrair_referencia_vaga=bool(dados.get("extrair_referencia_vaga", False)),
         semente=int(dados.get("semente", 0)),
-        dtype=str(dados.get("dtype", "float16")),
         encoder_link=dados.get("encoder_link"),
         encoder_revisao=dados.get("encoder_revisao"),
-        llm_link=dados.get("llm_link"),
-        llm_revisao=dados.get("llm_revisao"),
     )
 
     if "VERIFICADOR_USAR_ENCODER" in os.environ:
         cfg = replace(cfg, usar_encoder=_como_bool(os.environ["VERIFICADOR_USAR_ENCODER"]))
-    if "VERIFICADOR_USAR_LLM" in os.environ:
-        cfg = replace(cfg, usar_llm=_como_bool(os.environ["VERIFICADOR_USAR_LLM"]))
     if "VERIFICADOR_EXTRAIR_REFERENCIA_VAGA" in os.environ:
         cfg = replace(
             cfg,
@@ -104,6 +84,4 @@ def carregar() -> Configuracao:
         cfg = replace(cfg, encoder_revisao=os.environ["VERIFICADOR_ENCODER_REVISAO"])
     if "VERIFICADOR_SEMENTE" in os.environ:
         cfg = replace(cfg, semente=int(os.environ["VERIFICADOR_SEMENTE"]))
-    if "VERIFICADOR_DTYPE" in os.environ:
-        cfg = replace(cfg, dtype=os.environ["VERIFICADOR_DTYPE"])
     return cfg
