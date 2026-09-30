@@ -3,7 +3,40 @@
 **Data:** 2026-09-24 · **HEAD auditado:** `1e744a7` · **Spec:** `specs/auditoria_codigo_multiagente.md`
 **Revalidado em:** 2026-09-25, contra `10e3801` (depois do reforço do regex, do encoder ligado e da Fase 5
 deixada de lado) — ver a seção **0**, que manda sobre o status dos itens abaixo.
-**Status:** relatório. **Nada foi alterado no código.** Marque `[x]` no que aprova; o resto fica como está.
+**Status:** **aplicado em 30/09** no branch `limpeza-auditoria` (5 commits, `b241284`..`d5f4758`) — ver
+"Aplicação de 30/09" logo abaixo. Os `[x]` das seções 1–5 marcam o que entrou.
+
+## Aplicação de 30/09 — o que entrou e a checagem
+
+| Commit | Itens |
+|---|---|
+| `b241284` chore | F1, F2, N2 (notebook `05` fixado em `379714d`, commit que gerou o dataset publicado). N1 foi revertido em seguida: os notebooks voltaram como **históricos** (`notebooks/kaggle/README.md`) |
+| `60373c4` refactor | A1–A6, A8, A19 |
+| `ac46790` refactor | B1, B4, B7, B10 (+ A7), B16; testes B2, B9 |
+| `20b9d69` refactor | remoção do LLM (A16 e a parte LLM de A15/A18), `dtype`; `semente` passa a ser usada pelo encoder |
+| `d5f4758` docs | A9–A13 |
+
+**Fora, de propósito:** B3/B11 (NFKD×NFD, a base nova é desconhecida), A14/B18 e A15 do encoder (uso
+real), A17 (referência vaga fica desligada, decisão de 30/09), B8, marginais B5/B6/B12–B15, B17 (vai para a
+Fase 7, junto do desacoplamento do `.db`), C1–C11.
+
+**Checagem mecânica** depois de **cada** commit, contra a linha de base em `574ae15` (encoder ligado,
+pesos da revisão `d91d0914` do cache, sem rede):
+
+| Artefato | Resultado |
+|---|---|
+| `submission.csv`, `rastro.jsonl`, `jsons/` — amostra, sintético base, diversificado | idênticos (amostra: sha256 `4c6e3538…`) |
+| `avaliar` (amostra/ajuste/controle, sintético e diversificado com treino/controle) | 1,100000 em todos, idêntico |
+| régua do LeNER-Br **com encoder** (`train`/`dev`, jurisprudência e lei) | idêntica (`dev`: jur 19/35, lei 99/127) |
+| índice (1.014 registros, dump completo), `gerar-sintetico --pares 100 --semente 0`, `taxa_acerto.json` | idênticos |
+| manifesto | só a `config` muda no commit do LLM (sem `usar_llm`, `dtype`, `llm_*`), como previsto |
+| `pytest` | 289 → **283** (−6: casos do R48, removido com o LLM); R41/R43 verdes |
+| R49 | duas execuções da amostra, mesmo sha256 `4c6e3538…` |
+| Linhas | `src/` 5.672 → **5.457 (−215)** · `tests/` 2.860 → **2.785 (−75)** |
+
+Achado de passagem (não é da limpeza): `gerar-sintetico` no código atual já não reproduz o `sintetico/` do
+disco (gerado em 22/09, antes do reforço do regex de 24/09, que mudou tabelas). A comparação foi feita entre
+execuções do gerador, antes × depois.
 
 ## 0. Revalidação de 25/09 — o que mudou
 
@@ -95,30 +128,30 @@ guarda de invariante ou generalização; ver "Mantidos").
 
 | ✔ | ID | Local | O que é | Linhas |
 |---|---|---|---|---|
-| [ ] | A1 | `cli.py:157-163` + `import sqlite3` (`:12`) | `contar_documentos` sem chamador (src, tests, notebooks, docs, Dockerfile) | −10 |
-| [ ] | A2 | `extracao/sobreposicao.py:54-55` | `if _chave(cand) > _chave(outra)` inalcançável por construção (lista já ordenada desc.) | −3 |
-| [ ] | A3 | `extracao/sobreposicao.py:40-41` | `if not candidatas: return []` redundante | −2 |
-| [ ] | A4 | `extracao/campos.py:221-222` | `artigo.endswith(".")` — o grupo `(\d+(?:\.\d+)?)` nunca termina em ponto | −2 |
-| [ ] | A5 | `extracao/campos.py:127-128` | `if not numero` no ramo Tema — `\d+` nunca dá vazio (verificado em todos os code points) | −2 |
-| [ ] | A6 | `base/numero_proprio.py:224-225` | ramo `"dispositivo"`; o único chamador já desvia antes. **Ressalva:** documentado como despachante público (`mudancas_caio_fase_1_a.md:175`) — opcional | −2 |
-| [ ] | A7 | `avaliacao/calibrar.py:199-200` | ramo `amostra/sintetico → None` sem chamador. Some junto com B10 | −2 |
-| [ ] | A8 | `sintetico/citacoes.py:21` | campo `Fabricada.forma` escrito e nunca lido | −1 |
+| [x] | A1 | `cli.py:157-163` + `import sqlite3` (`:12`) | `contar_documentos` sem chamador (src, tests, notebooks, docs, Dockerfile) | −10 |
+| [x] | A2 | `extracao/sobreposicao.py:54-55` | `if _chave(cand) > _chave(outra)` inalcançável por construção (lista já ordenada desc.) | −3 |
+| [x] | A3 | `extracao/sobreposicao.py:40-41` | `if not candidatas: return []` redundante | −2 |
+| [x] | A4 | `extracao/campos.py:221-222` | `artigo.endswith(".")` — o grupo `(\d+(?:\.\d+)?)` nunca termina em ponto | −2 |
+| [x] | A5 | `extracao/campos.py:127-128` | `if not numero` no ramo Tema — `\d+` nunca dá vazio (verificado em todos os code points) | −2 |
+| [x] | A6 | `base/numero_proprio.py:224-225` | ramo `"dispositivo"`; o único chamador já desvia antes. **Ressalva:** documentado como despachante público (`mudancas_caio_fase_1_a.md:175`) — opcional | −2 |
+| [x] | A7 | `avaliacao/calibrar.py:199-200` | ramo `amostra/sintetico → None` sem chamador. Some junto com B10 | −2 |
+| [x] | A8 | `sintetico/citacoes.py:21` | campo `Fabricada.forma` escrito e nunca lido | −1 |
 
 ## 2. Enxugamento — validado, saída idêntica
 
 | ✔ | ID | Local | Proposta | Linhas | Ressalva |
 |---|---|---|---|---|---|
-| [ ] | B1 | `extracao/campos.py` (7 blocos de 13 linhas) + `pipeline._campos_vazios` | constante `CAMPOS_VAZIOS` + `replace(...)`; fica em `campos.py`, sem tocar `contratos.py` | −76 | — |
+| [x] | B1 | `extracao/campos.py` (7 blocos de 13 linhas) + `pipeline._campos_vazios` | constante `CAMPOS_VAZIOS` + `replace(...)`; fica em `campos.py`, sem tocar `contratos.py` | −76 | — |
 | [ ] | B3 | `_sem_acento` 4× (`atributos.py:50`, `numero_proprio.py:35`, `campos.py:47`, `cabecalho.py:25`) + `tabelas._so_ascii` | uma `sem_acento` NFD em `tabelas/__init__.py` | −18 | **Lado do documento idêntico por construção; lado da base verificado só na base atual.** NFKD×NFD divergem em 4.952 code points (º, ª, ﬁ, NBSP…). Se a base da fase 2 mudar (Kaggle citou 1.016 registros), refazer o dump do índice. Alternativa sem risco: deduplicar só em pares (NFKD base / NFD documento) |
-| [ ] | B4 | `campos._classes_no_texto` = `atributos._siglas_no_texto` | uma `classes_no_texto` em `tabelas` (manter alias usado por `test_extracao.py:272`) | −18 | — |
-| [ ] | B7 | sha256 3× (`cli.hash_arquivo`, `determinismo.hash_csv`, `confianca.hash_tabela`) + caminho da taxa 2× | um `hash_arquivo` em `determinismo.py`; `confianca` usa `calibrar.destino_padrao` | −15 | — |
-| [ ] | B10 | `cli._conjuntos_disponiveis/_documentos_do_conjunto` × `calibrar._docs_do_conjunto` | função única em `avaliacao/divisao.py` | −10 (líquido) | ajustar `tests/test_pipeline.py:157` (importa a função antiga) |
+| [x] | B4 | `campos._classes_no_texto` = `atributos._siglas_no_texto` | uma `classes_no_texto` em `tabelas` (manter alias usado por `test_extracao.py:272`) | −18 | — |
+| [x] | B7 | sha256 3× (`cli.hash_arquivo`, `determinismo.hash_csv`, `confianca.hash_tabela`) + caminho da taxa 2× | um `hash_arquivo` em `determinismo.py`; `confianca` usa `calibrar.destino_padrao` | −15 | — |
+| [x] | B10 | `cli._conjuntos_disponiveis/_documentos_do_conjunto` × `calibrar._docs_do_conjunto` | função única em `avaliacao/divisao.py` | −10 (líquido) | ajustar `tests/test_pipeline.py:157` (importa a função antiga) |
 | [ ] | B11 | `normalizar_relator` em `atributos.py:55` e `campos.py:52` | uma só (depende de B3) | −9 | mesma ressalva de B3 |
-| [ ] | B16 | `campos._numero_com_ocr` devolve flag de OCR sempre sobrescrita em `ler_campos` (`:294-296`) | devolver só o número | −4 | ajustar `tests/test_campos.py:175` |
+| [x] | B16 | `campos._numero_com_ocr` devolve flag de OCR sempre sobrescrita em `ler_campos` (`:294-296`) | devolver só o número | −4 | ajustar `tests/test_campos.py:175` |
 | [ ] | B18 | `extracao/__init__._FORMAS` — 4ª coluna sempre = 2ª | tirar a coluna; `Candidata.padrao` continua recebendo `forma` | −3 | decidir junto com A14 (gancho do encoder) — **sugiro depois de 27/09** |
-| [ ] | B2 | `tests/test_esqueleto.py` repete conftest e roda de novo a amostra | **mover** as asserções únicas (índice ==1014, cabeçalho do CSV, `relatorio.md`) para a fixture `run_amostra` | −25 (tests) | não apagar: único teste de `cmd_indexar` |
+| [x] | B2 | `tests/test_esqueleto.py` repete conftest e roda de novo a amostra | **mover** as asserções únicas (índice ==1014, cabeçalho do CSV, `relatorio.md`) para a fixture `run_amostra` | −25 (tests) | não apagar: único teste de `cmd_indexar` |
 | [ ] | B8 | `tests/test_integracao_ab.py:55-68` `_milhar`/`_cnj` | importar de `sintetico/citacoes` | −13 (tests) | o oráculo do teste passa a depender do formatador de produção |
-| [ ] | B9 | fixture `indice` 4× nos testes | uma só, escopo `session`, no `conftest.py` | −10 (tests) | — |
+| [x] | B9 | fixture `indice` 4× nos testes | uma só, escopo `session`, no `conftest.py` | −10 (tests) | — |
 
 ### Marginais (não aplicados na cópia; ganho pequeno)
 
@@ -136,11 +169,11 @@ guarda de invariante ou generalização; ver "Mantidos").
 
 | ✔ | ID | Local | Correção |
 |---|---|---|---|
-| [ ] | A9 | `cli.py:1`, `:571`, `:574` | docstring cita só 5 comandos; help de `rodar` diz "JSON vazio por documento"; help de `indexar` desatualizado |
-| [ ] | A10 | `extracao/campos.py:22-31` | dois parágrafos repetem o mesmo comentário sobre `_RELATOR` (−4) |
-| [ ] | A11 | `extracao/campos.py:274` | diz "Fase 4" para o LLM — **está errado**, é a Fase 5 |
-| [ ] | A12 | `tabelas/__init__.py:1` | "provisórias da frente B" |
-| [ ] | A13 | `pipeline.py:3-4,36`, `extracao/__init__.py:52`, `cli.py:247` | "quando existirem" / "Fases 4 e 5" — **só depois de 27/09**, conforme o go/no-go |
+| [x] | A9 | `cli.py:1`, `:571`, `:574` | docstring cita só 5 comandos; help de `rodar` diz "JSON vazio por documento"; help de `indexar` desatualizado |
+| [x] | A10 | `extracao/campos.py:22-31` | dois parágrafos repetem o mesmo comentário sobre `_RELATOR` (−4) |
+| [x] | A11 | `extracao/campos.py:274` | diz "Fase 4" para o LLM — **está errado**, é a Fase 5 |
+| [x] | A12 | `tabelas/__init__.py:1` | "provisórias da frente B" |
+| [x] | A13 | `pipeline.py:3-4,36`, `extracao/__init__.py:52`, `cli.py:247` | "quando existirem" / "Fases 4 e 5" — **só depois de 27/09**, conforme o go/no-go |
 
 ## 4. Dormente — decisão humana amarrada ao go/no-go (27/09) — não mexer agora
 
@@ -157,9 +190,9 @@ guarda de invariante ou generalização; ver "Mantidos").
 | ✔ | ID | O que é | Proposta |
 |---|---|---|---|
 | [ ] | N1 | notebooks `00`, `02`, `03`, `04` — mesmo template do `06`, diferem só em `VERSAO`/título | remover (ficam no git/tags). Reapontar `README.md:48-52`, `guia_kaggle.md:75,92`, `resultado_submissoes.md:72`, `tarefas_equipe.md:393`. Obs.: o `06` não está em nenhuma tag (cada notebook é commitado depois da própria tag) |
-| [ ] | N2 | notebook `05` com `VERSAO = "main"` e texto dizendo que usa `cmd_gerar_sintetico` (não usa) | fixar tag + corrigir texto (ADR-010) |
-| [ ] | F1 | `submission_feita_kaggle.csv` na raiz (sub-001, sem referência) | `git rm` (recuperável em `a85b329`) |
-| [ ] | F2 | `.claude/agent-memory/criar-estudo/` versionado — memória de estudo do Obsidian, sem relação com o projeto | `git rm --cached` + `.gitignore` |
+| [x] | N2 | notebook `05` com `VERSAO = "main"` e texto dizendo que usa `cmd_gerar_sintetico` (não usa) | fixar tag + corrigir texto (ADR-010) |
+| [x] | F1 | `submission_feita_kaggle.csv` na raiz (sub-001, sem referência) | `git rm` (recuperável em `a85b329`) |
+| [x] | F2 | `.claude/agent-memory/criar-estudo/` versionado — memória de estudo do Obsidian, sem relação com o projeto | `git rm --cached` + `.gitignore` |
 | [ ] | D1 | links quebrados: `docs/guia_kaggle.md` (16×), `docs/ia_no_pipeline.md` (5×), `docs/analise_erros_baseline.md` (4×) — os arquivos foram para `docs/gerais/`; `tarefas_equipe.md:581` aponta linha velha | corrigir caminhos |
 | [ ] | D2 | `BUILD_PROMPT.md`, `resultado_primeira_rodada.md`, `analise_erros_baseline.md` superados. **Refutado em parte:** ainda são citados (`resultado_submissoes.md:4,41`, `limites_de_decisao.md:39`, `tarefas_equipe.md:4,8`, `README.md:5` — que ainda diz "≈ 0,99") | **arquivar/marcar histórico**, não apagar |
 

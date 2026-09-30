@@ -122,7 +122,7 @@ no sintético. Perseguir 2 citações específicas da amostra é o que o ADR-009
 ## 2. O que é submetido
 
 O `submission.csv` é gerado **só a partir dos `.txt` oficiais** do desafio (`rodar --entrada {DADOS}/txt`), pelo notebook
-`notebooks/kaggle/02_sub-002.ipynb` (hoje no histórico do git; os atuais são `06_sub-005` e `08_sub-006`) (clona a tag no Kaggle, instala, roda e gera o CSV). As citações, os spans, as classes e os
+`notebooks/kaggle/02_sub-002.ipynb` (histórico; índice em `notebooks/kaggle/README.md`) (clona a tag no Kaggle, instala, roda e gera o CSV). As citações, os spans, as classes e os
 ids vêm das regras aplicadas ao texto oficial e da consulta à base oficial. **Nenhum dado sintético entra na submissão.**
 
 O sintético entrou em um único lugar: como base estatística da **tabela de confiança** (`taxa_acerto.json`, seção 4). Ele nunca

@@ -13,8 +13,8 @@ olhando a versão impressa por `python -m verificador ambiente`.
 > **Atualização de 25/09.**
 > - **Notebooks atuais:** `08_sub-006.ipynb` gera a submissão (regex + encoder) e confere R49 e o hash;
 >   `07_treino_encoder_enc-001.ipynb` treina o encoder. Os exemplos abaixo com `sub-001` são do início do
->   projeto: o fluxo é o mesmo, só a tag muda. Os notebooks `00`, `02`–`04` saíram do repositório em 30/09
->   (mesmo molde do `06`; continuam no histórico do git e nas tags `sub-001` a `sub-004`).
+>   projeto: o fluxo é o mesmo, só a tag muda. Os notebooks `00`, `02`–`04` e `06` ficam como **históricos**
+>   (situação de cada um em `notebooks/kaggle/README.md`).
 > - **Imagem real:** o manifesto não confirma a tag `v170` (o texto é fixo no código). O que o Kaggle
 >   expõe é o hash, em `KAGGLE_DOCKER_IMAGE`: na execução da `sub-006`,
 >   `gcr.io/kaggle-gpu-images/python@sha256:37c64f7dd9c54116…`. É esse hash que o `Dockerfile` final

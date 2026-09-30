@@ -2,7 +2,8 @@
 
 **Data:** 2026-09-24 · **ADR:** 009 (anti-overfitting), 005/011/013 (ganchos dormentes), 010/014 (reprodutibilidade)
 **Status:** Etapas 0–3 feitas em 24/09 (`docs/gerais/auditoria_codigo.md`), **revalidadas em 25/09** no
-código atual (seção 0 do relatório). Nenhuma remoção aplicada: aguarda aprovação da equipe.
+código atual (seção 0 do relatório). **Aplicada em 30/09** no branch `limpeza-auditoria`, com a checagem
+mecânica depois de cada commit (saída idêntica; ver "Aplicação de 30/09" no relatório).
 
 ## Objetivo
 

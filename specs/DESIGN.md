@@ -199,6 +199,9 @@ que a forma exige (número nas formas a/b; lei + artigo na c; tribunal ou classe
   normalizado aplicando só as trocas da tabela de confusões de OCR. Falhou → sem número.
 - Resultado marcado `fonte = "llm"` no rastro.
 
+> **30/09:** o LLM não foi adotado (ADR-013) e o código dormente saiu na limpeza da auditoria (A16). Esta
+> seção fica como registro do desenho; na execução não existe leitor LLM.
+
 ### [4] Decisão
 
 Duas etapas, com os termos do glossário do `DEFINE.md` (ADR-006, ADR-007):
@@ -268,7 +271,7 @@ Candidata(inicio: int, fim: int, trecho: str,          # offsets e trecho do ORI
 
 Campos(tribunal, classe_principal, cadeia_recursos: tuple[str, ...], numero, uf,
        ano, relator, lei_chave, artigo, correcao_ocr: bool,
-       fonte: Literal["regras", "llm"])                               # demais opcionais
+       fonte: Literal["regras"])        # demais opcionais; "llm" saiu em 30/09 (ADR-013, A16)
 
 RegistroIndice(id, natureza, tribunal, numero, classe_principal, cadeia_recursos,
                uf, ano, relator, lei_chave, artigo)
@@ -317,7 +320,7 @@ submissão enviada tem uma tag git `sub-NNN` (R31).
 ### Rastreabilidade
 
 `runs/<run_id>/rastro.jsonl`: uma linha por citação com documento, span, origem (regex/encoder),
-padrão, campos lidos e fonte (regras/llm), resposta bruta do LLM quando houver, correções de OCR,
+padrão, campos lidos e fonte (hoje sempre `regras`), correções de OCR,
 candidatos no índice, caminho, classe, id e confiança. `runs/<run_id>/erros.md` junta o rastro com o
 gabarito e agrupa os erros: span perdido, span espúrio (por origem), classe errada por caminho, link
 errado, real perdida por dúvida (ADR-006). O rastro fica fora do JSON do contrato.
