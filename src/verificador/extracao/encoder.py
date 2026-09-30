@@ -95,7 +95,6 @@ class Encoder:
         torch.manual_seed(0)
         torch.set_num_threads(threads)
         torch.use_deterministic_algorithms(True)
-        self._torch = torch
         self._dispositivo = torch.device("cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(link, revision=revisao)
         self.modelo = AutoModelForTokenClassification.from_pretrained(link, revision=revisao).eval()

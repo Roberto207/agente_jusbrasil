@@ -131,8 +131,6 @@ def _campos_com_numero(trecho: str) -> Campos | None:
     if tema:
         # Tema de repercussão geral: o gabarito o trata como citação (e a base não tem temas).
         numero, ocr_ok = _numero_com_ocr(trecho, tema.group(1))
-        if not numero:
-            return None
         return Campos(
             tribunal=None,
             classe_principal=None,
@@ -229,10 +227,7 @@ def _campos_lei(trecho: str) -> Campos | None:
     art = _ARTIGO.search(trecho)
     if not art:
         return None
-    artigo = art.group(1)
-    if artigo.endswith("."):
-        artigo = artigo[:-1]
-    artigo = artigo.lstrip("0") or "0"
+    artigo = art.group(1).lstrip("0") or "0"
     if "." in artigo:
         artigo = artigo.replace(".", "")
     lei_m = _LEI_IDENT.search(trecho)

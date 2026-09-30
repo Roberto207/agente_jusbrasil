@@ -10,7 +10,6 @@ import json
 import os
 import platform
 import re
-import sqlite3
 import subprocess
 import sys
 from dataclasses import asdict
@@ -179,15 +178,6 @@ def importar_modulo(nome: str, caminho: Path) -> Any:
     modulo = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(modulo)
     return modulo
-
-
-def contar_documentos(db: Path) -> int:
-    if not db.is_file():
-        raise FileNotFoundError(f"base canônica ausente: {db}")
-    uri = db.resolve().as_uri() + "?mode=ro"
-    with sqlite3.connect(uri, uri=True) as conn:
-        (n,) = conn.execute(f"SELECT COUNT(*) FROM {TABELA_DOCUMENTOS}").fetchone()
-    return int(n)
 
 
 def converter_jsons_para_csv(script: Path, pasta_jsons: Path, destino: Path) -> None:

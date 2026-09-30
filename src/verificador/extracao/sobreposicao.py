@@ -37,8 +37,6 @@ def _chave(c: Candidata) -> tuple:
 
 
 def resolver(candidatas: list[Candidata]) -> list[Candidata]:
-    if not candidatas:
-        return []
     ordenadas = sorted(candidatas, key=_chave, reverse=True)
     escolhidas: list[Candidata] = []
     for cand in ordenadas:
@@ -50,12 +48,9 @@ def resolver(candidatas: list[Candidata]) -> list[Candidata]:
             if _contida(outra, cand):
                 substituir.append(outra)
                 continue
-            if iou(cand, outra) >= 0.5:
-                if _chave(cand) > _chave(outra):
-                    substituir.append(outra)
-                else:
-                    conflito = True
-                    break
+            if iou(cand, outra) >= 0.5:  # `outra` veio antes na ordem decrescente: ela fica
+                conflito = True
+                break
         if conflito:
             continue
         escolhidas = [o for o in escolhidas if o not in substituir]
