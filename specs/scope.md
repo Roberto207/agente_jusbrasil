@@ -207,7 +207,7 @@ Uma submissão perfeita com `confianca = 1.0` pontua 1,1000.
 | Envio dos dados por e-mail aos inscritos | 25/08/2026 |
 | Webinar de tira-dúvidas com a organização | 28/08/2026 |
 | Período de submissões com leaderboard ao vivo | 01/09 a 30/09/2026 |
-| Fechamento das submissões | 30/09/2026, 23h59 (BRT) |
+| Fechamento das submissões | ~~30/09~~ **01/10/2026, 23h59 (BRT)** (mensagem de 30/09; ver `docs/gerais/regras_envio_final_jusbrasil.md`) |
 | Apresentação das melhores soluções no BRACIS 2026 (Cuiabá-MT) | 19 a 22/10/2026 |
 
 Todas as datas em horário de Brasília (BRT).

@@ -9,6 +9,11 @@ rodando em CPU) funciona como rede de segurança: só acrescenta citações onde
 e cada uma passa por filtros antes de entrar (ADR-011, decisão da equipe em 25/09). **A classificação é
 sempre por regras e pela base**, nunca por modelo. Não há LLM na execução.
 
+> **Regras finais (30/09):** a organização executa o código offline num `.db` e `.txt` novos; entrega é o
+> repositório + hash até **01/10, 23h59**. Ver `docs/gerais/regras_envio_final_jusbrasil.md` e a Fase 7 de
+> `tarefas_equipe.md`. Este README ainda descreve o fluxo antigo (dois comandos, pesos baixados do HF) e será
+> reescrito para o avaliador.
+
 **Estado (25/09):** nota **1,100** na amostra oficial (192/192 citações), mesma saída byte a byte na
 nossa máquina e no Kaggle. Histórico e números em `docs/resultado_submissoes.md`; decisão do encoder em
 `docs/relatorio-uso-encoder.md`; plano em `tarefas_equipe.md`.

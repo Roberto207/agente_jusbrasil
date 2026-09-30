@@ -1,6 +1,6 @@
 # Resultado das submissões — notas, conjuntos de dados e como lê-los
 
-**Atualizado em:** 2026-09-25 · **Prazo final:** 30/09/2026, 23h59 (BRT)
+**Atualizado em:** 2026-09-25 · **Prazo final:** ~~30/09~~ 01/10/2026, 23h59 (BRT) — o ranking final não usa o leaderboard: ver `docs/gerais/regras_envio_final_jusbrasil.md`
 Complementa `resultado_primeira_rodada.md` (explica a métrica e a generalização) e `tarefas_equipe.md` (plano de trabalho).
 
 ---

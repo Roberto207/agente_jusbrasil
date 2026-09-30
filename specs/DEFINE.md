@@ -199,7 +199,9 @@ renumerado.
   repositório público e revisão fixa.
 - **R46** (Ubiquitous): Os pesos de todo modelo treinado ou ajustado pela equipe e todo dataset
   gerado pela equipe e usado no treino DEVEM estar publicados como artefato publicado antes de
-  30/09/2026 23h59 (BRT).
+  ~~30/09/2026~~ **01/10/2026** 23h59 (BRT).
+  > **Atualização 30/09:** prazo movido e execução passa a ser offline (pesos disponíveis antes da execução,
+  > sem download em tempo de execução). Ver `docs/gerais/regras_envio_final_jusbrasil.md`.
   > **Novo na v2.2.** Regra de fine-tuning (pesos publicados) e esclarecimento da equipe (dados
   > sintéticos permitidos desde que públicos).
 

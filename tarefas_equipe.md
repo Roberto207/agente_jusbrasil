@@ -1,6 +1,8 @@
 # Tarefas da equipe — do esqueleto à submissão final
 
-**Data:** 2026-09-18 · **Prazo final:** 30/09/2026, 23h59 (BRT) · **Dias úteis restantes:** 12
+> **ATUALIZAÇÃO 30/09 — a mensagem final da Jusbrasil mudou as regras.** Prazo agora **01/10/2026, 23h59 (BRT)**; a nota vem da **execução da organização** num `.db` e `.txt` novos (o leaderboard não conta); a execução é **offline**, com **ponto de entrada único** e Docker. Vale a **Fase 7** (fim deste arquivo, antes do calendário) e `docs/gerais/regras_envio_final_jusbrasil.md`. Onde as fases 3–6 falarem de 30/09, Kaggle ou notebook como entregável, leia com essa correção.
+
+**Data:** 2026-09-18 · **Prazo final:** ~~30/09~~ **01/10/2026, 23h59 (BRT)** · **Dias úteis restantes:** 12 (na data de criação)
 **Estado de partida:** o esqueleto andante (itens 1–2 do `BUILD_PROMPT.md`) está pronto e verificado:
 `rodar` gera JSON vazio por documento → `json_to_submission.py` → `submission.csv` → `avaliar` roda o
 `kaggle_metric.py` (score 0, como esperado). **Toda a lógica real ainda não existe.**
@@ -1090,6 +1092,150 @@ submissão final.
 
 ---
 
+## Fase 7 — Reta final revisada (30/09–01/10) · regras novas da Jusbrasil · **prioridade sobre a Fase 6**
+
+Fonte: `docs/gerais/regras_envio_final_jusbrasil.md` (mensagem de 30/09 + cotejo com o código).
+**Prazo: 01/10/2026, 23h59 (BRT).** O que vale é o **repositório + hash do commit**, executado por eles em
+máquina limpa, offline, com `.db` e `.txt` que não vimos. Não mexer no método (regex + encoder) sem motivo;
+o trabalho é empacotar e provar que roda do zero.
+
+### Decisões que só a equipe toma (antes de codar)
+
+- [x] **Encoder offline — decidido em 30/09: pesos dentro da imagem Docker (opção A).** O `Dockerfile` baixa
+      no `docker build` o snapshot de `Roberto2799/jusbrasil-encoder-citacoes` na revisão fixa `d91d0914…`
+      (repositório público, **sem token**); a execução carrega do disco com `local_files_only=True` e
+      `HF_HUB_OFFLINE=1`. Premissa: a organização faz o `docker build` (com internet) **antes** da execução,
+      o que a mensagem permite ("pesos … referenciados em revisão fixa, disponíveis para download antes da
+      execução"). Sem Git LFS. O repositório do HF (link + revisão) é referenciado em **todos** os pontos
+      que a mensagem pede: `verificador.toml`, `Dockerfile`, README (tabela e passo a passo), manifesto de
+      cada execução e mensagens de erro do `run.sh`.
+- [x] **Repositório público — decidido em 30/09.** Não precisa conceder acesso aos 5 usuários. Em compensação:
+      nada de dado oficial, segredo ou credencial no repo nem no histórico (ver "Higiene de segredos").
+- [x] **Dois modos de rodar, no lugar do fallback automático — decidido em 30/09.**
+      - `bash run.sh <db> <pasta_txt> <saida>` → **com encoder** (padrão; é o comando que a organização
+        vai rodar, GO de 25/09).
+      - `bash run_sem_encoder.sh <db> <pasta_txt> <saida>` → só regex, sem pesos, sem torch (LeNER `test`
+        58/74). Mesma saída, mesmo formato.
+      - Se o modo com encoder falhar por causa do encoder (pesos ausentes, `torch`/`transformers` ausente,
+        erro ao carregar), o `run.sh` **para com código ≠ 0**, **não grava CSV parcial** e imprime uma
+        mensagem que aponta o comando sem encoder e o repositório/revisão dos pesos. Falhas que nada têm a
+        ver com o encoder (`.db` inexistente, pasta sem `.txt`) têm mensagem própria.
+      - **Validação (30/09):** a troca faz sentido — nenhuma degradação silenciosa da nota, e o resultado
+        de cada modo é reproduzível e explicável. Custo a aceitar: a organização só roda um comando, então
+        se o encoder falhar na máquina deles eles veem um erro e não um CSV; por isso o teste de máquina
+        limpa sem rede e o `docker build` tem que passar antes de entregar, e o README precisa mostrar os
+        dois comandos logo no começo. O plano B da regra de corte (abaixo) passa a ser: **entregar o
+        `run.sh` apontando para o modo sem encoder**.
+- [ ] **Manter ou remover o encoder?** Reaberto só se o empacotamento offline não passar no teste de máquina
+      limpa: aí `run.sh` passa a chamar o modo sem encoder (`usar_encoder = false`, regex reforçado) e o
+      README registra o motivo.
+- [ ] **Quem executa o teste de máquina limpa** (precisa de outra máquina/conta ou container sem rede).
+
+### Pendências de regex/método antes de congelar (levantadas em 30/09)
+
+- [ ] **Reforço do regex de lei — o único item de método realmente aberto.** É a condição 2 do relatório do
+      encoder (`docs/relatorio-uso-encoder.md`, seções 9–10) e o item da lista "Decisões em aberto" da Fase 6:
+      ensinar ao regex os complementos de artigo de lei que hoje só o encoder pega — `caput`,
+      `parágrafo único` / `p.u`, alíneas (`"a" e "c"`), `§ 1.º-A`, `§§`, `e seguintes`. No `dev` do LeNER-Br o
+      encoder acha +58 de lei que o regex perde; 11 são artigos exatos do acervo (`art. 896, § 1.º-A, I, da
+      CLT`, `art. 312, p.u do CPP`). Sem isto, o modo **sem encoder** (plano B) fica fraco em lei.
+      Regras: guiar só por `train`/`dev` (os complementos já foram vistos no `test`, que deixa de medir isto
+      de forma limpa — registrar); teste positivo **e** negativo por padrão (R41); amostra, controle e
+      sintéticos **byte-idênticos** (1,1 e sha256 `4c6e3538…`); só entra se não piorar nada. Diferença a
+      registrar: ganho no modo sem encoder e no modo com encoder (a união pode ficar igual).
+      *Nota:* a memória de 25/09 dizia "reforço do regex feito" — foi a atividade 1 (jurisprudência, hífen,
+      `ROT`/`IRR`, CF), **não** este de lei; `grep` por `caput|parágrafo único|alínea` em `src/` só acha um
+      comentário do `encoder.py`. Confirmado que continua aberto.
+- [ ] **Referência vaga: decidir e fechar.** Segue **desligada** (`extrair_referencia_vaga = false`). Motivo: o
+      detector custou −0,049 na amostra (11 espúrios) e a decisão dependia do leaderboard público, que não
+      conta mais no ranking. Sem sinal novo, manter desligada. Só registrar a decisão como fechada e retirar
+      do "em aberto".
+- [ ] **Confiança variável/calibração:** segue pausada (a mensagem aceita pequenas diferenças em `confianca`).
+      Fechar como "não fazer".
+- [x] **Já resolvidos, para não voltar a levantar:** hífen/`ROT`/`IRR`/`RRAG` (24/09), lei da CF, suavização
+      da calibração, detector de referência vaga (existe e está desligado), encoder integrado e publicado.
+- [ ] **Limite de tempo:** o reforço de lei é a **única mudança de método** permitida antes do congelamento.
+      Se não passar nos critérios acima até 01/10 às 12h, sai; não bloqueia a entrega.
+
+### Obrigatório (sem isto a solução pode ser desclassificada ou dar nota 0)
+
+- [ ] **`run.sh <caminho_db> <pasta_txt> <arquivo_saida>`** (com encoder) e **`run_sem_encoder.sh`** (mesmos argumentos, só regex) na raiz. Um comando, sem `--dados`, sem pasta de
+      dados ao lado. Chama o pipeline, gera o CSV **no mesmo formato das submissões**, e falha com código ≠ 0
+      e mensagem clara se algo faltar. Fixa `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` e as sementes.
+- [ ] **Desacoplar o CLI do `desafio1_bracis.db` e da pasta de dados** (`cli.py:169`, `:264-270`,
+      `resolver_dados`): o `.db` e a pasta de `.txt` vêm por argumento, com qualquer nome e em qualquer lugar.
+- [ ] **Levar dentro do repositório o conversor JSON→CSV.** O `json_to_submission.py` oficial hoje vem da
+      pasta de dados. Copiá-lo para o repo (mesma lógica, com a origem citada) ou reimplementar o formato, e
+      provar CSV **idêntico byte a byte** ao gerado pelo oficial na amostra, no controle e no sintético.
+- [ ] **Encoder sem rede** (opção A): passo no `Dockerfile` que baixa o snapshot na revisão fixa e confere que os arquivos existem (de preferência `model.safetensors`, não pickle); carregamento com `local_files_only=True`; erro do modo com encoder aponta o `run_sem_encoder.sh`. Teste: `unshare -n` (ou `docker run --network none`) e a
+      execução completa tem que passar e dar o mesmo `sha256` da `sub-005`/`sub-006`.
+- [ ] **Docker declarado e funcionando.** `Dockerfile` com a imagem fixada por hash (o levantamento de 25/09
+      já trazia o `sha256:37c64f7d…`), `requirements.txt` com `==` (versões do manifesto do Kaggle),
+      `ENTRYPOINT`/`CMD` chamando o `run.sh`. Tentar `docker build` de verdade; se não der por espaço/tempo,
+      **dizer no README** o que foi e o que não foi testado, em vez de deixar suposição.
+- [ ] **Teste de máquina limpa.** Clone novo em outro diretório (sem `.venv`, sem `runs/`, sem `.env`, sem
+      cache do HF, sem a pasta `desafio-jusbrasil-bracis-2026` ao lado), sem rede, um `.db` e uma pasta de
+      `.txt` em caminhos arbitrários → `run.sh` → CSV com o `sha256` esperado. **Sem este teste não há entrega.**
+- [ ] **Conjunto "novo" simulado.** Rodar `run.sh` com o `.db` da amostra copiado para outro nome/lugar e com
+      os `.txt` copiados para outra pasta; e, se possível, com o sintético e o controle. Conferir tempo,
+      memória e que nada assume 1.014 registros.
+- [ ] **Sementes e não determinismo.** Conferir que não há `random`/`shuffle`/amostragem sem semente, e que a
+      ordem dos arquivos é fixa (`sorted`; já está). Duas execuções do `run.sh` → CSV idêntico (R49).
+- [ ] **Caminhos absolutos e nomes da amostra.** `grep` por `/home/`, `/kaggle/`, `C:\` e por
+      `desafio1_bracis`/`desafio-jusbrasil` no código, nos testes e nos documentos de entrega. Testes R41/R43
+      verdes.
+- [ ] **README para avaliador** (reescrever a partir do de 25/09): abordagem; **passo a passo de execução**
+      com o `run.sh`; ambiente Docker; **onde estão os pesos e em qual revisão**; declaração explícita de que
+      a execução é offline e de como o encoder é resolvido; o que é o "enriquecimento do `.db`"
+      (`construir_indice`) e onde está; GPU (usa só CPU; cabe em 24 GB); tempo esperado. Remover o texto
+      "única chamada de rede".
+- [ ] **Higiene de segredos** (bloqueante agora): revogar/regerar o token do HF e o `github_pat_…`; varrer o
+      histórico do git por credenciais antes de dar acesso ou tornar público.
+- [ ] **Congelar e registrar o hash.** Árvore limpa, commit final, `git rev-parse HEAD` anotado, tag
+      `entrega-final` (ou `sub-NNN`) — **só com pedido explícito do usuário para commitar/tagear/publicar**.
+      O hash do e-mail é o do commit que passou no teste de máquina limpa.
+- [ ] **Se houver mudança nos pesos/dataset** do HF, reconferir link e revisão (R45, R46) e o
+      `verificador.toml`.
+
+### Entrega (o que sai por e-mail até 01/10, 23h59)
+
+- [ ] E-mail para `desafio-bracis@jusbrasil.com.br` com: **nome da equipe e integrantes**, **link do
+      repositório**, **hash do commit final**. Enviar com folga (meta: até 01/10 à tarde), não às 23h50.
+      *Não enviar sem confirmação explícita do usuário.*
+- [ ] Se privado: confirmar que os 5 usuários **aceitaram/têm acesso** (abrir o repo em uma conta sem
+      privilégio, ou conferir a lista de colaboradores).
+- [ ] Guardar cópia do e-mail e do hash; combinar quem responde à organização em outubro (reprodutibilidade
+      pode gerar perguntas, 01–10/10).
+
+### Pode ficar de fora / já não faz mais sentido
+
+- Melhorar a nota no leaderboard e criar novas `sub-NNN` no Kaggle: **não contam mais** para o ranking.
+  Uma nova submissão só serve como checagem de sanidade, não como entregável.
+- Calibração de `confianca` (spec pausada): diferenças pequenas são aceitas; segue pausada.
+- Enxugamento grande da auditoria (branch `limpeza-auditoria`): **só o que reduz risco de entrega**
+  (segredos, caminhos absolutos, `submission_feita_kaggle.csv`, `.claude/agent-memory/`, remoção do LLM se
+  simplificar o empacotamento). Refatorações de estrutura ficam para depois de 01/10. Se feito, precisa da
+  checagem mecânica (CSV idêntico) e não pode tocar no que já foi provado.
+- `code-review high`: mantido, mas com foco em **execução offline, entrada por argumento, caminhos,
+  determinismo**; não em estilo.
+- E-mail aos autores do LeNER-Br e a apuração de elegibilidade/prêmio: seguem pendentes, sem prazo do 01/10.
+
+### Ordem sugerida (30/09 à noite → 01/10)
+
+1. **30/09:** (decisões A, repo público e dois comandos já tomadas) revogar tokens; começar o reforço de regex de lei;
+   criar `run.sh`/`run_sem_encoder.sh`; desacoplar `desafio1_bracis.db` e pasta de dados; trazer o conversor para o repo.
+2. **01/10 manhã:** `Dockerfile` com os pesos no build e encoder offline; `requirements.txt` e `Dockerfile` fixos; teste de máquina limpa
+   **sem rede**; conjunto "novo" simulado; `sha256` igual ao anterior.
+3. **01/10 início da tarde:** README para avaliador; `code-review` focado; congelar commit e anotar o hash.
+4. **01/10 até ~18h:** conceder acesso, conferir acesso, e-mail com a confirmação do usuário. Sobra o resto
+   do dia como folga.
+
+**Regra de corte:** se o encoder offline não passar no teste de máquina limpa até **01/10, 14h**, entregar
+com `run.sh` chamando o modo sem encoder (plano B) e registrar a razão no README. Melhor entregar o que roda sozinho do
+que o que rende mais e falha na máquina deles.
+
+---
+
 ## Calendário resumido
 
 | Data | Marco | Quem |
@@ -1101,6 +1247,7 @@ submissão final.
 | 25–28/09 | Fase 4: sintético com LLM, encoder NER, publicação (opcional) | frente C (+B) |
 | 27–29/09 | Fase 5: leitor LLM e confiança (opcional) | frente D |
 | 29–30/09 | Fase 6: congelamento, publicação, determinismo, `code-review`, submissão final | todos |
+| **30/09–01/10** | **Fase 7: regras novas da Jusbrasil — `run.sh`, offline, Docker, máquina limpa, README, e-mail (prazo 01/10 23h59)** | todos |
 
 **Regra de corte:** se a versão só-regras não estiver integrada e medida em **25/09**, as Fases 4 e 5 são
 descartadas e o tempo restante vai para melhorar regras e tabelas com a análise de erro. Isso é aceitável
