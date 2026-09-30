@@ -431,8 +431,14 @@ def cmd_submeter(*, run_id: str, saida: Path, criar_tag: bool = False) -> str:
     if manifesto.get("git", {}).get("commit") not in (None, git["commit"]):
         raise SystemExit("a execução foi feita em outro commit; rode `rodar` de novo neste commit (R31)")
 
-    # R49: mesma entrada, mesmo commit, mesma configuração → CSV idêntico byte a byte.
+    # R49: mesma entrada, mesmo commit, mesma configuração → CSV idêntico byte a byte. A repetição usa o
+    # toml/ambiente de agora; se a configuração (semente, encoder, revisão…) não for a da execução, recusa.
     cfg = manifesto.get("config", {})
+    if carregar().com_flags(usar_encoder=cfg.get("usar_encoder")).hash() != manifesto.get("hash_configuracao"):
+        raise SystemExit(
+            "a configuração atual (verificador.toml + VERIFICADOR_*) difere da gravada no manifesto; "
+            "rode `rodar` de novo com a configuração que vai ser submetida (R49)"
+        )
     repeticoes = [f"{run_id}.r49a", f"{run_id}.r49b"]
     try:
         gerados = [

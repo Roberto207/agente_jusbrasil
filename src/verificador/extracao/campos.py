@@ -12,8 +12,9 @@ from verificador.extracao.padroes import MARCADOR_RELATOR, TRIBUNAL_EXTENSO, TST
 from verificador.tabelas import classes_no_texto, ocr, resolver_lei, resolver_uf, tst_sigla
 from verificador.texto.normalizacao import normalizar
 
-# Campos que as regras não leram. Cada leitor preenche só o que achou (`replace`); `ler_campos`
-# acerta `correcao_ocr` no fim, e `pipeline` usa a constante quando nada foi lido.
+# Campos que as regras não leram. Cada leitor preenche só o que achou (`replace`); na forma com
+# número, `ler_campos` acerta `correcao_ocr` sobre o trecho original (nas outras formas fica False).
+# `pipeline` usa a constante quando nada foi lido.
 CAMPOS_VAZIOS = Campos(
     tribunal=None,
     classe_principal=None,
@@ -124,6 +125,8 @@ def _campos_com_numero(trecho: str) -> Campos | None:
     if tema:
         # Tema de repercussão geral: o gabarito o trata como citação (e a base não tem temas).
         numero = _numero_com_ocr(trecho, tema.group(1))
+        if not numero:  # guarda: sem número lido, a citação vai para campos não lidos (ADR-006)
+            return None
         return replace(CAMPOS_VAZIOS, numero=numero)
 
     tst = TST_NUMERO.search(trecho)

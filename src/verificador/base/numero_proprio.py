@@ -221,5 +221,7 @@ def numero_proprio(tribunal: str | None, natureza: str, texto: str) -> str | Non
     """Número próprio de um registro, conforme a natureza e o tribunal."""
     if natureza == "sumula":
         return numero_sumula(texto)
+    if natureza == "dispositivo":
+        return None  # dispositivo é identificado por lei + artigo; nunca passa pelo parser de acórdão
     parser = PARSERS_ACORDAO.get(tribunal or "")
     return parser(texto) if parser else None

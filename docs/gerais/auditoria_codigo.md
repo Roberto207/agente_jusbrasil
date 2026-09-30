@@ -16,6 +16,13 @@ deixada de lado) — ver a seção **0**, que manda sobre o status dos itens aba
 | `20b9d69` refactor | remoção do LLM (A16 e a parte LLM de A15/A18), `dtype`; `semente` passa a ser usada pelo encoder |
 | `d5f4758` docs | A9–A13 |
 
+**Code review (`/code-review high`, 30/09) sobre o branch:** nenhum bug de saída. Aplicado: A5 e A6
+**revertidos** (as guardas voltam — inalcançáveis hoje, mas protegem contra regex afrouxado e contra outro
+chamador da função pública); `submeter` recusa o R49 se a configuração atual (semente, encoder, revisão)
+diferir da gravada no manifesto (a semente passou a valer no encoder), com teste; comentário de
+`CAMPOS_VAZIOS` corrigido. Não aplicado (desempenho, código anterior): recompilar regex de
+`classes_no_texto`, dict de `consultar`, releitura de `divisao.json`.
+
 **Fora, de propósito:** B3/B11 (NFKD×NFD, a base nova é desconhecida), A14/B18 e A15 do encoder (uso
 real), A17 (referência vaga fica desligada, decisão de 30/09), B8, marginais B5/B6/B12–B15, B17 (vai para a
 Fase 7, junto do desacoplamento do `.db`), C1–C11.
@@ -132,8 +139,8 @@ guarda de invariante ou generalização; ver "Mantidos").
 | [x] | A2 | `extracao/sobreposicao.py:54-55` | `if _chave(cand) > _chave(outra)` inalcançável por construção (lista já ordenada desc.) | −3 |
 | [x] | A3 | `extracao/sobreposicao.py:40-41` | `if not candidatas: return []` redundante | −2 |
 | [x] | A4 | `extracao/campos.py:221-222` | `artigo.endswith(".")` — o grupo `(\d+(?:\.\d+)?)` nunca termina em ponto | −2 |
-| [x] | A5 | `extracao/campos.py:127-128` | `if not numero` no ramo Tema — `\d+` nunca dá vazio (verificado em todos os code points) | −2 |
-| [x] | A6 | `base/numero_proprio.py:224-225` | ramo `"dispositivo"`; o único chamador já desvia antes. **Ressalva:** documentado como despachante público (`mudancas_caio_fase_1_a.md:175`) — opcional | −2 |
+| [ ] | A5 | `extracao/campos.py:127-128` | `if not numero` no ramo Tema — `\d+` nunca dá vazio (verificado em todos os code points) | −2 |
+| [ ] | A6 | `base/numero_proprio.py:224-225` | ramo `"dispositivo"`; o único chamador já desvia antes. **Ressalva:** documentado como despachante público (`mudancas_caio_fase_1_a.md:175`) — opcional | −2 |
 | [x] | A7 | `avaliacao/calibrar.py:199-200` | ramo `amostra/sintetico → None` sem chamador. Some junto com B10 | −2 |
 | [x] | A8 | `sintetico/citacoes.py:21` | campo `Fabricada.forma` escrito e nunca lido | −1 |
 
