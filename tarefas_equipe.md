@@ -628,8 +628,8 @@ Decisão do Roberto: ficam anotados, sem execução, até a decisão sobre o enc
       `sub-004`: `avaliacao/calibrar.py` com `ALFA = 7` e `PRIOR = 0.97`, R26 conferido por caminho.
       É a única diferença de saída entre `sub-004` e `sub-005` (confiança 1,0000 → 0,9993; spans,
       classes e ids idênticos na amostra).
-- [ ] **Detector de referência vaga:** continua desligado. A decisão é da fase 2, com o sinal do
-      leaderboard público (ver Tier 3).
+- [x] **Detector de referência vaga:** continua desligado. A decisão é da fase 2, com o sinal do
+      leaderboard público (ver Tier 3). *01/10 — decisão da equipe: fica desligado; não prossegue (fechado).*
 
 
       - essas alterações so fazem sentido se trouxerem um ganho real para o sistema, e nao ficarem so gastando espaço e poder computacional.
@@ -1019,20 +1019,23 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
 
 ## Fase 6 — Congelamento (29–30/09) · todos
 
+> **01/10:** a Fase 7 substitui esta fase. Os itens abaixo ficam como registro; os que a Fase 7 cumpriu ou
+> tornou obsoletos (Kaggle, imagem `v170`, tag `sub-NNN`, repositório privado) estão anotados.
+
 ### Levantamento de 25/09 — o que falta até 30/09, 23h59 BRT
 
 **Obrigatório** (sem isso a solução pode ser declarada não reproduzível):
 
-- [ ] **`requirements.txt` com versões fixas (`==`).** Rodar o notebook com a próxima tag: desde 25/09 o
+- [x] **`requirements.txt` com versões fixas (`==`).** *01/10 — superado pela Fase 7:* `==` com as versões validadas no Docker (registro §5). Rodar o notebook com a próxima tag: desde 25/09 o
       manifesto grava as versões de torch, transformers, tokenizers, safetensors, numpy e pandas do Kaggle.
       Fixar exatamente essas. Hoje ainda estão com `>=`.
-- [ ] **`Dockerfile` fixado pelo hash da imagem.** O Kaggle expõe o hash real em `KAGGLE_DOCKER_IMAGE`:
+- [x] **`Dockerfile` fixado pelo hash da imagem.** *01/10 — superado pela Fase 7:* `python:3.13-slim` por digest, pesos no build (ADR-014, revisão de 01/10). O Kaggle expõe o hash real em `KAGGLE_DOCKER_IMAGE`:
       `gcr.io/kaggle-gpu-images/python@sha256:37c64f7dd9c54116…` (a tag `v170` do manifesto é texto fixo,
       nunca conferido). Opcional: baixar os pesos do encoder na imagem, para a execução não depender de rede.
-- [ ] **Tag final (`sub-NNN`) + notebook no Kaggle** com R49 e hash. A `sub-006` não tem a correção do
+- [x] **Tag final (`sub-NNN`) + notebook no Kaggle** *01/10 — superado pela Fase 7:* o Kaggle não conta mais; a tag é `entrega-final` (Fase 7). com R49 e hash. A `sub-006` não tem a correção do
       manifesto (tokens de sessão do Kaggle), nem os itens acima. Usar **T4 ×1**.
 - [ ] **`/code-review high`**, de preferência no branch de enxugamento.
-- [ ] **Pacote reproduzível:** o repositório é privado; combinar como entregar à organização (acesso ou
+- [x] **Pacote reproduzível:** *01/10 — superado pela Fase 7:* repositório público, `run.sh` + Docker. Texto antigo: o repositório é privado; combinar como entregar à organização (acesso ou
       cópia) se a equipe for finalista.
 - [x] **README, ADRs e documentos atualizados** (25/09): README reescrito (encoder, comando exato, links e
       revisões); ADR-011 e 013 com o resultado; notas em ADR-008, 010, 012, 014, DESIGN, DEFINE (R47/R48),
@@ -1062,9 +1065,9 @@ régua de **ganho** é a divisão `test` oficial do LeNER-Br, restrita ao escopo
 
 **Decisões em aberto (da equipe):**
 
-- [ ] Reforço do regex de lei (`caput`, `parágrafo único`, alíneas): redundância determinística ao encoder.
-- [ ] Referência vaga: ligar ou não (estava marcada para a fase 2).
-- [ ] Spec de confiança variável: pausada até o leaderboard público da fase final (40%).
+- [x] Reforço do regex de lei (`caput`, `parágrafo único`, alíneas): redundância determinística ao encoder. *01/10 — decisão da equipe: não prossegue (fechado).*
+- [x] Referência vaga: ligar ou não (estava marcada para a fase 2). *01/10 — decisão da equipe: fica desligada (fechado).*
+- [x] Spec de confiança variável: pausada até o leaderboard público da fase final (40%). *01/10 — decisão da equipe: não prossegue (fechado).*
 
 **Quando o conjunto final sair:** conferir no `indexar` se a base tem 1.014 ou 1.016 registros (divergência
 de 22/09 entre a página e os arquivos); rodar o notebook da submissão sobre os `.txt` novos; submeter.
@@ -1076,17 +1079,17 @@ submissão final.
 - [x] **Publicar artefatos finais** (pesos e dataset, se usados) no Hugging Face **antes de 30/09 23h59 BRT**;
       conferir os links e as revisões fixas (R45, R46). Se nada foi treinado, registrar isso no README.
       *2026-09-25:* os dois públicos — dataset `0209a853…`, pesos `d91d0914…`. Reconferir se a tag final mudar algum.
-- [ ] **README final**: como reproduzir, comando exato, versão do ambiente, links + revisões dos modelos.
+- [x] **README final**: *01/10 — superado pela Fase 7:* reescrito para o avaliador (registro §7) e revisado em 01/10 (§8). Como reproduzir, comando exato, versão do ambiente, links + revisões dos modelos.
       *2026-09-25:* reescrito (ver levantamento acima); falta só revisar na tag final.
-- [ ] **`Dockerfile`**: tag fixa da imagem do Kaggle conferida contra a versão real vista no notebook (ADR-014);
+- [x] **`Dockerfile`**: *01/10 — superado pela Fase 7:* imagem enxuta, build e execução sem rede testados (§5, §6, §8). Tag fixa da imagem do Kaggle conferida contra a versão real vista no notebook (ADR-014);
       tentar `docker build` se houver espaço (imagem de vários GB); senão documentar como não testado.
-- [ ] **`requirements.txt`**: todas as versões fixas; licenças OSI conferidas (R21).
+- [x] **`requirements.txt`**: *01/10 — superado pela Fase 7:* versões fixas. Todas as versões fixas; licenças OSI conferidas (R21).
 - [x] **Determinismo**: duas execuções → CSV idêntico (R49), no notebook do Kaggle.
       *2026-09-25:* `sub-006` no Kaggle: duas execuções idênticas e iguais à local (sha256 `4c6e3538…`).
-- [ ] **Sem literais da amostra** e **sem dependência de nome de arquivo** (testes R41, R43 verdes).
+- [x] **Sem literais da amostra** e **sem dependência de nome de arquivo** (testes R41, R43 verdes). *01/10: `pytest` 290 passaram.*
 - [ ] **`code-review`** do repositório inteiro (`/code-review high`), corrigir o que for relevante.
-- [ ] **Escolher a submissão final** (decisão humana, até 30/09 23h59 BRT), com `submeter` criando a tag.
-- [ ] Pacote reproduzível para a organização (se a equipe for finalista): repositório, README, links dos
+- [x] **Escolher a submissão final** (decisão humana, até 30/09 23h59 BRT), com `submeter` criando a tag. *01/10 — superado pela Fase 7:* vale o commit do e-mail.
+- [x] Pacote reproduzível para a organização (se a equipe for finalista): *01/10 — superado pela Fase 7:* repositório, README, links dos
       modelos com revisão, `Dockerfile`/`requirements`, comando exato.
 - [ ] Confirmar elegibilidade dos integrantes e divisão de prêmio (se solicitado).
 
@@ -1133,7 +1136,8 @@ o trabalho é empacotar e provar que roda do zero.
 
 ### Pendências de regex/método antes de congelar (levantadas em 30/09)
 
-- [ ] **Reforço do regex de lei — o único item de método realmente aberto.** É a condição 2 do relatório do
+- [x] **Reforço do regex de lei — o único item de método realmente aberto.** *01/10 — decisão da equipe: não prossegue (fechado).* O modo padrão
+      (com encoder) cobre esses complementos; o modo sem encoder fica como está. É a condição 2 do relatório do
       encoder (`docs/relatorio-uso-encoder.md`, seções 9–10) e o item da lista "Decisões em aberto" da Fase 6:
       ensinar ao regex os complementos de artigo de lei que hoje só o encoder pega — `caput`,
       `parágrafo único` / `p.u`, alíneas (`"a" e "c"`), `§ 1.º-A`, `§§`, `e seguintes`. No `dev` do LeNER-Br o
@@ -1146,15 +1150,15 @@ o trabalho é empacotar e provar que roda do zero.
       *Nota:* a memória de 25/09 dizia "reforço do regex feito" — foi a atividade 1 (jurisprudência, hífen,
       `ROT`/`IRR`, CF), **não** este de lei; `grep` por `caput|parágrafo único|alínea` em `src/` só acha um
       comentário do `encoder.py`. Confirmado que continua aberto.
-- [ ] **Referência vaga: decidir e fechar.** Segue **desligada** (`extrair_referencia_vaga = false`). Motivo: o
+- [x] **Referência vaga: decidir e fechar.** *01/10 — decisão da equipe: fica desligada (fechado).* Segue **desligada** (`extrair_referencia_vaga = false`). Motivo: o
       detector custou −0,049 na amostra (11 espúrios) e a decisão dependia do leaderboard público, que não
       conta mais no ranking. Sem sinal novo, manter desligada. Só registrar a decisão como fechada e retirar
       do "em aberto".
-- [ ] **Confiança variável/calibração:** segue pausada (a mensagem aceita pequenas diferenças em `confianca`).
+- [x] **Confiança variável/calibração:** *01/10 — decisão da equipe: não prossegue (fechado).* Segue pausada (a mensagem aceita pequenas diferenças em `confianca`).
       Fechar como "não fazer".
 - [x] **Já resolvidos, para não voltar a levantar:** hífen/`ROT`/`IRR`/`RRAG` (24/09), lei da CF, suavização
       da calibração, detector de referência vaga (existe e está desligado), encoder integrado e publicado.
-- [ ] **Limite de tempo:** o reforço de lei é a **única mudança de método** permitida antes do congelamento.
+- [x] **Limite de tempo:** *01/10 — sem efeito: nenhuma mudança de método entra antes do congelamento.* O reforço de lei é a **única mudança de método** permitida antes do congelamento.
       Se não passar nos critérios acima até 01/10 às 12h, sai; não bloqueia a entrega.
 
 ### Obrigatório (sem isto a solução pode ser desclassificada ou dar nota 0)
@@ -1191,7 +1195,8 @@ o trabalho é empacotar e provar que roda do zero.
       *01/10 — passou* (seção 6 do registro): clone do commit `c2862f3`, `docker build --no-cache`, `docker run
       --network none` com `.db`/`.txt` renomeados → `4c6e3538…` duas vezes com encoder e uma só regex.
       **Refazer no commit final** se algo do código mudar depois de `c2862f3`.
-- [ ] **Conjunto "novo" simulado.** Rodar `run.sh` com o `.db` da amostra copiado para outro nome/lugar e com
+- [x] **Conjunto "novo" simulado.** *01/10 — feito (registro §8):* sintético (200 docs) com `.db` renomeado, no
+      Docker sem rede: 994 citações, nota 1,1 pelo `kaggle_metric.py`, 93 s com encoder (12 CPUs), 2,3 s só regras. Rodar `run.sh` com o `.db` da amostra copiado para outro nome/lugar e com
       os `.txt` copiados para outra pasta; e, se possível, com o sintético e o controle. Conferir tempo,
       memória e que nada assume 1.014 registros.
       *01/10 — parcial:* `.db` renomeado e `.txt` em outra pasta, ok. Tempo nesta máquina: ~15 s fixos + 3,5 s
@@ -1212,6 +1217,8 @@ o trabalho é empacotar e provar que roda do zero.
       "única chamada de rede".
 - [ ] **Higiene de segredos** (bloqueante agora): revogar/regerar o token do HF e o `github_pat_…`; varrer o
       histórico do git por credenciais antes de dar acesso ou tornar público.
+      *01/10 — histórico conferido:* `git log --all -p` sem `hf_…`, `github_pat_…`, `ghp_…` nem chave do Kaggle; os
+      tokens nunca entraram no git. A revogação continua como ação humana, mas **deixou de bloquear** a entrega.
 - [ ] **Congelar e registrar o hash.** Árvore limpa, commit final, `git rev-parse HEAD` anotado, tag
       `entrega-final` (ou `sub-NNN`) — **só com pedido explícito do usuário para commitar/tagear/publicar**.
       O hash do e-mail é o do commit que passou no teste de máquina limpa.
@@ -1299,10 +1306,10 @@ e já previsto.
 - [x] `submission.csv` aceito pelo `kaggle_metric.py` (sem R3, sem `ParticipantVisibleError`) *(vale na `sub-006`, 25/09; reconferir na tag final)*
 - [x] Duas execuções idênticas byte a byte *(vale na `sub-006`, 25/09; reconferir na tag final)*
 - [x] Modelos e dataset publicados, com link e revisão fixa, antes do prazo *(vale na `sub-006`, 25/09; reconferir na tag final)*
-- [ ] Sem chamada de rede na execução; licenças OSI conferidas
+- [x] Sem chamada de rede na execução; licenças OSI conferidas *(01/10: `docker run --network none`, §6 e §8)*
       *Atenção (25/09):* com o encoder, a execução baixa os pesos do HF por link + revisão. O DESIGN permite
       ("exceto baixar modelos por link + revisão, ou tê-los em cache na imagem"), mas o README final precisa
       dizer isso aos avaliadores (internet ou cache prévio).
-- [ ] README, `Dockerfile` e `requirements.txt` com versões fixas
-- [ ] Árvore git limpa, tag `sub-NNN` criada, manifesto com commit + revisões + versão do ambiente
+- [x] README, `Dockerfile` e `requirements.txt` com versões fixas *(01/10)*
+- [ ] Árvore git limpa, tag `entrega-final` (no lugar de `sub-NNN`) criada, manifesto com commit + revisões + versão do ambiente
 - [ ] `code-review` feito - auditoria do código realizada.

@@ -334,3 +334,40 @@ O mesmo sha256 da `sub-005`/`sub-006` e de todos os testes anteriores. Manifesto
 | `src/verificador/extracao/padroes.py` | Comentário citava um `documento_id` e um trecho de citação da amostra; o R43 proíbe os dois como literal no código-fonte. Reescrito de forma genérica, sem mudar código. `grep` por ids da amostra em `src/` agora não acha nada. |
 
 `pytest`: 285 passaram, 5 pulados.
+
+---
+
+## 8. Decisões fechadas, README revisado e teste do avaliador em Linux (01/10)
+
+**Decisões da equipe (01/10):** nenhuma das decisões em aberto prossegue — reforço do regex de lei, referência
+vaga (fica desligada) e confiança variável. Marcadas como fechadas em `tarefas_equipe.md` (Fases 6 e 7). Nenhum
+arquivo de código mudou.
+
+**README** revisado para quem executa (pessoa ou agente): início rápido copiável com caminhos concretos e código
+de saída; como montar `.db` e `.txt` que estão em lugares diferentes; pré-requisitos (Docker, Linux x86-64, ~3 GB,
+rede só no build, sem GPU); tabela dos dois modos; tabela de erros; onde ficam os `_artefatos/` e `--user` para
+não sair arquivo de `root`; sha256 esperado na amostra; mapa do repositório; campo para equipe e integrantes.
+
+### Teste do avaliador, a partir do GitHub, em Linux nativo
+
+1. `git clone https://github.com/Roberto207/agente_jusbrasil.git` num diretório novo → `d80b3b3`.
+2. `docker build --no-cache -t verificador:final .` → ok em **4 min 52 s**, imagem de **2,59 GB**, sha256 dos pesos
+   conferido no build.
+3. Dados copiados com outros nomes: `entrada/base_final.db`, `entrada/pareceres/*.txt`.
+4. `docker run --rm --network none -v entrada:/dados:ro -v saida:/saida verificador:final /dados/base_final.db
+   /dados/pareceres /saida/<nome>.csv`.
+
+| Execução | Código | Tempo | sha256 |
+|---|---|---|---|
+| com encoder, 1ª | 0 | 42 s | `4c6e3538…0f9ffb` |
+| com encoder, 2ª | 0 | 43 s | `4c6e3538…0f9ffb` |
+| só regras (`--entrypoint bash … run_sem_encoder.sh`) | 0 | 2 s | `4c6e3538…0f9ffb` |
+| com encoder, `--user "$(id -u):$(id -g)"`, saída numa subpasta inexistente | 0 | 39 s | `4c6e3538…0f9ffb` |
+| sintético, 200 docs, `.db` renomeado, com encoder | 0 | 93 s | idêntico ao só regras |
+
+Manifesto: `usar_encoder: true`, `encoder_revisao: d91d0914…`, `imagem_docker: python:3.13-slim@sha256:7c61056e…`.
+Notas pelo `kaggle_metric.py` oficial sobre os CSVs do container: **amostra 1,1** e **sintético 1,1**.
+`pytest` local (Linux, `.venv` com `torch`): **290 passaram**.
+
+Ambiente: Linux x86-64 nativo, Docker 29.8, 12 CPUs, 8 GB de RAM. Primeira execução em Linux de verdade (as
+seções 5 e 6 foram no Docker Desktop do Windows).
