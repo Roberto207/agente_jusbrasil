@@ -1,4 +1,4 @@
-"""CLI do verificador: ambiente, indexar, rodar, avaliar, submeter, gerar-sintetico, comparar, calibrar."""
+"""CLI do verificador: ambiente, indexar, rodar, executar, avaliar, submeter, gerar-sintetico, comparar, calibrar."""
 
 from __future__ import annotations
 
@@ -318,6 +318,70 @@ def cmd_rodar(
     return submission
 
 
+def _carregar_encoder(cfg: Configuracao) -> Any:
+    """Encoder da configuração; qualquer falha vira erro que aponta o modo sem encoder."""
+    alvo = f"{cfg.encoder_link}@{cfg.encoder_revisao}"
+    if not cfg.encoder_link:
+        raise SystemExit("erro: usar_encoder exige encoder_link no verificador.toml")
+    try:
+        from verificador.extracao.encoder import Encoder
+
+        return Encoder(cfg.encoder_link, cfg.encoder_revisao, semente=cfg.semente)
+    except Exception as erro:  # ImportError (torch/transformers), OSError (pesos ausentes) etc.
+        raise SystemExit(
+            f"erro: não foi possível carregar o encoder {alvo}: {type(erro).__name__}: {erro}\n"
+            "  Os pesos precisam estar no cache local (a execução é offline); veja o README.\n"
+            "  Para rodar só com regex: bash run_sem_encoder.sh <caminho_db> <pasta_txt> <arquivo_saida>"
+        ) from erro
+
+
+def cmd_executar(*, db: Path, pasta_txt: Path, destino: Path, usar_encoder: bool | None = None) -> Path:
+    """Ponto de entrada da avaliação final: `.db` + pasta de `.txt` → CSV de submissão.
+
+    Nomes e caminhos livres; não depende da pasta de dados da amostra nem do `json_to_submission.py`
+    oficial. Os JSONs intermediários ficam numa pasta temporária; só o CSV sai, e só se tudo der certo.
+    """
+    import sqlite3
+    import tempfile
+
+    from verificador.base import construir_indice
+    from verificador.pipeline import processar_documento
+    from verificador.saida import ErroDeSaida
+    from verificador.saida.submissao import escrever_submission
+
+    db, pasta_txt, destino = db.resolve(), pasta_txt.resolve(), destino.resolve()
+    if not db.is_file():
+        raise SystemExit(f"erro: base não encontrada: {db}")
+    if not pasta_txt.is_dir():
+        raise SystemExit(f"erro: pasta de .txt não encontrada: {pasta_txt}")
+    txts = sorted(pasta_txt.glob("*.txt"))
+    if not txts:
+        raise SystemExit(f"erro: nenhum .txt em {pasta_txt}")
+
+    cfg = carregar().com_flags(usar_encoder=usar_encoder)
+    encoder = _carregar_encoder(cfg) if cfg.usar_encoder else None
+    try:
+        indice = construir_indice(db)
+    except sqlite3.Error as erro:
+        raise SystemExit(f"erro: não foi possível ler a base {db}: {erro}") from erro
+
+    modo = "com encoder" if encoder is not None else "só regex"
+    print(f"{len(indice)} registros na base; {len(txts)} documentos; modo {modo}", file=sys.stderr)
+    with tempfile.TemporaryDirectory(prefix="verificador-") as tmp:
+        pasta_jsons = Path(tmp)
+        for txt in txts:
+            with txt.open(encoding="utf-8", newline="") as fh:  # sem tradução de \r\n: offsets exatos (R2)
+                texto = fh.read()
+            citacoes = processar_documento(texto, indice, None, encoder)
+            try:
+                escrever_json(txt.stem, citacoes, pasta_jsons, texto)
+            except ErroDeSaida as erro:
+                raise SystemExit(f"erro: saída inválida em {txt.stem}:\n{erro}") from erro
+        n = escrever_submission(pasta_jsons, destino)
+    print(f"{destino}: {n} documentos", file=sys.stderr)
+    return destino
+
+
 def cmd_avaliar(
     *,
     run_id: str,
@@ -567,6 +631,12 @@ def construir_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--dados", type=Path, default=None)
     p_run.add_argument("--sem-encoder", action="store_true")
 
+    p_exe = sub.add_parser("executar", help="ponto de entrada da avaliação final: .db + pasta de .txt → CSV (usado pelo run.sh)")
+    p_exe.add_argument("db", type=Path, help="caminho do .db (qualquer nome)")
+    p_exe.add_argument("pasta_txt", type=Path, help="pasta com os .txt")
+    p_exe.add_argument("arquivo_saida", type=Path, help="CSV de submissão a gerar")
+    p_exe.add_argument("--sem-encoder", action="store_true")
+
     p_av = sub.add_parser("avaliar", help="nota via kaggle_metric.py oficial")
     p_av.add_argument("--run", dest="run_id", required=True)
     p_av.add_argument("--saida", type=Path, default=_saida_padrao())
@@ -620,6 +690,13 @@ def main(argv: list[str] | None = None) -> None:
             saida=args.saida,
             dados=args.dados,
             usar_encoder=usar_encoder,
+        )
+    elif args.comando == "executar":
+        cmd_executar(
+            db=args.db,
+            pasta_txt=args.pasta_txt,
+            destino=args.arquivo_saida,
+            usar_encoder=False if args.sem_encoder else None,
         )
     elif args.comando == "avaliar":
         cmd_avaliar(
