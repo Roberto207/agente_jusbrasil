@@ -1,7 +1,11 @@
-# Dependências necessárias
-pandas>=2.2
-numpy>=1.26
-pytest>=8.0
-# Encoder (usar_encoder = true). A imagem do Kaggle (v170) já traz os dois.
-torch>=2.1
-transformers>=4.46
+# Dependências da execução, com as versões exatas validadas em 30/09–01/10 (sha256 da amostra 4c6e3538…;
+# docs/gerais/registro_mudancas_entrega_final.md, seções 3 e 5). Testes: `pip install -e ".[dev]"`.
+# torch só de CPU: o encoder roda em CPU (R49) e a roda CPU é bem menor que a com CUDA.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+transformers==5.18.0
+tokenizers==0.23.2
+safetensors==0.8.0
+huggingface_hub==1.33.0
+numpy==2.5.3
+pandas==3.0.6

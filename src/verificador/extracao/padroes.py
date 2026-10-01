@@ -40,8 +40,8 @@ _GRAU = "\u00ba"
 
 # \u00c2ncoras da forma (d) \u2014 ADR-015. O vocabul\u00e1rio sai das 31 cita\u00e7\u00f5es `incompleta` da amostra oficial.
 # `entendimento` foi testado e **rejeitado**: nas 31 cita\u00e7\u00f5es reais da amostra o gatilho nunca \u00e9 essa
-# palavra, e admiti-la estendia o span \u00e0 esquerda em `gen_n1_007`
-# (`Rcl de 2025, Rel. Min. C\u00c1RMEN L\u00daCIA` virava `entendimento a Rcl de 2025, \u2026`). O molde de estresse
+# palavra, e admiti-la estendia o span \u00e0 esquerda num documento da amostra (`<classe> de <ano>, Rel. Min. \u2026`
+# virava `entendimento a <classe> de <ano>, \u2026`; R43: sem id nem trecho da amostra no c\u00f3digo). O molde de estresse
 # que a usa continua no gerador como falha conhecida \u2014 ver `specs/forma_d_ancorada.md`.
 _GATILHO_D = r"(?:julgad[oa]|precedente|ac[o\u00f3]rd[a\u00e3]o|decis[a\u00e3]o|aresto)"
 # Alternativas longas primeiro: senão `Min\.?` casaria só o começo de `Ministro`.

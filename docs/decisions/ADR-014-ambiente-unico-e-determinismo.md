@@ -50,3 +50,33 @@ LLM só com conferência (ADR-013); manifesto registra imagem, GPU e driver.
   (`gcr.io/kaggle-gpu-images/python@sha256:37c64f7dd9c54116…` na `sub-006`). A tag `v170` gravada no
   manifesto é texto fixo, não conferido. O `Dockerfile` final deve fixar o hash.
 - A execução da `sub-006` usou duas T4 por engano; para a próxima, **T4 ×1**.
+
+## Revisão de 01/10 — `Dockerfile` enxuto para a avaliação final
+
+**O que mudou no contexto.** Pelas regras finais da Jusbrasil (30/09,
+`docs/gerais/regras_envio_final_jusbrasil.md`), a nota sai da **execução da organização com o nosso
+Docker**, offline, e o Kaggle não entra no ranking. O motivo da escolha original ("a organização roda no
+mesmo ambiente de software das submissões do Kaggle") deixou de valer: o ambiente que conta agora é a
+imagem que entregamos.
+
+**Decisão.** O `Dockerfile` parte de `python:3.13-slim` com digest fixo, instala `torch` **só de CPU** e o
+`requirements.txt` com versões exatas (`==`), e baixa os pesos do encoder no `docker build`, conferindo o
+sha256. A alternativa rejeitada em 17/09 ("`Dockerfile` enxuto") passa a ser a escolhida.
+
+**Por quê.**
+- A execução é só CPU (revisão de 25/09); a imagem do Kaggle traz CUDA e milhares de pacotes que não usamos
+  e tem dezenas de GB. A enxuta tem 3,44 GB e o build leva ~6 min.
+- Um `docker build` que não fecha na máquina da organização é nota zero; uma imagem pequena reduz esse risco
+  e permitiu testar o build de verdade antes da entrega (a do Kaggle nunca tinha sido construída aqui).
+- Python 3.13 é o mesmo do ambiente local em que o `sha256` foi conferido.
+
+**Custo aceito.** As versões de `torch`/`transformers` não são as da imagem `v170` do Kaggle (que nunca
+foram registradas). Em textos onde o encoder acrescenta citações, versões diferentes podem dar previsões
+diferentes; na amostra, o encoder não acrescenta nenhuma e o CSV é idêntico.
+
+**Verificação (01/10).** `docker build` ok (pesos com sha256 `4e52bfb6…` conferido no build);
+`docker run --network none` com `.db` renomeado e `.txt` montados de fora: duas execuções com encoder e uma
+só regex, os três CSVs com sha256 `4c6e3538…` (= `sub-005`/`sub-006`). Detalhes em
+`docs/gerais/registro_mudancas_entrega_final.md`, seção 5. O manifesto passa a gravar a imagem real
+(`IMAGEM_DOCKER`, definida no `Dockerfile`) em vez do texto fixo `v170`.
+

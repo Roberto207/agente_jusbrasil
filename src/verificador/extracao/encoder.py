@@ -85,9 +85,20 @@ def candidatas_do_encoder(
 
 
 class Encoder:
-    """Modelo ajustado carregado em CPU (R49: inferência determinística, sem GPU)."""
+    """Modelo ajustado carregado em CPU (R49: inferência determinística, sem GPU).
 
-    def __init__(self, link: str, revisao: str | None = None, *, semente: int = 0, threads: int = 4) -> None:
+    `local_files_only`: só lê do cache local, nunca da rede (avaliação final, R22); falta de peso vira erro.
+    """
+
+    def __init__(
+        self,
+        link: str,
+        revisao: str | None = None,
+        *,
+        semente: int = 0,
+        threads: int = 4,
+        local_files_only: bool = False,
+    ) -> None:
         import torch
         from transformers import AutoModelForTokenClassification, AutoTokenizer
 
@@ -97,8 +108,10 @@ class Encoder:
         torch.set_num_threads(threads)
         torch.use_deterministic_algorithms(True)
         self._dispositivo = torch.device("cpu")
-        self.tokenizer = AutoTokenizer.from_pretrained(link, revision=revisao)
-        self.modelo = AutoModelForTokenClassification.from_pretrained(link, revision=revisao).eval()
+        self.tokenizer = AutoTokenizer.from_pretrained(link, revision=revisao, local_files_only=local_files_only)
+        self.modelo = AutoModelForTokenClassification.from_pretrained(
+            link, revision=revisao, local_files_only=local_files_only
+        ).eval()
         self._cfg = Config(modelo=link, revisao=revisao or "")
 
     def spans(self, texto: str) -> list[tuple[int, int, str]]:

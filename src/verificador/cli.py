@@ -22,6 +22,9 @@ from verificador.configuracao import Configuracao, carregar
 from verificador.saida import escrever_json
 
 PASTA_DADOS_PADRAO = "desafio-jusbrasil-bracis-2026"
+# Cópia sem modificação do `json_to_submission.py` distribuído pela organização (R16): na avaliação final
+# a pasta de dados da amostra não existe. `tests/test_executar.py` confere que continua idêntica.
+CONVERSOR_OFICIAL = Path(__file__).resolve().parent / "saida" / "oficial" / "json_to_submission.py"
 TABELA_DOCUMENTOS = "documentos"
 
 
@@ -129,7 +132,9 @@ def coletar_ambiente(config: Configuracao | None = None) -> dict[str, Any]:
         "hash_requirements": hash_arquivo(requirements),
         "config": asdict(cfg),
         "hash_configuracao": cfg.hash(),
-        "imagem_docker": "gcr.io/kaggle-gpu-images/python:v170",
+        # Definida no Dockerfile (imagem base com digest); None fora do container. No Kaggle, a imagem
+        # real está em `kaggle.KAGGLE_DOCKER_IMAGE`.
+        "imagem_docker": os.environ.get("IMAGEM_DOCKER"),
     }
 
 
@@ -230,7 +235,14 @@ def cmd_rodar(
     saida: Path,
     dados: Path | None = None,
     usar_encoder: bool | None = None,
+    db: Path | None = None,
+    script: Path | None = None,
+    offline: bool = False,
 ) -> Path:
+    """`db` e `script` explícitos dispensam a pasta de dados; `offline` só lê o encoder do cache local.
+
+    O `executar` usa os três.
+    """
     from collections import Counter
 
     from verificador.avaliacao.rastro import escrever_rastro, linha_de_rastro
@@ -241,23 +253,17 @@ def cmd_rodar(
     from verificador.tabelas import hash_tabelas
 
     entrada = entrada.resolve()
-    pasta_dados = resolver_dados(dados, entrada)
-    script = pasta_dados / "json_to_submission.py"
-    db = caminho_db(pasta_dados)
+    pasta_dados = resolver_dados(dados, entrada) if db is None or script is None else None
+    script = script.resolve() if script is not None else pasta_dados / "json_to_submission.py"
+    db = db.resolve() if db is not None else caminho_db(pasta_dados)
     txts = sorted(entrada.glob("*.txt"))
     if not txts:
         raise SystemExit(f"nenhum .txt em {entrada}")
     if not script.is_file():
-        raise SystemExit(f"json_to_submission.py não encontrado em {pasta_dados}")
+        raise SystemExit(f"json_to_submission.py não encontrado: {script}")
 
     cfg = carregar().com_flags(usar_encoder=usar_encoder)
-    encoder = None
-    if cfg.usar_encoder:
-        if not cfg.encoder_link:
-            raise SystemExit("usar_encoder exige encoder_link (verificador.toml ou VERIFICADOR_ENCODER_LINK)")
-        from verificador.extracao.encoder import Encoder
-
-        encoder = Encoder(cfg.encoder_link, cfg.encoder_revisao, semente=cfg.semente)
+    encoder = _carregar_encoder(cfg, offline=offline) if cfg.usar_encoder else None
     destino_run = pasta_run(saida, run_id)
     pasta_jsons = destino_run / "jsons"
     pasta_jsons.mkdir(parents=True, exist_ok=True)
@@ -291,7 +297,8 @@ def cmd_rodar(
             "run_id": run_id,
             "argumentos": {
                 "entrada": str(entrada),
-                "dados": str(pasta_dados),
+                "dados": str(pasta_dados) if pasta_dados is not None else None,
+                "db": str(db),
                 "saida": str(saida.resolve()),
             },
             "caminhos": {
@@ -318,7 +325,7 @@ def cmd_rodar(
     return submission
 
 
-def _carregar_encoder(cfg: Configuracao) -> Any:
+def _carregar_encoder(cfg: Configuracao, *, offline: bool = False) -> Any:
     """Encoder da configuração; qualquer falha vira erro que aponta o modo sem encoder."""
     alvo = f"{cfg.encoder_link}@{cfg.encoder_revisao}"
     if not cfg.encoder_link:
@@ -326,7 +333,7 @@ def _carregar_encoder(cfg: Configuracao) -> Any:
     try:
         from verificador.extracao.encoder import Encoder
 
-        return Encoder(cfg.encoder_link, cfg.encoder_revisao, semente=cfg.semente)
+        return Encoder(cfg.encoder_link, cfg.encoder_revisao, semente=cfg.semente, local_files_only=offline)
     except Exception as erro:  # ImportError (torch/transformers), OSError (pesos ausentes) etc.
         raise SystemExit(
             f"erro: não foi possível carregar o encoder {alvo}: {type(erro).__name__}: {erro}\n"
@@ -336,49 +343,42 @@ def _carregar_encoder(cfg: Configuracao) -> Any:
 
 
 def cmd_executar(*, db: Path, pasta_txt: Path, destino: Path, usar_encoder: bool | None = None) -> Path:
-    """Ponto de entrada da avaliação final: `.db` + pasta de `.txt` → CSV de submissão.
+    """Ponto de entrada da avaliação final (`run.sh`): `.db` + pasta de `.txt` → CSV de submissão.
 
-    Nomes e caminhos livres; não depende da pasta de dados da amostra nem do `json_to_submission.py`
-    oficial. Os JSONs intermediários ficam numa pasta temporária; só o CSV sai, e só se tudo der certo.
+    É o `rodar` com o `.db` por argumento (nome livre) e o conversor oficial que vem no repositório. JSONs
+    por documento, rastro e manifesto (R15, "Identidade") ficam em `<destino>_artefatos/execucao/`; o CSV só
+    é gravado em `destino` se a execução inteira der certo.
     """
+    import shutil
     import sqlite3
-    import tempfile
-
-    from verificador.base import construir_indice
-    from verificador.pipeline import processar_documento
-    from verificador.saida import ErroDeSaida
-    from verificador.saida.submissao import escrever_submission
 
     db, pasta_txt, destino = db.resolve(), pasta_txt.resolve(), destino.resolve()
     if not db.is_file():
         raise SystemExit(f"erro: base não encontrada: {db}")
     if not pasta_txt.is_dir():
         raise SystemExit(f"erro: pasta de .txt não encontrada: {pasta_txt}")
-    txts = sorted(pasta_txt.glob("*.txt"))
-    if not txts:
+    if not any(pasta_txt.glob("*.txt")):
         raise SystemExit(f"erro: nenhum .txt em {pasta_txt}")
 
-    cfg = carregar().com_flags(usar_encoder=usar_encoder)
-    encoder = _carregar_encoder(cfg) if cfg.usar_encoder else None
+    artefatos = destino.parent / f"{destino.stem}_artefatos"
+    run_id = "execucao"
+    shutil.rmtree(pasta_run(artefatos, run_id), ignore_errors=True)  # JSON velho entraria no CSV
     try:
-        indice = construir_indice(db)
+        submission = cmd_rodar(
+            entrada=pasta_txt,
+            run_id=run_id,
+            saida=artefatos,
+            usar_encoder=usar_encoder,
+            db=db,
+            script=CONVERSOR_OFICIAL,
+            offline=True,  # avaliação final: pesos só do disco, nunca da rede (R22)
+        )
     except sqlite3.Error as erro:
         raise SystemExit(f"erro: não foi possível ler a base {db}: {erro}") from erro
-
-    modo = "com encoder" if encoder is not None else "só regex"
-    print(f"{len(indice)} registros na base; {len(txts)} documentos; modo {modo}", file=sys.stderr)
-    with tempfile.TemporaryDirectory(prefix="verificador-") as tmp:
-        pasta_jsons = Path(tmp)
-        for txt in txts:
-            with txt.open(encoding="utf-8", newline="") as fh:  # sem tradução de \r\n: offsets exatos (R2)
-                texto = fh.read()
-            citacoes = processar_documento(texto, indice, None, encoder)
-            try:
-                escrever_json(txt.stem, citacoes, pasta_jsons, texto)
-            except ErroDeSaida as erro:
-                raise SystemExit(f"erro: saída inválida em {txt.stem}:\n{erro}") from erro
-        n = escrever_submission(pasta_jsons, destino)
-    print(f"{destino}: {n} documentos", file=sys.stderr)
+    temporario = destino.with_name(destino.name + ".parcial")
+    shutil.copyfile(submission, temporario)
+    os.replace(temporario, destino)
+    print(f"saída: {destino} (artefatos em {artefatos})")
     return destino
 
 

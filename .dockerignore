@@ -1,10 +1,19 @@
+# Nada de segredo, ambiente local, dado oficial ou saída de execução dentro da imagem.
+.env
+.env.*
 .venv
-desafio-jusbrasil-bracis-2026
+venv
 .git
+.claude
+desafio-jusbrasil-bracis-2026*
 runs
+sintetico
+sintetico_hf
+lener-br
+results
+results(1)
 **/__pycache__
 *.egg-info
 dist
 build
 .pytest_cache
-.claude

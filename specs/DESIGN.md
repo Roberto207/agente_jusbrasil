@@ -347,7 +347,7 @@ errado, real perdida por dúvida (ADR-006). O rastro fica fora do JSON do contra
 | Avaliação | `pandas`, `numpy` | Exigidos pelo `kaggle_metric.py` |
 | Testes | `pytest` | — |
 | Execução (submissões) | notebook do Kaggle, ambiente fixado + `requirements.txt` (`docs/gerais/guia_kaggle.md`) | O Kaggle não aceita imagem própria; é o ambiente real das submissões |
-| Ambiente (entrega) | `Dockerfile` a partir da imagem pública `gcr.io/kaggle-gpu-images/python` (tag fixa) + `requirements.txt` | Pacote reproduzível (R30) fora do Kaggle |
+| Ambiente (entrega) | `Dockerfile` a partir de `python:3.13-slim` (digest fixo), `torch` CPU, `requirements.txt` com `==` e pesos do encoder baixados no build (ADR-014, revisão de 01/10) | Pacote reproduzível (R30) e execução offline da avaliação final |
 | Artefatos | Hugging Face (pesos e dataset públicos) | Regra de pesos e dados públicos (R45, R46) |
 
 Toda biblioteca e todo modelo passam por conferência de licença OSI antes de entrar (R21).
@@ -364,7 +364,7 @@ agente_jusbrasil/                         # GitHub privado durante a competiçã
 ├── docs/decisions/ADR-*.md
 ├── desafio-jusbrasil-bracis-2026/        # dados oficiais — fora do git
 ├── src/verificador/
-│   ├── cli.py                            # indexar · rodar · avaliar · submeter
+│   ├── cli.py                            # indexar · rodar · executar · avaliar · submeter
 │   ├── contratos.py
 │   ├── configuracao.py                   # chaves: encoder, llm, referência vaga; revisões; dtype
 │   ├── base/                             # frente A: parsers por tribunal, índice
@@ -373,13 +373,15 @@ agente_jusbrasil/                         # GitHub privado durante a competiçã
 │   ├── extracao/                         # frente B: regex, encoder, filtro, sobreposição, campos
 │   ├── decisao/                          # frente D: caminhos, desempate, confiança, leitor LLM
 │   └── saida/                            # frente C: JSON, chamada ao conversor, manifesto
+│       └── oficial/json_to_submission.py # cópia sem modificação do conversor da organização (R16)
 ├── avaliacao/                            # frente C: relatório, divisão da amostra, testes metamórficos
 ├── sintetico/                            # frente C: gerador (código + prompts do LLM), publicação
 ├── src/verificador/treino/               # frente B: dataset, BIO, treino e régua do encoder (25/09)
 ├── notebooks/kaggle/                     # notebooks finos que só clonam o repo e chamam a CLI
 ├── tests/
 ├── runs/                                 # saídas por execução — fora do git
-├── Dockerfile                            # a partir da imagem pública do Kaggle (ADR-014)
+├── run.sh · run_sem_encoder.sh          # ponto de entrada único da avaliação final (01/10)
+├── Dockerfile                            # python:3.13-slim + torch CPU + pesos no build (ADR-014, 01/10)
 └── requirements.txt
 ```
 
@@ -395,6 +397,21 @@ python -m verificador rodar    --entrada <pasta de .txt> --run <run_id> [--sem-e
 python -m verificador avaliar  --run <run_id>
 python -m verificador submeter --run <run_id>   # árvore limpa, roda duas vezes, compara, cria tag
 ```
+
+**Avaliação final (regras de 30/09, `docs/gerais/regras_envio_final_jusbrasil.md`).** A organização roda
+um comando, offline, com `.db` e pasta de `.txt` de nomes livres:
+
+```
+bash run.sh            <caminho_db> <pasta_txt> <arquivo_saida>   # regex + encoder (padrão)
+bash run_sem_encoder.sh <caminho_db> <pasta_txt> <arquivo_saida>  # só regex
+```
+
+Os dois chamam `python -m verificador executar`, que é o `rodar` com o `.db` por argumento e o conversor
+de `saida/oficial/` (cópia byte a byte do oficial, R16). JSONs por documento (R15), rastro e manifesto ficam
+em `<arquivo_saida>_artefatos/execucao/`; o CSV só é gravado se a execução inteira der certo. O `run.sh`
+define `HF_HUB_OFFLINE=1`/`TRANSFORMERS_OFFLINE=1` (R22) e usa sempre o `verificador.toml` do repositório.
+Sem gabarito, essa execução não grava relatório (R28 vale para a amostra e o controle, rodados com
+`rodar` + `avaliar`).
 
 ## Frentes de trabalho
 
