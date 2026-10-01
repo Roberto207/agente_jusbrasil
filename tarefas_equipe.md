@@ -1172,15 +1172,19 @@ o trabalho é empacotar e provar que roda do zero.
       provar CSV **idêntico byte a byte** ao gerado pelo oficial na amostra, no controle e no sintético.
       *01/10 — feito:* cópia **sem modificação** (R16) em `src/verificador/saida/oficial/`, hash travado por
       teste (`c6ec4963…`). Como é o próprio script, o CSV é idêntico por construção; conferido na amostra.
-- [ ] **Encoder sem rede** (opção A): passo no `Dockerfile` que baixa o snapshot na revisão fixa e confere que os arquivos existem (de preferência `model.safetensors`, não pickle); carregamento com `local_files_only=True`; erro do modo com encoder aponta o `run_sem_encoder.sh`. Teste: `unshare -n` (ou `docker run --network none`) e a
+- [x] **Encoder sem rede** (opção A): passo no `Dockerfile` que baixa o snapshot na revisão fixa e confere que os arquivos existem (de preferência `model.safetensors`, não pickle); carregamento com `local_files_only=True`; erro do modo com encoder aponta o `run_sem_encoder.sh`. Teste: `unshare -n` (ou `docker run --network none`) e a
       execução completa tem que passar e dar o mesmo `sha256` da `sub-005`/`sub-006`.
       *01/10 — em andamento:* pesos baixados e conferidos (`model.safetensors`, sha256 `4e52bfb6…`); com
       `torch` 2.14.1+cpu / `transformers` 5.18.0 no `venv`, `run.sh` rodou offline e deu `4c6e3538…` (seções
       2 e 3 de `docs/gerais/registro_mudancas_entrega_final.md`). **Falta:** passo no `Dockerfile`, `local_files_only=True` e teste com `--network none`.
-- [ ] **Docker declarado e funcionando.** `Dockerfile` com a imagem fixada por hash (o levantamento de 25/09
+      *01/10 — feito* (seção 5 do registro): `local_files_only` no `executar`, pesos no build com sha256
+      conferido, `docker run --network none` → `4c6e3538…` duas vezes.
+- [x] **Docker declarado e funcionando.** `Dockerfile` com a imagem fixada por hash (o levantamento de 25/09
       já trazia o `sha256:37c64f7d…`), `requirements.txt` com `==` (versões do manifesto do Kaggle),
       `ENTRYPOINT`/`CMD` chamando o `run.sh`. Tentar `docker build` de verdade; se não der por espaço/tempo,
       **dizer no README** o que foi e o que não foi testado, em vez de deixar suposição.
+      *01/10 — feito com imagem enxuta* (decisão do usuário; ADR-014 revisão de 01/10): `python:3.13-slim`
+      por digest, `requirements.txt` com `==`, `ENTRYPOINT` no `run.sh`. Build real ok (3,44 GB, ~6 min).
 - [ ] **Teste de máquina limpa.** Clone novo em outro diretório (sem `.venv`, sem `runs/`, sem `.env`, sem
       cache do HF, sem a pasta `desafio-jusbrasil-bracis-2026` ao lado), sem rede, um `.db` e uma pasta de
       `.txt` em caminhos arbitrários → `run.sh` → CSV com o `sha256` esperado. **Sem este teste não há entrega.**

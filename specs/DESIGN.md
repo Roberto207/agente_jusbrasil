@@ -347,7 +347,7 @@ errado, real perdida por dúvida (ADR-006). O rastro fica fora do JSON do contra
 | Avaliação | `pandas`, `numpy` | Exigidos pelo `kaggle_metric.py` |
 | Testes | `pytest` | — |
 | Execução (submissões) | notebook do Kaggle, ambiente fixado + `requirements.txt` (`docs/gerais/guia_kaggle.md`) | O Kaggle não aceita imagem própria; é o ambiente real das submissões |
-| Ambiente (entrega) | `Dockerfile` a partir da imagem pública `gcr.io/kaggle-gpu-images/python` (tag fixa) + `requirements.txt` | Pacote reproduzível (R30) fora do Kaggle |
+| Ambiente (entrega) | `Dockerfile` a partir de `python:3.13-slim` (digest fixo), `torch` CPU, `requirements.txt` com `==` e pesos do encoder baixados no build (ADR-014, revisão de 01/10) | Pacote reproduzível (R30) e execução offline da avaliação final |
 | Artefatos | Hugging Face (pesos e dataset públicos) | Regra de pesos e dados públicos (R45, R46) |
 
 Toda biblioteca e todo modelo passam por conferência de licença OSI antes de entrar (R21).
@@ -381,7 +381,7 @@ agente_jusbrasil/                         # GitHub privado durante a competiçã
 ├── tests/
 ├── runs/                                 # saídas por execução — fora do git
 ├── run.sh · run_sem_encoder.sh          # ponto de entrada único da avaliação final (01/10)
-├── Dockerfile                            # a partir da imagem pública do Kaggle (ADR-014)
+├── Dockerfile                            # python:3.13-slim + torch CPU + pesos no build (ADR-014, 01/10)
 └── requirements.txt
 ```
 

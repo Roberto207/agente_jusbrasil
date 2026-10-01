@@ -132,7 +132,9 @@ def coletar_ambiente(config: Configuracao | None = None) -> dict[str, Any]:
         "hash_requirements": hash_arquivo(requirements),
         "config": asdict(cfg),
         "hash_configuracao": cfg.hash(),
-        "imagem_docker": "gcr.io/kaggle-gpu-images/python:v170",
+        # Definida no Dockerfile (imagem base com digest); None fora do container. No Kaggle, a imagem
+        # real está em `kaggle.KAGGLE_DOCKER_IMAGE`.
+        "imagem_docker": os.environ.get("IMAGEM_DOCKER"),
     }
 
 
@@ -235,8 +237,12 @@ def cmd_rodar(
     usar_encoder: bool | None = None,
     db: Path | None = None,
     script: Path | None = None,
+    offline: bool = False,
 ) -> Path:
-    """`db` e `script` explícitos dispensam a pasta de dados (é o que o `executar` usa)."""
+    """`db` e `script` explícitos dispensam a pasta de dados; `offline` só lê o encoder do cache local.
+
+    O `executar` usa os três.
+    """
     from collections import Counter
 
     from verificador.avaliacao.rastro import escrever_rastro, linha_de_rastro
@@ -257,7 +263,7 @@ def cmd_rodar(
         raise SystemExit(f"json_to_submission.py não encontrado: {script}")
 
     cfg = carregar().com_flags(usar_encoder=usar_encoder)
-    encoder = _carregar_encoder(cfg) if cfg.usar_encoder else None
+    encoder = _carregar_encoder(cfg, offline=offline) if cfg.usar_encoder else None
     destino_run = pasta_run(saida, run_id)
     pasta_jsons = destino_run / "jsons"
     pasta_jsons.mkdir(parents=True, exist_ok=True)
@@ -319,7 +325,7 @@ def cmd_rodar(
     return submission
 
 
-def _carregar_encoder(cfg: Configuracao) -> Any:
+def _carregar_encoder(cfg: Configuracao, *, offline: bool = False) -> Any:
     """Encoder da configuração; qualquer falha vira erro que aponta o modo sem encoder."""
     alvo = f"{cfg.encoder_link}@{cfg.encoder_revisao}"
     if not cfg.encoder_link:
@@ -327,7 +333,7 @@ def _carregar_encoder(cfg: Configuracao) -> Any:
     try:
         from verificador.extracao.encoder import Encoder
 
-        return Encoder(cfg.encoder_link, cfg.encoder_revisao, semente=cfg.semente)
+        return Encoder(cfg.encoder_link, cfg.encoder_revisao, semente=cfg.semente, local_files_only=offline)
     except Exception as erro:  # ImportError (torch/transformers), OSError (pesos ausentes) etc.
         raise SystemExit(
             f"erro: não foi possível carregar o encoder {alvo}: {type(erro).__name__}: {erro}\n"
@@ -365,6 +371,7 @@ def cmd_executar(*, db: Path, pasta_txt: Path, destino: Path, usar_encoder: bool
             usar_encoder=usar_encoder,
             db=db,
             script=CONVERSOR_OFICIAL,
+            offline=True,  # avaliação final: pesos só do disco, nunca da rede (R22)
         )
     except sqlite3.Error as erro:
         raise SystemExit(f"erro: não foi possível ler a base {db}: {erro}") from erro

@@ -231,3 +231,53 @@ R2 (offsets: leitura com `newline=""`, inalterada), R15, R16, R17 (uma linha por
 bloqueia rede), R30 (um comando faz indexação, carga do modelo, processamento e CSV), R41 (`documento_id` =
 nome do arquivo, só como rótulo), R45 (link + revisão no toml e no manifesto), R49 (duas execuções
 idênticas). `contratos.py` não foi tocado.
+
+---
+
+## 5. Encoder só do disco + `Dockerfile` enxuto, testado sem rede (01/10)
+
+**Itens da checklist:** "Encoder sem rede" e "Docker declarado e funcionando". **Decisão do usuário
+(01/10):** imagem enxuta (`python:3.13-slim`) em vez da imagem do Kaggle. Registrada como revisão de 01/10
+do ADR-014, que em 17/09 tinha rejeitado o "`Dockerfile` enxuto".
+
+### O que foi feito
+
+| Arquivo | Mudança |
+|---|---|
+| `src/verificador/extracao/encoder.py` | `Encoder(..., local_files_only=False)`: com `True`, tokenizador e modelo só vêm do cache local; peso ausente vira erro, nunca download (R22). |
+| `src/verificador/cli.py` | `cmd_rodar(..., offline=False)` repassa o `local_files_only`; o `executar` (avaliação final) chama com `offline=True` **sempre**, mesmo fora do `run.sh`. O `rodar` de desenvolvimento não muda. O manifesto passa a gravar em `imagem_docker` a variável `IMAGEM_DOCKER` (definida no `Dockerfile`); antes era o texto fixo `gcr.io/kaggle-gpu-images/python:v170`, que não correspondia a nada conferido (R31). Fora do container fica `null`. |
+| `requirements.txt` | Versões exatas (`==`) do ambiente validado: `torch==2.14.1+cpu` (índice CPU do PyTorch), `transformers==5.18.0`, `tokenizers==0.23.2`, `safetensors==0.8.0`, `huggingface_hub==1.33.0`, `numpy==2.5.3`, `pandas==3.0.6`. Saiu o `pytest` (já está no extra `dev` do `pyproject.toml`). |
+| `Dockerfile` | `python:3.13-slim@sha256:7c61056e…` (Python 3.13, o mesmo do `venv` validado) → `pip install -r requirements.txt` → **download dos pesos no build** (`snapshot_download` do link + revisão do `verificador.toml`), com **conferência do sha256** de `model.safetensors` (`4e52bfb6…`; se não bater, o build falha) → código → `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` → `ENTRYPOINT ["bash", "run.sh"]`. Exemplos de `docker build`/`docker run` no cabeçalho. |
+| `.dockerignore` | Passa a excluir **`.env`** (tokens), `venv` (o nome real da pasta; antes só `.venv`), `sintetico*`, `lener-br`, `results*`, além do que já excluía. |
+| `docs/decisions/ADR-014-…md` | Revisão de 01/10: por que a imagem enxuta, o custo aceito (versões ≠ das do Kaggle `v170`, nunca registradas) e a verificação. |
+| `specs/DESIGN.md` | Linha "Ambiente (entrega)" e árvore de arquivos com o `Dockerfile` novo. |
+
+### Verificação (Docker Desktop local: Linux, 2 CPUs, 4 GB de RAM)
+
+- `docker build`: ok em **~6 min** (5 min reconstruindo a partir do cache). Imagem de **3,44 GB**. Conferência
+  do sha256 dos pesos passou no build.
+- `docker run --rm --network none -v <dados>:/dados:ro -v <saida>:/saida verificador:teste
+  /dados/base/outra_base.db /dados/docs /saida/encN.csv` (`.db` renomeado, `.txt` montados de fora):
+
+  | Execução | Tempo | sha256 |
+  |---|---|---|
+  | com encoder, 1ª | 106 s | `4c6e3538…0f9ffb` |
+  | com encoder, 2ª | 103 s | `4c6e3538…0f9ffb` |
+  | com encoder, depois do ajuste do manifesto | 105 s | `4c6e3538…0f9ffb` |
+  | só regex (`--entrypoint bash … run_sem_encoder.sh`) | — | `4c6e3538…0f9ffb` |
+
+  Igual ao da `sub-005`/`sub-006`: **R22 (sem rede), R30 (um comando), R49 (duas execuções idênticas) e R16
+  (conversor oficial) conferidos em Linux, dentro do container.**
+- Manifesto de dentro do container: `usar_encoder: true`, Python 3.13.15, as versões do `requirements.txt` e
+  `imagem_docker: python:3.13-slim@sha256:7c61056e…`. Tempo quase todo na extração (82 s de encoder para 26
+  documentos com 2 CPUs).
+- `pytest` local: 285 passaram, 5 pulados.
+
+### Limitações e pendências
+
+- **O teste foi feito a partir desta cópia de trabalho, não de um clone limpo do commit.** Falta o teste de
+  máquina limpa de verdade: `git clone` do commit final num diretório novo → `docker build` → `docker run
+  --network none`. Depende de commitar estas mudanças.
+- Tempo: ~4 s por documento com 2 CPUs. Na máquina da organização (~8 vCPUs pelo R44) o encoder ainda usa 4
+  threads (`threads=4` no `Encoder`); não foi mexido para não arriscar a saída.
+- README ainda descreve o fluxo antigo (próximo item).
