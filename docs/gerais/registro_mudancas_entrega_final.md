@@ -8,6 +8,12 @@ como foi verificado e o que ficou pendente. Prazo da entrega: **01/10/2026, 23h5
 
 ## 1. Ponto de entrada único: `run.sh` e `run_sem_encoder.sh` (30/09)
 
+> **Corrigido na seção 4 (01/10).** A primeira versão desta mudança violava o `specs/DEFINE.md`:
+> reimplementava o conversor (contra o **R16**, que exige o `json_to_submission.py` oficial sem modificação)
+> e descartava os JSONs por documento e o manifesto (contra o **R15** e a "Identidade" do `DESIGN.md`). O
+> `src/verificador/saida/submissao.py` descrito abaixo **não existe mais**. Os scripts, o `.gitattributes`
+> e os testes de erro continuam valendo.
+
 **Item da checklist:** "`run.sh <caminho_db> <pasta_txt> <arquivo_saida>` (com encoder) e
 `run_sem_encoder.sh` (mesmos argumentos, só regex)". Para funcionar, ele exigiu também dois outros itens da
 lista, feitos junto: **desacoplar o CLI do `desafio1_bracis.db`/pasta de dados** e **levar o conversor
@@ -174,3 +180,54 @@ Possíveis ganhos (nenhum aplicado; cada um pode mudar a saída e precisaria pro
 - Fixar no `requirements.txt` / `Dockerfile` as versões que vão ser entregues e repetir este teste com
   elas (dentro do Docker, em Linux).
 - Decidir se o tempo exige alguma das otimizações acima e informar o tempo esperado no README.
+
+---
+
+## 4. Correção: `executar` volta a seguir as specs (R15, R16, "Identidade") (01/10)
+
+**Por quê.** Ao conferir o item 1 contra o `specs/DEFINE.md` e o `specs/DESIGN.md`:
+
+- **R16**: "O sistema DEVE gerar o `submission.csv` executando, **sem modificação**, o
+  `json_to_submission.py` distribuído pela organização." O `submissao.py` era uma reimplementação: dava o
+  mesmo CSV, mas não é o script deles.
+- **R15**: "O sistema DEVE gravar, para cada documento, um arquivo `<documento_id>.json` numa mesma pasta."
+  O `executar` gravava numa pasta temporária e apagava.
+- **`DESIGN.md`, "Identidade"**: cada execução grava manifesto com commit, hashes (`.db`, tabelas,
+  conversor), link + revisão do modelo e ambiente. O `executar` não gravava nenhum.
+
+### O que foi feito
+
+| Arquivo | Mudança |
+|---|---|
+| `src/verificador/saida/oficial/json_to_submission.py` (novo) | **Cópia byte a byte** do conversor da organização (sha256 `c6ec4963e884c7fc19939816d7398e512cc8f7d60af472fb1a3bd723f1fee05c`). Não é para editar: um teste trava o hash. |
+| `src/verificador/saida/submissao.py` | **Removido.** |
+| `src/verificador/cli.py` | `cmd_rodar` ganhou `db=` e `script=` opcionais: com os dois, não procura pasta de dados nem exige o nome `desafio1_bracis.db`; sem eles, o comportamento de antes não muda. O manifesto grava também `argumentos.db`. O carregamento do encoder no `rodar` passou a usar `_carregar_encoder` (mesma mensagem que aponta o `run_sem_encoder.sh`). `cmd_executar` virou uma camada fina: valida os argumentos, chama o `cmd_rodar` com o `.db` dado e o `CONVERSOR_OFICIAL`, grava os artefatos em `<arquivo_saida>_artefatos/execucao/` (apaga antes os da execução anterior com o mesmo nome, senão um JSON velho entraria no CSV) e copia o CSV para `<arquivo_saida>` por `.parcial` + `os.replace`. |
+| `pyproject.toml` | `saida/oficial/*.py` como package-data (vai junto num `pip install`). |
+| `tests/test_executar.py` | 6 testes: hash do conversor = oficial; conversor = o da pasta de dados (quando existe); CSV do `executar` byte a byte igual ao do `rodar` e com um JSON por documento + manifesto (R15); recusa base ausente; recusa pasta sem `.txt`; base inválida não deixa CSV. |
+| `specs/DESIGN.md` | Árvore de arquivos e lista de comandos com `run.sh`, `run_sem_encoder.sh`, `executar` e `saida/oficial/`; registra que a execução cega não grava relatório (o R28 fala de amostra e controle, que precisam de gabarito). |
+
+Saída de `bash run.sh base.db txts/ saida/sub.csv`:
+
+```
+saida/sub.csv                      ← o CSV de submissão
+saida/sub_artefatos/execucao/
+    jsons/<documento_id>.json      ← R15
+    rastro.jsonl                   ← caminho de decisão por citação
+    manifesto.json                 ← commit, hashes, encoder link+revisão, versões, tempos
+    submission.csv                 ← o mesmo CSV (saída do conversor oficial)
+```
+
+### Verificação
+
+- `pytest`: **285 passaram, 5 pulados**.
+- `run_sem_encoder.sh` e `run.sh` (offline, com encoder), base renomeada e `.txt` fora do repositório: os
+  dois com `sha256` **`4c6e3538…0f9ffb`**, o mesmo de antes e da `sub-005`/`sub-006`.
+- Manifesto do modo com encoder: `usar_encoder: true`, revisão `d91d0914…`, hash do conversor `c6ec4963…`,
+  `argumentos.db` com a base renomeada, `dados: null`.
+
+### O que segue valendo do `DEFINE.md` e foi conferido nesta mudança
+
+R2 (offsets: leitura com `newline=""`, inalterada), R15, R16, R17 (uma linha por `.txt`), R22 (`run.sh`
+bloqueia rede), R30 (um comando faz indexação, carga do modelo, processamento e CSV), R41 (`documento_id` =
+nome do arquivo, só como rótulo), R45 (link + revisão no toml e no manifesto), R49 (duas execuções
+idênticas). `contratos.py` não foi tocado.

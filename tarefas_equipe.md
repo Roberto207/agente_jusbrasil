@@ -1159,16 +1159,24 @@ o trabalho é empacotar e provar que roda do zero.
 
 ### Obrigatório (sem isto a solução pode ser desclassificada ou dar nota 0)
 
-- [ ] **`run.sh <caminho_db> <pasta_txt> <arquivo_saida>`** (com encoder) e **`run_sem_encoder.sh`** (mesmos argumentos, só regex) na raiz. Um comando, sem `--dados`, sem pasta de
+- [x] **`run.sh <caminho_db> <pasta_txt> <arquivo_saida>`** (com encoder) e **`run_sem_encoder.sh`** (mesmos argumentos, só regex) na raiz. Um comando, sem `--dados`, sem pasta de
       dados ao lado. Chama o pipeline, gera o CSV **no mesmo formato das submissões**, e falha com código ≠ 0
       e mensagem clara se algo faltar. Fixa `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` e as sementes.
-- [ ] **Desacoplar o CLI do `desafio1_bracis.db` e da pasta de dados** (`cli.py:169`, `:264-270`,
+      *01/10 — feito* (`python -m verificador executar`; seções 1 e 4 de `docs/gerais/registro_mudancas_entrega_final.md`). Os dois modos rodam fora do repo,
+      com base renomeada, e dão `sha256 4c6e3538…`. Falta rodar em Linux (vem com o Docker).
+- [x] **Desacoplar o CLI do `desafio1_bracis.db` e da pasta de dados** (`cli.py:169`, `:264-270`,
       `resolver_dados`): o `.db` e a pasta de `.txt` vêm por argumento, com qualquer nome e em qualquer lugar.
-- [ ] **Levar dentro do repositório o conversor JSON→CSV.** O `json_to_submission.py` oficial hoje vem da
+      *01/10 — feito:* `cmd_rodar(db=…, script=…)`; sem eles, o `rodar` de desenvolvimento não muda.
+- [x] **Levar dentro do repositório o conversor JSON→CSV.** O `json_to_submission.py` oficial hoje vem da
       pasta de dados. Copiá-lo para o repo (mesma lógica, com a origem citada) ou reimplementar o formato, e
       provar CSV **idêntico byte a byte** ao gerado pelo oficial na amostra, no controle e no sintético.
+      *01/10 — feito:* cópia **sem modificação** (R16) em `src/verificador/saida/oficial/`, hash travado por
+      teste (`c6ec4963…`). Como é o próprio script, o CSV é idêntico por construção; conferido na amostra.
 - [ ] **Encoder sem rede** (opção A): passo no `Dockerfile` que baixa o snapshot na revisão fixa e confere que os arquivos existem (de preferência `model.safetensors`, não pickle); carregamento com `local_files_only=True`; erro do modo com encoder aponta o `run_sem_encoder.sh`. Teste: `unshare -n` (ou `docker run --network none`) e a
       execução completa tem que passar e dar o mesmo `sha256` da `sub-005`/`sub-006`.
+      *01/10 — em andamento:* pesos baixados e conferidos (`model.safetensors`, sha256 `4e52bfb6…`); com
+      `torch` 2.14.1+cpu / `transformers` 5.18.0 no `venv`, `run.sh` rodou offline e deu `4c6e3538…` (seções
+      2 e 3 de `docs/gerais/registro_mudancas_entrega_final.md`). **Falta:** passo no `Dockerfile`, `local_files_only=True` e teste com `--network none`.
 - [ ] **Docker declarado e funcionando.** `Dockerfile` com a imagem fixada por hash (o levantamento de 25/09
       já trazia o `sha256:37c64f7d…`), `requirements.txt` com `==` (versões do manifesto do Kaggle),
       `ENTRYPOINT`/`CMD` chamando o `run.sh`. Tentar `docker build` de verdade; se não der por espaço/tempo,
@@ -1179,8 +1187,12 @@ o trabalho é empacotar e provar que roda do zero.
 - [ ] **Conjunto "novo" simulado.** Rodar `run.sh` com o `.db` da amostra copiado para outro nome/lugar e com
       os `.txt` copiados para outra pasta; e, se possível, com o sintético e o controle. Conferir tempo,
       memória e que nada assume 1.014 registros.
+      *01/10 — parcial:* `.db` renomeado e `.txt` em outra pasta, ok. Tempo nesta máquina: ~15 s fixos + 3,5 s
+      por documento com encoder (só regex: ~6 s para 26). Falta: sintético e controle, memória.
 - [ ] **Sementes e não determinismo.** Conferir que não há `random`/`shuffle`/amostragem sem semente, e que a
       ordem dos arquivos é fixa (`sorted`; já está). Duas execuções do `run.sh` → CSV idêntico (R49).
+      *01/10 — parcial:* duas execuções do `run.sh` com encoder deram CSV idêntico. Falta a varredura por
+      `random`/`shuffle`.
 - [ ] **Caminhos absolutos e nomes da amostra.** `grep` por `/home/`, `/kaggle/`, `C:\` e por
       `desafio1_bracis`/`desafio-jusbrasil` no código, nos testes e nos documentos de entrega. Testes R41/R43
       verdes.
