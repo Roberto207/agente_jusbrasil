@@ -3,7 +3,7 @@
 Lê pareceres jurídicos (`.txt`), acha as citações de jurisprudência e de lei, consulta a base do
 desafio (`.db`) e classifica cada uma em `real`, `inventada` ou `incompleta`, gerando o CSV de submissão.
 
-**Equipe:** Guerreiros da T7 · **Integrantes:** Roberto Caetano Neto, Caio Gonçalves Sardinha, Beatriz Moura Guimarães
+**Equipe:** Guerreiros da T7 · **Integrantes:** Roberto Caetano Neto, Caio Gonçalves Sardinha, Beatriz de Moura Guimarães
 
 ## Início rápido
 
