@@ -281,3 +281,56 @@ do ADR-014, que em 17/09 tinha rejeitado o "`Dockerfile` enxuto".
 - Tempo: ~4 s por documento com 2 CPUs. Na máquina da organização (~8 vCPUs pelo R44) o encoder ainda usa 4
   threads (`threads=4` no `Encoder`); não foi mexido para não arriscar a saída.
 - README ainda descreve o fluxo antigo (próximo item).
+
+---
+
+## 6. Teste de máquina limpa — passou (01/10)
+
+**Item da checklist:** "Teste de máquina limpa" (o "sem este teste não há entrega"). Nenhum arquivo do
+repositório mudou nesta etapa.
+
+### Como foi feito
+
+1. `git clone --branch caio` do repositório local para um diretório novo, fora da pasta de trabalho, com
+   `core.autocrlf=false` (arquivos exatamente como estão no git, como num Linux). Commit
+   **`c2862f3d287841a93ceba28e2e685fc0f9a745a5`**. O clone não tem `venv`, `.env`, `runs/`, dados da amostra
+   nem cache do Hugging Face; `git ls-files` não lista `.db`, gabarito, `.txt` nem `.env`.
+2. `docker build --no-cache -t verificador:limpo .` — nada reaproveitado dos builds anteriores.
+3. Dados copiados para outra pasta com outros nomes: `entrada/base_final.db` e `entrada/pareceres/*.txt`.
+4. `docker run --rm --network none -v entrada:/dados:ro -v saida:/saida verificador:limpo
+   /dados/base_final.db /dados/pareceres /saida/submission_N.csv`.
+
+### Resultado
+
+| Etapa | Resultado |
+|---|---|
+| Build sem cache | ok, **292 s**, imagem de **2,61 GB**; sha256 dos pesos conferido no build |
+| Com encoder, 1ª execução | código 0, 114 s, sha256 `4c6e3538…0f9ffb` |
+| Com encoder, 2ª execução | código 0, 118 s, sha256 `4c6e3538…0f9ffb` |
+| Só regex (`run_sem_encoder.sh`) | código 0, 15 s, sha256 `4c6e3538…0f9ffb` |
+
+O mesmo sha256 da `sub-005`/`sub-006` e de todos os testes anteriores. Manifesto: `usar_encoder: true`,
+`imagem_docker: python:3.13-slim@sha256:7c61056e…`.
+
+### Observações
+
+- **`git.commit` sai `null` no manifesto de dentro do container**: a imagem não leva `.git` (está no
+  `.dockerignore`) e a `slim` não tem o binário `git`. O commit que vale é o do e-mail de entrega.
+  Não foi alterado: o R31 trata das submissões que **nós** geramos (`submeter`, tag `sub-NNN`).
+- As dependências transitivas que não estão no `requirements.txt` (p. ex. `networkx`, `sympy`, usadas só
+  pelo `torch` internamente) podem vir em versão mais nova num build futuro; neste build, `networkx` veio
+  3.7 (no `venv`, 3.6.1) e a saída não mudou.
+- Ambiente do teste: Docker Desktop no Windows (motor Linux), 2 CPUs e 4 GB de RAM.
+
+---
+
+## 7. README para o avaliador e literal da amostra fora do código (01/10)
+
+**Itens da checklist:** "README para avaliador" e "Caminhos absolutos e nomes da amostra".
+
+| Arquivo | Mudança |
+|---|---|
+| `README.md` | Reescrito para quem vai executar: comandos Docker (`build`, `run --network none`, modo só regras), execução sem Docker, o que sai (CSV + `_artefatos/` com JSONs, rastro e manifesto), abordagem em 5 etapas, o índice da base como o "enriquecimento do `.db`" (gerado do zero a partir do `.db` recebido, só leitura), pesos com link + revisão + sha256 e como chegam offline, ambiente/tempo/determinismo com os números medidos nas seções 5 e 6. Saíram "única chamada de rede", "`docker build` não foi testado" e o fluxo de dois comandos como forma de entrega. |
+| `src/verificador/extracao/padroes.py` | Comentário citava um `documento_id` e um trecho de citação da amostra; o R43 proíbe os dois como literal no código-fonte. Reescrito de forma genérica, sem mudar código. `grep` por ids da amostra em `src/` agora não acha nada. |
+
+`pytest`: 285 passaram, 5 pulados.

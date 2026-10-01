@@ -1126,10 +1126,10 @@ o trabalho é empacotar e provar que roda do zero.
         limpa sem rede e o `docker build` tem que passar antes de entregar, e o README precisa mostrar os
         dois comandos logo no começo. O plano B da regra de corte (abaixo) passa a ser: **entregar o
         `run.sh` apontando para o modo sem encoder**.
-- [ ] **Manter ou remover o encoder?** Reaberto só se o empacotamento offline não passar no teste de máquina
+- [x] **Manter ou remover o encoder?** *01/10: mantido — o teste de máquina limpa passou com encoder.* Reaberto só se o empacotamento offline não passar no teste de máquina
       limpa: aí `run.sh` passa a chamar o modo sem encoder (`usar_encoder = false`, regex reforçado) e o
       README registra o motivo.
-- [ ] **Quem executa o teste de máquina limpa** (precisa de outra máquina/conta ou container sem rede).
+- [x] **Quem executa o teste de máquina limpa** (precisa de outra máquina/conta ou container sem rede). *01/10: container `--network none` a partir de clone limpo, seção 6 do registro.*
 
 ### Pendências de regex/método antes de congelar (levantadas em 30/09)
 
@@ -1185,22 +1185,27 @@ o trabalho é empacotar e provar que roda do zero.
       **dizer no README** o que foi e o que não foi testado, em vez de deixar suposição.
       *01/10 — feito com imagem enxuta* (decisão do usuário; ADR-014 revisão de 01/10): `python:3.13-slim`
       por digest, `requirements.txt` com `==`, `ENTRYPOINT` no `run.sh`. Build real ok (3,44 GB, ~6 min).
-- [ ] **Teste de máquina limpa.** Clone novo em outro diretório (sem `.venv`, sem `runs/`, sem `.env`, sem
+- [x] **Teste de máquina limpa.** Clone novo em outro diretório (sem `.venv`, sem `runs/`, sem `.env`, sem
       cache do HF, sem a pasta `desafio-jusbrasil-bracis-2026` ao lado), sem rede, um `.db` e uma pasta de
       `.txt` em caminhos arbitrários → `run.sh` → CSV com o `sha256` esperado. **Sem este teste não há entrega.**
+      *01/10 — passou* (seção 6 do registro): clone do commit `c2862f3`, `docker build --no-cache`, `docker run
+      --network none` com `.db`/`.txt` renomeados → `4c6e3538…` duas vezes com encoder e uma só regex.
+      **Refazer no commit final** se algo do código mudar depois de `c2862f3`.
 - [ ] **Conjunto "novo" simulado.** Rodar `run.sh` com o `.db` da amostra copiado para outro nome/lugar e com
       os `.txt` copiados para outra pasta; e, se possível, com o sintético e o controle. Conferir tempo,
       memória e que nada assume 1.014 registros.
       *01/10 — parcial:* `.db` renomeado e `.txt` em outra pasta, ok. Tempo nesta máquina: ~15 s fixos + 3,5 s
       por documento com encoder (só regex: ~6 s para 26). Falta: sintético e controle, memória.
-- [ ] **Sementes e não determinismo.** Conferir que não há `random`/`shuffle`/amostragem sem semente, e que a
+- [x] **Sementes e não determinismo.** Conferir que não há `random`/`shuffle`/amostragem sem semente, e que a
       ordem dos arquivos é fixa (`sorted`; já está). Duas execuções do `run.sh` → CSV idêntico (R49).
-      *01/10 — parcial:* duas execuções do `run.sh` com encoder deram CSV idêntico. Falta a varredura por
-      `random`/`shuffle`.
-- [ ] **Caminhos absolutos e nomes da amostra.** `grep` por `/home/`, `/kaggle/`, `C:\` e por
+      *01/10 — feito:* `random`/`shuffle` só em `treino/` e `sintetico/` (fora da execução); `run.sh` fixa
+      `PYTHONHASHSEED=0`; CSV idêntico em todas as execuções repetidas, inclusive no Docker limpo (seção 6).
+- [x] **Caminhos absolutos e nomes da amostra.** `grep` por `/home/`, `/kaggle/`, `C:\` e por
       `desafio1_bracis`/`desafio-jusbrasil` no código, nos testes e nos documentos de entrega. Testes R41/R43
       verdes.
-- [ ] **README para avaliador** (reescrever a partir do de 25/09): abordagem; **passo a passo de execução**
+      *01/10 — feito:* nenhum caminho absoluto em `src/`, `tests/`, scripts, `Dockerfile` e toml; comentário com
+      id e trecho da amostra em `padroes.py` reescrito (R43). `desafio1_bracis` só no `rodar` de desenvolvimento.
+- [x] **README para avaliador** (reescrever a partir do de 25/09): abordagem; **passo a passo de execução**
       com o `run.sh`; ambiente Docker; **onde estão os pesos e em qual revisão**; declaração explícita de que
       a execução é offline e de como o encoder é resolvido; o que é o "enriquecimento do `.db`"
       (`construir_indice`) e onde está; GPU (usa só CPU; cabe em 24 GB); tempo esperado. Remover o texto
